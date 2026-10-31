@@ -22,13 +22,13 @@ module ScenePresentationGames
     b = Builder.new
     b.instance_eval do
       screen :tiled
-      var :state, 0
+      state = var :state, 0
       image(:reddot, "#" => :red) { "########\n" * 8 }   # an 8x8 red block
       image(:bluedot, "#" => :blue) { "########\n" * 8 } # an 8x8 blue block
 
       scene :playing do
         sprite :reddot, at: [40, 40] # belongs to :playing
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene :over do
         sprite :bluedot, at: [100, 100] # belongs to :over

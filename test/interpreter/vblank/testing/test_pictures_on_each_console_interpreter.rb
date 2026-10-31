@@ -52,7 +52,7 @@ class TestPicturesOnEachConsoleInterpreter < Minitest::Test
       screen :tiled
       image(:box, "#" => :red) { Array.new(8) { "#" * 8 }.join("\n") }
       hero = sprite :box, at: [0, 20]
-      game_loop { hero.x.add! 4 }
+      game_loop { hero.x += 4 }
     end.program
   end
 end

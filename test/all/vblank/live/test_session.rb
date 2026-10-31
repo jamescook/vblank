@@ -32,7 +32,7 @@ class TestSession < Minitest::Test
   # on the second and third frames is seen by the third and fourth passes, as on the console.
   def test_buttons_held_on_a_frame_reach_the_pass_after_it
     device = Headless.new(frames: 5, buttons: { 2 => [:a], 3 => [:a] })
-    Session.new(game { game_loop { held(:a).then { pixel 0, 0, :red }.else { pixel 0, 0, :blue } } }).play(device)
+    Session.new(game { game_loop { if held(:a) then pixel 0, 0, :red else pixel 0, 0, :blue end } }).play(device)
 
     seen = device.pictures.map { |picture| Color.resolve(:red) == picture.pixels[0] ? :a : :none }
     assert_equal %i[none none a a none], seen

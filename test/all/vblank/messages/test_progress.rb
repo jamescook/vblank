@@ -450,8 +450,8 @@ class TestProgress < Minitest::Test
     said = StringIO.new
     game = VBlank.game("SLOW", consoles: %i[gba]) do
       screen :bitmap
-      x = var :x, 0
-      game_loop { repeat(30_000) { x.add! 1 } }
+      x = 0
+      game_loop { repeat(30_000) { x += 1 } }
     end
     game.build_rom(out: StringIO.new, err: said, progress: Progress.to(said))
     lines = said.string.lines
@@ -468,7 +468,7 @@ class TestProgress < Minitest::Test
     game = VBlank.game("FARMEAS", consoles: %i[gba]) do
       screen :bitmap
       vars = Array.new(1200) { |n| var :"v#{n}", 0 }
-      func(:count) { 200.times { vars.last.add! 1 } }
+      func(:count) { 200.times { vars[-1] += 1 } }
       game_loop { call :count }
     end
     game.build_rom(out: StringIO.new, err: StringIO.new, progress: Progress.to(out))
@@ -488,7 +488,7 @@ class TestProgress < Minitest::Test
     VBlank.build("FAR", console: :gba, out: StringIO.new, err: StringIO.new, progress: Progress.to(out)) do
       screen :bitmap
       vars = Array.new(1200) { |n| var :"v#{n}", 0 }
-      func(:count) { 200.times { vars.last.add! 1 } }
+      func(:count) { 200.times { vars[-1] += 1 } }
       game_loop { call :count }
     end
     names = phases_in(out).map(&:name)

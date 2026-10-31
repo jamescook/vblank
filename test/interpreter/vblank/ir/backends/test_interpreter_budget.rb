@@ -67,11 +67,11 @@ class TestInterpreterBudget < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :n, 0
+      n = 0
       game_loop do
         wait_vblank
         repeat(passes) { |_k| pixel 0, 0, :blue }
-        add! :n, 1
+        n += 1
       end
     end
     b.finalize_program

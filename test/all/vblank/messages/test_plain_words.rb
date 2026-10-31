@@ -106,11 +106,11 @@ class TestPlainWords < Minitest::Test
       hearts = var :hearts, 3
       files = save_data(:file, copies: 3) { keep hearts }
       game_loop do
-        pressed(:a).then { files[0].save }
-        pressed(:b).then { files[0].load }
-        pressed(:l).then { files[0].erase }
-        pressed(:r).then { files.copy 0, to: 1 }
-        pressed(:select).then { files.reset }
+        files[0].save if pressed(:a)
+        files[0].load if pressed(:b)
+        files[0].erase if pressed(:l)
+        files.copy 0, to: 1 if pressed(:r)
+        files.reset if pressed(:select)
       end
     end
 
@@ -225,9 +225,9 @@ class TestPlainWords < Minitest::Test
     VBlank.build("NAMES", console: :gba, code: "ANAM", maker: "01", out: StringIO.new, err: StringIO.new,
                            progress: progress) do
       screen :bitmap
-      spin = var :spin, 0
+      spin = 0
       game_loop do
-        spin.add! 1
+        spin += 1
         spin.clamp! 0, 200
         fill_rect 0, 0, 40, 40, :blue
         pixel 10, 10, :red
@@ -244,7 +244,7 @@ class TestPlainWords < Minitest::Test
       layers :world, :ui
       score = var :score, 0
       layer(:ui) { draw_number score, 8, 8, :white }
-      game_loop { score.add! 1 }
+      game_loop { score += 1 }
     end
   end
 end

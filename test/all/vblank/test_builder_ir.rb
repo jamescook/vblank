@@ -58,8 +58,8 @@ class TestBuilderIR < Minitest::Test
     # Structural equality proves the shape; running it proves the meaning. The
     # same tree the DSL built executes on the reference backend and clamps as intended.
     got = tree do
-      var :x, 10
-      add! :x, 100     # 110
+      x = var :x, 10
+      x += 100         # 110
       clamp! :x, 0, 20 # -> 20
     end
     assert_equal 20, game_player.run(got)[:x]
@@ -172,9 +172,9 @@ class TestBuilderIR < Minitest::Test
     # Build a loop that calls a func until a counter reaches the limit, then run
     # the exact tree the DSL built and check the counter.
     got = tree do
-      set! :x, 0
+      x = var :x, 0
       func :bump do
-        add! :x, 1
+        x += 1
       end
       game_loop do
         call :bump
@@ -230,9 +230,9 @@ class TestBuilderIR < Minitest::Test
     got = tree do
       screen :bitmap
       enable_sound
-      var :score, 0
+      score = var :score, 0
       func :award do
-        add! :score, 1
+        score += 1
         beep :high
       end
       game_loop do

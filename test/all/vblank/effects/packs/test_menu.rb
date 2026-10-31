@@ -42,7 +42,7 @@ class TestMenu < Minitest::Test
   private def menu_program(press: :a, repeat_every: nil, on: :bitmap, starts_on: nil, &extra)
     build_program do
       screen on
-      var :chose, 0
+      chose = var :chose, 0
       game_loop do
         clear_screen :black if on == :bitmap
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white,
@@ -51,10 +51,10 @@ class TestMenu < Minitest::Test
         options[:starts_on] = starts_on if starts_on
         m = menu(:main, **options) do |rows|
           ROWS.each_with_index do |label, i|
-            rows.item(label, enabled: i != 1) { set! :chose, i + 1 }
+            rows.item(label, enabled: i != 1) { chose = i + 1 }
           end
         end
-        instance_exec(m, &extra) if extra
+        instance_exec(m, chose, &extra) if extra
       end
     end
   end
@@ -191,7 +191,7 @@ class TestMenu < Minitest::Test
   # raced down the list one row a frame can land on the right row by coincidence, and
   # in a three-row walk it often does.
   private def counting_moves(repeat_every:)
-    menu_program(repeat_every: repeat_every) { |m| add! :chose, 1 if m.moved }
+    menu_program(repeat_every: repeat_every) { |m, chose| chose += 1 if m.moved }
   end
 
   def test_holding_a_button_walks_the_list_instead_of_racing_down_it
@@ -234,10 +234,10 @@ class TestMenu < Minitest::Test
   def test_holding_the_button_chooses_once_not_once_a_frame
     i = build_program do
       screen :bitmap
-      var :times, 0
+      times = 0
       game_loop do
         clear_screen :black
-        menu(:main, at: [X, Y]) { |rows| rows.item("GO") { add! :times, 1 } }
+        menu(:main, at: [X, Y]) { |rows| rows.item("GO") { times += 1 } }
       end
     end
     held = walk(i, frames: 10) { |_f| [:a] }
@@ -246,14 +246,14 @@ class TestMenu < Minitest::Test
   end
 
   def test_a_menu_can_be_read_and_moved_by_the_game
-    program = menu_program { |m| (m.picked == 2).then { set! :chose, 99 } }
+    program = menu_program { |m, chose| chose = 99 if m.picked == 2 }
     i = walk(program, frames: 3) { |f| f == 1 ? [:down] : [] }
 
     assert_equal 99, i[:chose], "the game read which row the cursor is on"
   end
 
   def test_moved_is_true_only_on_the_frame_the_cursor_changed_rows
-    program = menu_program { |m| m.moved.then { add! :chose, 1 } }
+    program = menu_program { |m, chose| chose += 1 if m.moved }
     i = walk(program, frames: 10) { |f| f == 1 ? [:down] : [] }
 
     assert_equal 1, i[:chose], "one move in ten frames is one `moved`"
@@ -371,7 +371,7 @@ class TestMenu < Minitest::Test
       game_loop do
         clear_screen :black
         menu(:main, at: [X, Y], spacing: SPACING, color: :gray, picked: :white) do |rows|
-          rows.item(["MUSIC OFF", "MUSIC ON"], showing: music) { music.set! 1 - music }
+          rows.item(["MUSIC OFF", "MUSIC ON"], showing: music) { music = 1 - music }
           rows.item("START")
         end
         instance_exec(music, &extra) if extra
@@ -605,7 +605,7 @@ class TestMenu < Minitest::Test
   end
 
   def test_a_tiled_menu_holds_its_repeat_the_same_way
-    program = tiled_menu(repeat_every: 60) { |m| m.moved.then { add! :chose, 1 } }
+    program = tiled_menu(repeat_every: 60) { |m, chose| chose += 1 if m.moved }
     i = walk(program, frames: 30) { |_f| [:down] }
 
     assert_equal 1, i[:chose], "one move, and the wait swallows the other 29 frames"
@@ -775,21 +775,21 @@ class TestMenu < Minitest::Test
   private def changing_menu(on: :bitmap, opens_at: nil, repeat_every: nil)
     build_program do
       screen on
-      var :chose, 0
+      chose = var :chose, 0
       open = var :open, 0
-      t = var :t, 0
+      t = 0
       game_loop do
         clear_screen :black if on == :bitmap
         t += 1
         open = 1 - open if pressed(:select)
-        (t == opens_at).then { open.set! 1 } if opens_at
+        open = 1 if opens_at && t == opens_at
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white, disabled: :red }
         options[:repeat_every] = repeat_every if repeat_every
         menu(:main, **options) do |rows|
-          rows.item("ONE") { set! :chose, 1 }
-          rows.item("TWO", enabled: open == 1) { set! :chose, 2 }
-          rows.item("THREE", enabled: open) { set! :chose, 3 }
-          rows.item("FOUR") { set! :chose, 4 }
+          rows.item("ONE") { chose = 1 }
+          rows.item("TWO", enabled: open == 1) { chose = 2 }
+          rows.item("THREE", enabled: open) { chose = 3 }
+          rows.item("FOUR") { chose = 4 }
         end
       end
     end

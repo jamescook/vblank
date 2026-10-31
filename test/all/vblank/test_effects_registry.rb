@@ -53,7 +53,7 @@ class TestEffectsRegistry < Minitest::Test
   # A pack that brings a guardrail with it: it errors on a program that sets :boom.
   module Watched
     def watched_verb
-      set! :boom, 1
+      var :boom, 1
     end
 
     def self.checks
@@ -104,9 +104,9 @@ class TestEffectsRegistry < Minitest::Test
       clear_screen :blue
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 1).then { shake_screen intensity: 4, frames: 4 }
-        (frame >= 3).then { halt }
+        frame += 1
+        shake_screen intensity: 4, frames: 4 if frame == 1
+        halt if frame >= 3
       end
     end)
 
@@ -285,10 +285,10 @@ class TestEffectsRegistry < Minitest::Test
       screen :bitmap
       ticks = var :ticks, 0
       frame = var :frame, 0
-      once_a_frame { ticks.add! 1 }
+      once_a_frame { ticks += 1 }
       game_loop do
-        frame.add! 1
-        (frame >= 5).then { halt }
+        frame += 1
+        halt if frame >= 5
       end
     end)
 
@@ -300,27 +300,27 @@ class TestEffectsRegistry < Minitest::Test
   def test_it_runs_on_frames_the_games_own_code_does_not
     i = game_player.run(program do
       screen :bitmap
-      var :state, 0
+      state = var :state, 0
       ticks = var :ticks, 0
-      title_ran = var :title_ran, 0
-      play_ran = var :play_ran, 0
+      title_ran = 0
+      play_ran = 0
       frame = var :frame, 0
 
-      once_a_frame { ticks.add! 1 }
+      once_a_frame { ticks += 1 }
 
       scene(:title) do
-        title_ran.add! 1
-        (frame >= 2).then { set! :state, 1 }
+        title_ran += 1
+        state = 1 if frame >= 2
       end
-      scene(:playing) { play_ran.add! 1 }
+      scene(:playing) { play_ran += 1 }
 
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) do
           when_val 0, :title
           when_val 1, :playing
         end
-        (frame >= 4).then { halt }
+        halt if frame >= 4
       end
     end)
 
@@ -333,7 +333,7 @@ class TestEffectsRegistry < Minitest::Test
     i = game_player.run(program do
       screen :bitmap
       ticks = var :ticks, 0
-      once_a_frame { ticks.add! 1 }
+      once_a_frame { ticks += 1 }
       halt
     end)
 

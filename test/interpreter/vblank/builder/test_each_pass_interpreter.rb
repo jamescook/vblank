@@ -11,8 +11,8 @@ class TestEachPassInterpreter < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      steps = var :steps, 0
-      job = each_pass { steps.add! 1 }
+      steps = 0
+      job = each_pass { steps += 1 }
       job.start
       game_loop {}
     end

@@ -219,8 +219,8 @@ class TestScreenFade < Minitest::Test
     prog = program do
       screen :bitmap
       frame = var :frame, 0
-      scene_id = var :scene_id, 0
-      leaving = var :leaving, 0
+      scene_id = 0
+      leaving = 0
       game_loop do
         if scene_id == 0
           clear_screen :red
@@ -232,7 +232,7 @@ class TestScreenFade < Minitest::Test
           fade_out :black, frames: 5
           leaving = 1
         end
-        (leaving == 1).then do
+        if leaving == 1
           if fade_level == 100
             scene_id = 1
             fade_in frames: 5

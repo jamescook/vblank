@@ -28,9 +28,12 @@ class TestList < Minitest::Test
       body.push 10
       body.push 20
       body.push 30
-      set! :a, body[0]
-      set! :b, body[1]
-      set! :c, body[2]
+      a = var :a, 0
+      b = var :b, 0
+      c = var :c, 0
+      a = body[0]
+      b = body[1]
+      c = body[2]
       halt
     end
 
@@ -45,11 +48,14 @@ class TestList < Minitest::Test
       body.push 1
       body.push 2
       body.push 3
-      set! :after_pushes, body.length
+      after_pushes = var :after_pushes, 0
+      after_shift = var :after_shift, 0
+      after_pop = var :after_pop, 0
+      after_pushes = body.length
       body.shift
-      set! :after_shift, body.length
+      after_shift = body.length
       body.pop
-      set! :after_pop, body.length
+      after_pop = body.length
       halt
     end
 
@@ -65,8 +71,10 @@ class TestList < Minitest::Test
       body.push 20
       body.push 30
       body.shift # drops 10
-      set! :first, body.first
-      set! :len, body.length
+      first = var :first, 0
+      len = var :len, 0
+      first = body.first
+      len = body.length
       halt
     end
 
@@ -81,8 +89,10 @@ class TestList < Minitest::Test
       body.push 20
       body.push 30
       body.pop # drops 30
-      set! :last, body.last
-      set! :len, body.length
+      last = var :last, 0
+      len = var :len, 0
+      last = body.last
+      len = body.length
       halt
     end
 
@@ -97,9 +107,12 @@ class TestList < Minitest::Test
       body.push 20
       body.push 30
       body[1] = 99
-      set! :a, body[0]
-      set! :b, body[1]
-      set! :c, body[2]
+      a = var :a, 0
+      b = var :b, 0
+      c = var :c, 0
+      a = body[0]
+      b = body[1]
+      c = body[2]
       halt
     end
 
@@ -117,10 +130,14 @@ class TestList < Minitest::Test
       # Copy each item, in order, into a second list — so the order is observable.
       seen = list :seen, capacity: 8
       body.each { |cell| seen.push cell }
-      set! :s0, seen[0]
-      set! :s1, seen[1]
-      set! :s2, seen[2]
-      set! :count, seen.length
+      s0 = var :s0, 0
+      s1 = var :s1, 0
+      s2 = var :s2, 0
+      count = var :count, 0
+      s0 = seen[0]
+      s1 = seen[1]
+      s2 = seen[2]
+      count = seen.length
       halt
     end
 
@@ -131,8 +148,8 @@ class TestList < Minitest::Test
   def test_each_over_an_empty_list_runs_the_body_no_times
     result = interpret do
       body = list :body, capacity: 8
-      set! :ran, 0
-      body.each { |_cell| set! :ran, 1 }
+      ran = var :ran, 0
+      body.each { |_cell| ran = 1 }
       halt
     end
 
@@ -148,8 +165,10 @@ class TestList < Minitest::Test
       body.push v            # push a Value
       body.push :v           # push by variable name (a Symbol)
       i = var :i, 1
-      set! :by_value, body[i] # index with a Value
-      set! :by_symbol, body[:i]
+      by_value = var :by_value, 0
+      by_symbol = var :by_symbol, 0
+      by_value = body[i] # index with a Value
+      by_symbol = body[:i]
       halt
     end
 
@@ -169,7 +188,8 @@ class TestList < Minitest::Test
       body.push 1
       body.push 2
       body.push 3
-      set! :len, body.length
+      len = var :len, 0
+      len = body.length
       halt
     end
 
@@ -225,7 +245,8 @@ class TestList < Minitest::Test
       interpret do
         body = list :body, capacity: 8
         body.push 10
-        set! :oops, body[5] # only index 0 exists
+        oops = var :oops, 0
+        oops = body[5] # only index 0 exists
         halt
       end
     end
@@ -301,9 +322,12 @@ class TestList < Minitest::Test
       hurt.push 0
       hurt.push 100
       hurt.push 127
-      set! :a, hurt[0]
-      set! :b, hurt[1]
-      set! :c, hurt[2]
+      a = var :a, 0
+      b = var :b, 0
+      c = var :c, 0
+      a = hurt[0]
+      b = hurt[1]
+      c = hurt[2]
       halt
     end
 
@@ -311,7 +335,7 @@ class TestList < Minitest::Test
   end
 
   # A NARROW SLOT GOES BELOW NOTHING WITHOUT BEING ASKED, and this is the case it exists for:
-  # a countdown is written `sub!` first and tested second, so it really does hold a negative
+  # a countdown is taken down first and tested second, so it really does hold a negative
   # number while the test runs. A slot that could not hold one would read -4 back as 252 and
   # the test would never fire — which is a game that silently stops working, not an error.
   def test_a_countdown_can_go_below_nothing_in_a_byte_slot
@@ -319,9 +343,10 @@ class TestList < Minitest::Test
       wait = list :wait, capacity: 4, width: :byte
       wait.push 3
       wait[0] = wait[0] - 7
-      set! :a, wait[0]
-      set! :b, 0
-      set! :b, 1 if wait[0] <= 0
+      a = var :a, 0
+      b = var :b, 0
+      a = wait[0]
+      b = 1 if wait[0] <= 0
       halt
     end
 
@@ -337,8 +362,10 @@ class TestList < Minitest::Test
       hurt = list :hurt, capacity: 4, width: :byte
       hurt.push 200
       hurt.push 300
-      set! :a, hurt[0]
-      set! :b, hurt[1]
+      a = var :a, 0
+      b = var :b, 0
+      a = hurt[0]
+      b = hurt[1]
       halt
     end
 
@@ -362,8 +389,10 @@ class TestList < Minitest::Test
       big = list :big, capacity: 4, width: :half
       big.push 32_767
       big.push(-32_768)
-      set! :a, big[0]
-      set! :b, big[1]
+      a = var :a, 0
+      b = var :b, 0
+      a = big[0]
+      b = big[1]
       halt
     end
 

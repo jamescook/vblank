@@ -46,7 +46,7 @@ class TestScreenPixelate < Minitest::Test
   end
 
   def test_pixelating_out_and_never_in_is_a_warning
-    stuck = painted_game { |frame| (frame == 2).then { pixelate_out } }
+    stuck = painted_game { |frame| pixelate_out if frame == 2 }
     back = painted_game do |frame|
       pixelate_out if frame == 2
       pixelate_in if frame == 50

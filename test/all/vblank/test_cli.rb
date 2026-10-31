@@ -220,9 +220,9 @@ class TestCLI < Minitest::Test
     require "vblank"
     Held = VBlank.game "HELD", consoles: %i[gba], code: "BHLD", maker: "01" do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
-        held(:left).then { add! :x, 1 }
+        x += 1 if held(:left)
       end
     end
   RUBY
@@ -270,7 +270,7 @@ class TestCLI < Minitest::Test
           clear_screen :black
           t = var :t, 0
           game_loop do
-            repeat(50) { |i| t.add! i }
+            repeat(50) { |i| t += i }
             fill_rect 0, 0, 40, 8, :green
           end
         end
@@ -423,7 +423,7 @@ class TestCLI < Minitest::Test
     require "vblank"
     VBlank.game("BOTH", consoles: %i[gba gbc]) do
       x = var :x, screen_width / 2
-      game_loop { x.add! 1 }
+      game_loop { x += 1 }
     end
   GAME
 
@@ -755,7 +755,7 @@ class TestCLI < Minitest::Test
         require "vblank"
         VBlank.game("SHOULDERS", consoles: %i[gba gbc]) do
           count = var :count, 0
-          game_loop { held(:l).then { count.add! 1 } }
+          game_loop { count += 1 if held(:l) }
         end
       GAME
       out, status = cli("build", "shoulders.rb", dir: dir)
@@ -803,8 +803,8 @@ class TestCLI < Minitest::Test
           screen :bitmap
           %i[a b c].each do |name|
             t = timer name, per_second: 60
-            var :"snap_\#{name}", 0
-            set! :"snap_\#{name}", t.ticks
+            snap = var :"snap_\#{name}", 0
+            snap = t.ticks
           end
           halt
         end
@@ -848,8 +848,8 @@ class TestCLI < Minitest::Test
           height = var :height, 0
           heights = Array.new(20) { |n| table :"heights_\#{n}", Array.new(1000) { |i| (i + n) % 100 }, width: :byte }
           game_loop do
-            heights.each { |t| height.set! t[at] }
-            at.add! 1
+            heights.each { |t| height = t[at] }
+            at += 1
           end
         end
       GAME
@@ -947,7 +947,7 @@ class TestCLI < Minitest::Test
           places = table :places, (0...300).map { |i| i % 200 }, width: :half
           n = var :n, 0
           game_loop do
-            n.add! 1
+            n += 1
             draw_rect_at places[n], 20, 4, 4, :green
           end
         end
@@ -989,12 +989,12 @@ class TestCLI < Minitest::Test
       RUBY
       File.write(File.join(dir, "multi.rb"), <<~RUBY)
         require "vblank"
-        require_relative "extra_state"
+        VBlank.require_game_file "extra_state"
 
         Multi = VBlank.game "MULTI", consoles: %i[gba], code: "BMLT", maker: "01" do
           screen :bitmap
-          ExtraState.declare(self)
-          game_loop { add! :score, 1 }
+          score = ExtraState.declare(self)
+          game_loop { score += 1 }
         end
       RUBY
 

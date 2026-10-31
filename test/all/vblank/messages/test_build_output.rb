@@ -15,10 +15,10 @@ module BuildOutputGames
   private def game_that_warns
     VBlank.game "OUTPUT", consoles: %i[gba] do
       screen :bitmap
-      var :n, 0
+      n = 0
       game_loop do
         wait_vblank
-        add! :n, 1
+        n += 1
       end
     end
   end

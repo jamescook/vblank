@@ -30,9 +30,9 @@ class TestMusicKeepsTimeInterpreter < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clip = sample :tone, pcm: Array.new(30 * 100) { |i| i.even? ? 90 : -90 }, rate: 6000 # a hundred samples a frame
-      started = var :started, 0
+      started = 0
       game_loop do
-        (started == 0).then do
+        if started == 0
           started = 1
           clip.play
         end

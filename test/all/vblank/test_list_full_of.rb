@@ -17,13 +17,13 @@ class TestListFullOf < Minitest::Test
   def test_a_list_full_of_a_value_holds_its_capacity_of_that_value_from_the_start
     result = interpret do
       marks = list :marks, capacity: 5, full_of: 7
-      held = var :held, 0
-      first = var :first, 0
-      last = var :last, 0
+      held = 0
+      first = 0
+      last = 0
       game_loop do
-        held.set! marks.length
-        first.set! marks[0]
-        last.set! marks[4]
+        held = marks.length
+        first = marks[0]
+        last = marks[4]
       end
     end
 
@@ -36,7 +36,7 @@ class TestListFullOf < Minitest::Test
     result = interpret do
       speeds = list :speeds, capacity: 3, full_of: 1.5
       doubled = var :doubled, 0.0
-      game_loop { doubled.set! speeds[2] * 2 }
+      game_loop { doubled = speeds[2] * 2 }
     end
 
     assert_in_delta 3.0, result[:doubled].to_f / (1 << VBlank::DSL::Fraction::DEFAULT_BITS), 0.001
@@ -58,33 +58,35 @@ class TestListFullOf < Minitest::Test
   # are not whole words; the item after the list is never written. A list longer than a Game
   # Boy Color holds, read on the Advance's cartridge, is in test/console/gba/.
   READINGS = %i[bytes_held byte_first byte_last half_last word_first word_last after_first ring_first ring_last].freeze
-  WIDTHS = proc do
-    bytes = list :bytes, capacity: 99, width: :byte, full_of: -1, fast: false
-    halves = list :halves, capacity: 3, width: :half, full_of: 300
-    words = list :words, capacity: 2, full_of: -70_000
-    after = list :after, capacity: 1
-    after.push 9
-    # A list the game shifts is a ring on the console, its slots rounded up past the capacity.
-    ring = list :ring, capacity: 3, full_of: 4
-    ring.shift
-    ring.push 6
-    readings = READINGS.to_h { |name| [name, var(name, 0)] }
-    game_loop do
-      readings[:bytes_held].set! bytes.length
-      readings[:byte_first].set! bytes[0]
-      readings[:byte_last].set! bytes[98]
-      readings[:half_last].set! halves[2]
-      readings[:word_first].set! words[0]
-      readings[:word_last].set! words[1]
-      readings[:after_first].set! after[0]
-      readings[:ring_first].set! ring[0]
-      readings[:ring_last].set! ring[2]
+  private def widths
+    proc do
+      bytes = list :bytes, capacity: 99, width: :byte, full_of: -1, fast: false
+      halves = list :halves, capacity: 3, width: :half, full_of: 300
+      words = list :words, capacity: 2, full_of: -70_000
+      after = list :after, capacity: 1
+      after.push 9
+      # A list the game shifts is a ring on the console, its slots rounded up past the capacity.
+      ring = list :ring, capacity: 3, full_of: 4
+      ring.shift
+      ring.push 6
+      readings = READINGS.to_h { |name| [name, var(name, 0)] }
+      game_loop do
+        readings[:bytes_held] = bytes.length
+        readings[:byte_first] = bytes[0]
+        readings[:byte_last] = bytes[98]
+        readings[:half_last] = halves[2]
+        readings[:word_first] = words[0]
+        readings[:word_last] = words[1]
+        readings[:after_first] = after[0]
+        readings[:ring_first] = ring[0]
+        readings[:ring_last] = ring[2]
+      end
     end
   end
 
   def test_every_width_starts_full
     builder = Builder.new
-    builder.instance_eval(&WIDTHS)
+    builder.instance_eval(&widths)
     builder.finalize_program
     run = game_player.run(builder.program, frames: 2)
 

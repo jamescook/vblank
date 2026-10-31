@@ -18,8 +18,8 @@ class TestTable < Minitest::Test
   def test_reads_a_value_at_a_constant_index
     i = interpret do
       squares = table :squares, [0, 1, 4, 9, 16, 25], width: :byte
-      var :out, 0
-      set! :out, squares[3]
+      out = var :out, 0
+      out = squares[3]
       halt
     end
     assert_equal 9, i[:out]
@@ -29,8 +29,8 @@ class TestTable < Minitest::Test
     i = interpret do
       t = table :t, [10, 20, 30, 40], width: :byte
       idx = var :idx, 2
-      var :out, 0
-      set! :out, t[idx]
+      out = var :out, 0
+      out = t[idx]
       halt
     end
     assert_equal 30, i[:out]
@@ -45,9 +45,9 @@ class TestTable < Minitest::Test
       t = table :big, (0...12_000).map { |n| (n * 7919) % 65_536 }, width: :half
       at = var :at, 0
       places.each_with_index do |place, n|
-        var :"out_#{n}", 0
+        out = var :"out_#{n}", 0
         at = place
-        set! :"out_#{n}", t[at]
+        out = t[at]
       end
       halt
     end
@@ -73,9 +73,9 @@ class TestTable < Minitest::Test
       at = var :at, 0
       reads.each do |name, places|
         places.each_with_index do |place, n|
-          var :"#{name}_#{n}", 0
+          out = var :"#{name}_#{n}", 0
           at = place
-          set! :"#{name}_#{n}", tables.fetch(name)[at]
+          out = tables.fetch(name)[at]
         end
       end
       halt
@@ -91,8 +91,8 @@ class TestTable < Minitest::Test
   def test_signed_values_round_trip
     i = interpret do
       t = table :sines, [0, 127, -128, -1], width: :byte # signed is inferred (a negative present)
-      var :out, 0
-      set! :out, t[2]
+      out = var :out, 0
+      out = t[2]
       halt
     end
     assert_equal(-128, i[:out])
@@ -103,8 +103,8 @@ class TestTable < Minitest::Test
     i = interpret do
       sin = table :sin, (0...256).map { |a| (Math.sin(a * Math::PI / 128) * 256).round }, width: :half
       var :q, 64
-      var :out, 0
-      set! :out, sin[:q] # sin at a quarter turn (64/256) is the peak, +256
+      out = var :out, 0
+      out = sin[:q] # sin at a quarter turn (64/256) is the peak, +256
       halt
     end
     assert_equal 256, i[:out]
@@ -113,8 +113,8 @@ class TestTable < Minitest::Test
   def test_power_of_two_table_wraps_the_index
     i = interpret do
       t = table :t, [100, 200, 300, 400], width: :half # 4 entries: index 5 wraps to 1
-      var :out, 0
-      set! :out, t[5]
+      out = var :out, 0
+      out = t[5]
       halt
     end
     assert_equal 200, i[:out]
@@ -123,10 +123,10 @@ class TestTable < Minitest::Test
   def test_non_power_of_two_table_clamps_the_index
     i = interpret do
       t = table :t, [7, 8, 9], width: :half # 3 entries: past-the-end clamps to the last, below-zero to the first
-      var :hi, 0
-      var :lo, 0
-      set! :hi, t[9]
-      set! :lo, t[-4]
+      hi = var :hi, 0
+      lo = var :lo, 0
+      hi = t[9]
+      lo = t[-4]
       halt
     end
     assert_equal 9, i[:hi]
