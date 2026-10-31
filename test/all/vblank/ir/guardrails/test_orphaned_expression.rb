@@ -22,8 +22,8 @@ class TestOrphanedExpression < Minitest::Test
     findings = findings_for do
       screen :bitmap
       flags = var :flags, 0
-      flags |= 4         # Ruby: `flags = flags | 4` — the Ruby name moves, the game's
-      halt               # variable does not. Ruby itself says nothing about this one.
+      flags | 4          # worked out and dropped: the game's variable does not change,
+      halt               # and Ruby itself says nothing about this one.
     end
 
     assert_equal 1, findings.length
@@ -35,7 +35,7 @@ class TestOrphanedExpression < Minitest::Test
     findings = findings_for do
       screen :bitmap
       hp = var :hp, 10
-      hp += 1            # `hp.add! 1` was meant
+      hp + 1             # `hp.add! 1` was meant
       halt
     end
 
@@ -47,7 +47,7 @@ class TestOrphanedExpression < Minitest::Test
     findings = findings_for do
       screen :bitmap
       hp = var :hp, 10
-      hp *= 2
+      hp * 2
       halt
     end
 
@@ -288,7 +288,7 @@ class TestOrphanedExpression < Minitest::Test
       VBlank.build("FLAGS", console: :gba, code: "BFLG", maker: "01", err: err) do
         screen :bitmap
         flags = var :flags, 0
-        game_loop { flags |= 4 }
+        game_loop { flags | 4 }
       end
     end
 
@@ -312,7 +312,7 @@ class TestOrphanedExpression < Minitest::Test
     findings = findings_for do
       screen :bitmap
       hp = var :hp, 10
-      hp += 1
+      hp + 1
       halt
     end
 
@@ -328,7 +328,7 @@ class TestOrphanedExpression < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       hp = var :hp, 10
-      hp += 1
+      hp + 1
       halt
     end
     builder.finalize_program

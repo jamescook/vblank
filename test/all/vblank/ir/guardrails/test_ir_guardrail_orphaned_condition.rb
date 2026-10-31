@@ -114,15 +114,20 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
 
   # ---- build-finalize surfaces it -----------------------------------------
 
+  # Code the rewrite does not reach, which is the one place a native `if` can still go wrong.
+  def native_if_outside_the_block(build, x)
+    if x > 3 # the footgun: a native `if` on a Condition
+      build.set! :y, 1
+    end
+  end
+
   def test_build_halts_on_a_native_if_slip
     err = StringIO.new
+    test = self
     assert_raises(VBlank::ROMError) do
       VBlank.build("GUARD", console: :gba, code: "BGRD", maker: "01", out: StringIO.new, err: err) do
         screen :bitmap
-        x = var :x, 5
-        if x > 3        # the footgun: a native `if` on a Condition
-          set! :y, 1
-        end
+        test.native_if_outside_the_block(self, var(:x, 5))
         halt
       end
     end

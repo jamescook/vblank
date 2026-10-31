@@ -31,6 +31,7 @@ require_relative "../vblank"
 require_relative "testing/lowering"
 require_relative "testing/checked_player"
 require_relative "testing/pictures"
+require_relative "testing/rewritten_blocks"
 
 module VBlank
   module Testing

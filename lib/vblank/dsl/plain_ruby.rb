@@ -32,19 +32,61 @@ module VBlank
       # THIS RUNS AS THE GAME IS DECLARED, because the block's binding is only there to read until
       # a game is made shareable between Ractors (Cartridge::Game#shareable_if_possible). The proc
       # this makes is cut loose in its place, so everything it needs later is written into it.
-      def rewrite(block, allow: [])
+      #
+      # +checked+ false leaves the checks out, for a block that has good reason to reach further
+      # than a game does: a test's, which names its own helpers.
+      def rewrite(block, allow: [], checked: true)
         file, line = block.source_location
-        rewriter = Rewriter.new(File.binread(file), line)
-        checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
-        checks.refuse_outside_calls!
-        source = "proc { #{checks.constant_check}; (proc #{rewriter.rewritten_block}).call }"
+        rewriter = Rewriter.new(*source_and_block_of(block), outer_locals: block.binding.local_variables)
+        source = checked ? checked_source(rewriter, file, allow) : "proc #{rewriter.rewritten_block}"
         eval(source, block.binding, file, line) # rubocop:disable Security/Eval
       end
 
+      def checked_source(rewriter, file, allow)
+        checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
+        checks.refuse_outside_calls!
+        "proc { |*__plain_ruby_given| #{checks.constant_check}; " \
+          "(proc #{rewriter.rewritten_block}).call(*__plain_ruby_given) }"
+      end
+
+      # Can +block+ be rewritten? It takes a file to read and a scope to run in, and a proc this
+      # module made already has no file of its own, which is how it is not rewritten twice.
+      def rewritable?(block)
+        iseq = RubyVM::InstructionSequence.of(block)
+        return false unless iseq&.absolute_path && File.file?(iseq.absolute_path)
+
+        block.binding
+        true
+      rescue ArgumentError
+        false
+      end
+
       # What the block's source is rewritten into, for reading and for a test.
-      def rewritten_source(block)
-        file, line = block.source_location
-        Rewriter.new(File.binread(file), line).rewritten_block
+      def rewritten_source(block) = Rewriter.new(*source_and_block_of(block)).rewritten_block
+
+      # The block's file and its node. Ruby says where a block starts to the column, so two on one
+      # line are told apart. A file is read and parsed once, per Ractor since a tree is not shared.
+      def source_and_block_of(block)
+        line, column, = RubyVM::InstructionSequence.of(block).to_a[4][:code_location]
+        source, blocks = parsed_file(block.source_location.first)
+        found = blocks[[line, column]]
+        raise ArgumentError, "No block starts at line #{line}, so this game cannot be read." unless found
+
+        [source, found]
+      end
+
+      def parsed_file(path)
+        files = (Ractor.current[:plain_ruby_parsed_files] ||= {})
+        files[path] ||= begin
+          source = File.binread(path)
+          [source, blocks_by_start(Prism.parse(source).value, {})]
+        end
+      end
+
+      def blocks_by_start(node, found)
+        found[[node.location.start_line, node.location.start_column]] = node if node.is_a?(Prism::BlockNode)
+        node.compact_child_nodes.each { |child| blocks_by_start(child, found) }
+        found
       end
 
       # A whole file of a game in normal Ruby, the file a game splits a part into, as source.
@@ -62,17 +104,17 @@ module VBlank
       class Rewriter
         STEPS = "::VBlank::DSL::PlainRubySteps"
 
-        # The first block opening on +line+ of +source+.
         attr_reader :block_node
 
-        def initialize(source, line = nil)
+        # +outer_locals+ are the names the block's scope holds. Written further down the method a
+        # block sits in, one is no local to the block as Ruby first read it, and yet it is to
+        # `eval`: `screen :tiled` would stop being a call. Those calls are written with `self.`.
+        def initialize(source, block_node = nil, outer_locals: [])
           @source = source
+          @block_node = block_node
+          @outer_locals = outer_locals
           @answers = 0
           @open_tests = []
-          return unless line
-
-          @block_node = block_nodes(Prism.parse(source).value).find { |block| block.location.start_line == line }
-          raise ArgumentError, "No block starts on line #{line}, so this game cannot be read." unless @block_node
         end
 
         def rewritten_block = rewritten(@block_node)
@@ -83,11 +125,6 @@ module VBlank
         end
 
         private
-
-        def block_nodes(node)
-          own = node.is_a?(Prism::BlockNode) ? [node] : []
-          own + node.compact_child_nodes.flat_map { |child| block_nodes(child) }
-        end
 
         def between(from, upto) = @source.byteslice(from...upto).force_encoding(Encoding::UTF_8)
 
@@ -161,6 +198,7 @@ module VBlank
           return "#{STEPS}.opposite(#{argument(node.receiver)})" if node.name == :! && node.receiver
           return index_write_text(node) if node.name == :[]= && node.receiver
           return attribute_write_text(node) if node.attribute_write? && node.receiver
+          return "self.#{copied_text(node)}" if node.receiver.nil? && @outer_locals.include?(node.name)
 
           copied_text(node)
         end
