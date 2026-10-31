@@ -102,7 +102,7 @@ class TestRedrawEverythingGuardrail < Minitest::Test
     assert_empty Check.new.detect(prog)
   end
 
-  # Work under an `.else` is as much every frame's as work under the `.then` beside it.
+  # Work under an `else` is as much every frame's as work under the `if` beside it.
   def test_flags_the_redraw_in_an_else
     prog = program do
       screen :bitmap
@@ -124,7 +124,7 @@ class TestRedrawEverythingGuardrail < Minitest::Test
     assert_equal 1, Check.new.detect(prog).length
   end
 
-  # A press is the rare case, so the `.else` of a press is the steady one: it runs on every
+  # A press is the rare case, so the `else` of a press is the steady one: it runs on every
   # frame the button did not just go down.
   def test_flags_the_redraw_in_the_else_of_a_press
     prog = program do
@@ -132,7 +132,9 @@ class TestRedrawEverythingGuardrail < Minitest::Test
       body = list :body, capacity: 64
       game_loop do
         wait_vblank
-        pressed(:start).then { draw_rect_at 0, 0, 8, 8, :white }.else do
+        if pressed(:start)
+          draw_rect_at 0, 0, 8, 8, :white
+        else
           clear_screen :black
           repeat(body.length) { |_i| draw_rect_at 0, 0, 8, 8, :green }
         end

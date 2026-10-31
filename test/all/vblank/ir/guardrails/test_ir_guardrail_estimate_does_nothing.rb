@@ -15,9 +15,10 @@ class TestIRGuardrailEstimateDoesNothing < Minitest::Test
       body = list :body, capacity: 8, estimate: { usually: 2 }
       pool :spark, x: 0, capacity: 4, estimate: { usually: 1 }
       n = var :n, 3
+      seen = var :seen, 0
       game_loop do
         repeat(n, estimate: { most: 4 }) { body.push 1 }
-        (n > 0).then(estimate: { usually: 1, in: 60 }) { set! :seen, 1 }
+        (n > 0).then(estimate: { usually: 1, in: 60 }) { seen = 1 }
         draw_rect_at 0, 0, 2, n, :white, estimate: { usually: 3 }
         draw_column_at :wall, slice: 0, x: 4, top: 0, height: n, estimate: { usually: 1, in: 60 }
       end
@@ -43,7 +44,8 @@ class TestIRGuardrailEstimateDoesNothing < Minitest::Test
     said = build_warnings do
       screen :bitmap
       list :body, capacity: 8
-      game_loop { set! :n, 1 }
+      n = 0
+      game_loop { n = 1 }
     end
 
     refute_match(/estimate/, said)
@@ -54,15 +56,17 @@ class TestIRGuardrailEstimateDoesNothing < Minitest::Test
     plain = Builder.new
     plain.instance_eval do
       body = list :body, capacity: 8
+      len = var :len, 0
       3.times { |n| body.push n }
-      set! :len, body.length
+      len = body.length
       halt
     end
     hinted = Builder.new
     hinted.instance_eval do
       body = list :body, capacity: 8, estimate: { usualy: 99 }
+      len = var :len, 0
       3.times { |n| body.push n }
-      set! :len, body.length
+      len = body.length
       halt
     end
 

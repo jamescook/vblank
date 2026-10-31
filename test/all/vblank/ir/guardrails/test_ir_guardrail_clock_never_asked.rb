@@ -19,7 +19,7 @@ class TestIRGuardrailClockNeverAsked < Minitest::Test
     warnings = build_warnings do
       screen :bitmap
       hour = var :hour, 0
-      game_loop { hour.set! clock.hour }
+      game_loop { hour = clock.hour }
     end
 
     assert_match(/clock\.present\?/, warnings)

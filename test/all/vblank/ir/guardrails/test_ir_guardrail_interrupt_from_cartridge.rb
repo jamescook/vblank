@@ -23,8 +23,8 @@ class TestIRGuardrailInterruptFromCartridge < Minitest::Test
       total = var :total, 0
       ticks = var :ticks, 0
       # A timer twice a frame keeps the interrupt's routine wanted in the quick memory.
-      timer(:beat, per_second: 120).on_tick { ticks.add! 1 }
-      func(:heavy, fast: insisted) { CROWDING.times { |n| total.add! n } }
+      timer(:beat, per_second: 120).on_tick { ticks += 1 }
+      func(:heavy, fast: insisted) { CROWDING.times { |n| total += n } }
       play_song :tune
       game_loop { call :heavy }
     end
@@ -56,12 +56,12 @@ class TestIRGuardrailInterruptFromCartridge < Minitest::Test
       song(:tune) { voice(1) { note :C4, :quarter } }
       total = var :total, 0
       ticks = var :ticks, 0
-      timer(:beat, per_second: 120).on_tick { ticks.add! 1 }
-      func(:tiny, fast: true) { total.add! 1 }
+      timer(:beat, per_second: 120).on_tick { ticks += 1 }
+      func(:tiny, fast: true) { total += 1 }
       play_song :tune
       game_loop do
         call :tiny
-        CROWDING.times { |n| total.add! n }
+        CROWDING.times { |n| total += n }
       end
     end
 

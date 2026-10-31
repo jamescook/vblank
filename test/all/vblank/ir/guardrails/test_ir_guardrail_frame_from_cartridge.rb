@@ -17,7 +17,7 @@ class TestFrameFromCartridgeGuardrail < Minitest::Test
     rom = VBlank.build("COLD", console: :gba, code: "ZCLD", maker: "01", out: StringIO.new, err: err) do
       screen :bitmap
       spin = var :spin, 0
-      cold = lambda { 4000.times { spin.add! 1 } }
+      cold = lambda { 4000.times { spin += 1 } }
       func(:thinking, fast: false) { cold.call } if cold_in_a_func
       game_loop do
         fill_rect 0, 0, 40, 8, :green
@@ -65,19 +65,19 @@ class TestFrameFromCartridgeGuardrail < Minitest::Test
     rom = VBlank.build("WORK#{inline ? 'IN' : 'OUT'}#{'S' if scenes}", console: :gba, out: StringIO.new, err: err, profile: true) do
       screen :bitmap
       spin = var :spin, 0
-      busy = var :busy, 0
-      summing = -> { repeat(work) { busy.add! 3 } }
+      busy = 0
+      summing = -> { repeat(work) { busy += 3 } }
       func(:sums) { summing.call } unless inline
       if scenes
         var :state, 0
-        scene(:title) { busy.add! 1 }
+        scene(:title) { busy += 1 }
         scene(:playing) { fill_rect 0, 16, 40, 8, :red }
       end
       game_loop do
         fill_rect 0, 0, 40, 8, :green
         inline ? summing.call : call(:sums)
         if spin == 1
-          4000.times { spin.add! 1 }
+          4000.times { spin += 1 }
         end
         next unless scenes
 

@@ -128,9 +128,9 @@ class TestOrphanedExpression < Minitest::Test
       screen :bitmap
       flags = var :flags, 0
       hp = var :hp, 10
-      flags.set! flags | 4
-      hp.add! 1
-      (hp > 5).then { flags.set! flags & ~4 }
+      flags |= 4
+      hp += 1
+      flags &= ~4 if hp > 5
       halt
     }
   end
@@ -175,8 +175,8 @@ class TestOrphanedExpression < Minitest::Test
       sparks = pool :spark, x: 0, y: 0, vy: 0, capacity: 8
       sparks.spawn(x: 10, y: 0, vy: 2)
       sparks.each do |s|
-        s.y.add! s.vy
-        (s.y > 160).then { s.remove }
+        s.y += s.vy
+        s.remove if s.y > 160
       end
       halt
     }
@@ -187,7 +187,7 @@ class TestOrphanedExpression < Minitest::Test
       screen :bitmap
       drops = pool :drop, y: 0.0, vy: 0.0, capacity: 8
       drops.spawn(y: 0.0, vy: 1.5)
-      drops.each { |d| d.y.add! d.vy }
+      drops.each { |d| d.y += d.vy }
       halt
     }
   end
@@ -216,7 +216,7 @@ class TestOrphanedExpression < Minitest::Test
       water = background :water, tiles: :stripes, map: Array.new(20) { "#" * 30 }
       drift = var :drift, 0
       water.scroll_each_row { |_row| drift }
-      game_loop { drift.add! 1 }
+      game_loop { drift += 1 }
     }
   end
 
@@ -302,7 +302,7 @@ class TestOrphanedExpression < Minitest::Test
     rom = VBlank.build("FLAGS", console: :gba, code: "BFLG", maker: "01", err: StringIO.new) do
       screen :bitmap
       flags = var :flags, 0
-      game_loop { flags.set! flags | 4 }
+      game_loop { flags |= 4 }
     end
 
     assert rom, "correct code must still build"

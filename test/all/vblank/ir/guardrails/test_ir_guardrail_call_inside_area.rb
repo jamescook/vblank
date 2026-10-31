@@ -55,14 +55,14 @@ class TestIRGuardrailCallInsideArea < Minitest::Test
 
   # --- the check ---
 
-  # An `.else` runs as surely as a `.then`, on whichever frames its test says, so a call
-  # there, or a draw in a routine's own `.else`, is the same footgun.
+  # An `else` runs as surely as the `if` beside it, on whichever frames its test says, so a call
+  # there, or a draw in a routine's own `else`, is the same footgun.
   def test_it_flags_a_call_in_an_else_and_a_draw_in_a_routines_else
     called_from_else = program do
       screen :bitmap
       on = var :on, 0
       func(:draw_something) { fill_rect 0, 0, 240, 160, :red }
-      game_loop { inside(0, 0, 100, 100) { (on == 1).then { pixel 1, 1, :blue }.else { call :draw_something } } }
+      game_loop { inside(0, 0, 100, 100) { if on == 1 then pixel 1, 1, :blue else call :draw_something end } }
     end
     drawn_in_else = program do
       screen :bitmap
@@ -127,8 +127,8 @@ class TestIRGuardrailCallInsideArea < Minitest::Test
   def test_a_call_to_a_routine_that_does_not_draw_is_not_flagged
     prog = program do
       screen :bitmap
-      x = var :x, 0
-      func(:bump) { x.add! 1 }
+      x = 0
+      func(:bump) { x += 1 }
       game_loop { inside(0, 0, 100, 100) { call :bump } }
     end
 

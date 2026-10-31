@@ -38,7 +38,7 @@ class TestSpriteGuardrails < Minitest::Test
   # ---- sprite + per-frame clear ----
 
   def test_flags_a_sprite_cleared_every_frame
-    prog = a_heart { |hero| clear_screen :black; hero.x.add! 1 }
+    prog = a_heart { |hero| clear_screen :black; hero.x += 1 }
     findings = Cleared.new.detect(prog)
     assert_equal 1, findings.length
     assert findings.first.warning?, "the check is advisory"
@@ -47,7 +47,7 @@ class TestSpriteGuardrails < Minitest::Test
   end
 
   def test_flags_a_full_screen_fill_over_a_sprite
-    prog = a_heart { |hero| dma_fill_rect 0, 0, 240, 160, :black; hero.x.add! 1 }
+    prog = a_heart { |hero| dma_fill_rect 0, 0, 240, 160, :black; hero.x += 1 }
     assert_equal 1, Cleared.new.detect(prog).length, "a full-screen fill is a clear too"
   end
 
@@ -59,13 +59,13 @@ class TestSpriteGuardrails < Minitest::Test
 
   def test_does_not_flag_a_clear_behind_a_press_edge
     # Clearing when a round (re)starts is a transition, not steady per-frame work.
-    prog = a_heart { |hero| pressed(:start).then { clear_screen :black }; hero.x.add! 1 }
+    prog = a_heart { |hero| clear_screen :black if pressed(:start); hero.x += 1 }
     assert_empty Cleared.new.detect(prog), "a clear behind a pressed edge is a once-in-a-while transition"
   end
 
   # The other side of a press runs on every frame the button did not just go down.
   def test_flags_a_clear_in_the_else_of_a_press_edge
-    prog = a_heart { |hero| pressed(:start).then { hero.x.set! 0 }.else { clear_screen :black }; hero.x.add! 1 }
+    prog = a_heart { |hero| if pressed(:start) then hero.x = 0 else clear_screen :black end; hero.x += 1 }
     assert_equal 1, Cleared.new.detect(prog).length
   end
 
@@ -79,7 +79,7 @@ class TestSpriteGuardrails < Minitest::Test
     assert_match(/heart/, findings.first.message)
   end
 
-  # A sprite declared under an `.else` draws itself there; that draw is its own, not a hand one.
+  # A sprite declared under an `else` draws itself there; that draw is its own, not a hand one.
   def test_does_not_flag_the_own_draw_of_a_sprite_declared_in_an_else
     prog = program do
       screen :bitmap

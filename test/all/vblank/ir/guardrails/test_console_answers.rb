@@ -27,13 +27,13 @@ class TestConsoleAnswers < Minitest::Test
 
   SHOULDERS = VBlank.game("SHOULDERS", consoles: %i[gba gbc]) do
     count = var :count, 0
-    game_loop { held(:l).then { count.add! 1 } }
+    game_loop { count += 1 if held(:l) }
   end
 
   # Any button at all is not a button a console can lack.
   ANY_BUTTON = VBlank.game("ANYBUTTON", consoles: %i[gba gbc]) do
     count = var :count, 0
-    game_loop { pressed(:any).then { count.add! 1 } }
+    game_loop { count += 1 if pressed(:any) }
   end
 
   CROWDED = VBlank.game("CROWDED", consoles: %i[gba gbc]) do
@@ -102,8 +102,8 @@ class TestConsoleAnswers < Minitest::Test
 
   # A game that reads the clock, and one that sets it.
   CLOCKED = VBlank.game("CLOCKED", consoles: %i[gba gbc snes]) do
-    hour = var :hour, 0
-    game_loop { hour.set! clock.hour }
+    hour = 0
+    game_loop { hour = clock.hour }
   end
 
   SETTING_CLOCK = VBlank.game("SETCLOCK", consoles: %i[gba gbc snes]) do
@@ -118,11 +118,11 @@ class TestConsoleAnswers < Minitest::Test
     image(:ghost, "#" => :white) { "########\n" * 8 }
     image(:dark, "#" => :black) { "########\n" * 8 }
     tiles :floor, "#" => :dark
-    see = var :see, 50
+    see = 50
     layers :world, :ghosts
     layer(:world) { background :ground, tiles: :floor, map: ["#" * 32] * 32 }
     layer(:ghosts, transparency: see) { background :mist, tiles: :floor, map: ["#" * 32] * 32 }
-    game_loop { see.set! 52 }
+    game_loop { see = 52 }
   end
 
   private def findings(game, console) = CHECK.detect(game.program(console: console))

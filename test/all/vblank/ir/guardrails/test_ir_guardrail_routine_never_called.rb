@@ -78,13 +78,15 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
   def test_routines_called_from_an_else_are_quiet
     assert_empty(findings do
       screen :bitmap
-      count = var :count, 0
-      func(:held) { count.add! 1 }
-      func(:failed) { count.add! 2 }
-      func(:failed_then_held) { count.add! 3 }
-      func(:failed_twice) { count.add! 4 }
+      count = 0
+      func(:held) { count += 1 }
+      func(:failed) { count += 2 }
+      func(:failed_then_held) { count += 3 }
+      func(:failed_twice) { count += 4 }
       func(:step) do
-        (count > 3).then { call :held }.else do
+        if count > 3
+          call :held
+        else
           call :failed
           if count > 9
             call :failed_then_held
@@ -111,8 +113,8 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
     assert_empty(findings do
       screen :bitmap
       mode = var :mode, :idle
-      func(:idle) { mode.set! :chase }
-      func(:chase) { mode.set! :idle }
+      func(:idle) { mode = :chase }
+      func(:chase) { mode = :idle }
       game_loop { call mode }
     end)
   end
@@ -121,7 +123,7 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
     assert_empty(findings do
       screen :bitmap
       mode = var :mode, :title
-      scene(:title) { mode.set! :playing }
+      scene(:title) { mode = :playing }
       scene(:playing) { clear_screen :black }
       game_loop { call mode }
     end)
@@ -131,7 +133,7 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
     assert_empty(findings do
       screen :bitmap
       guards = pool :guard, x: 0, capacity: 4
-      guards.func(:chase) { |g| g.x.add! 1 }
+      guards.func(:chase) { |g| g.x += 1 }
       game_loop { guards.each { |_g| call :chase } }
     end)
   end
@@ -139,8 +141,8 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
   def test_a_routine_called_from_a_timer_handler_is_quiet
     assert_empty(findings do
       screen :bitmap
-      var :ticks, 0
-      func(:tick) { add! :ticks, 1 }
+      ticks = 0
+      func(:tick) { ticks += 1 }
       timer(:clock, per_second: 60).on_tick { call :tick }
       game_loop { wait_vblank }
     end)
@@ -151,8 +153,8 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
   def test_a_routine_called_from_a_timer_handler_inside_an_uncalled_routine_is_quiet
     found = findings do
       screen :bitmap
-      var :ticks, 0
-      func(:tick) { add! :ticks, 1 }
+      ticks = 0
+      func(:tick) { ticks += 1 }
       func(:setup) { timer(:clock, per_second: 60).on_tick { call :tick } }
       game_loop { wait_vblank }
     end
@@ -165,9 +167,9 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
   def test_a_routine_called_only_from_a_replaced_handler_is_named
     found = findings do
       screen :bitmap
-      var :ticks, 0
-      func(:old_tick) { add! :ticks, 1 }
-      func(:new_tick) { add! :ticks, 2 }
+      ticks = 0
+      func(:old_tick) { ticks += 1 }
+      func(:new_tick) { ticks += 2 }
       clock = timer :clock, per_second: 60
       clock.on_tick { call :old_tick }
       clock.on_tick { call :new_tick }
@@ -192,8 +194,8 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
   def test_a_named_once_a_frame_is_quiet
     assert_empty(findings do
       screen :bitmap
-      var :clock, 0
-      once_a_frame(:keep_time) { add! :clock, 1 }
+      ticks = 0
+      once_a_frame(:keep_time) { ticks += 1 }
       game_loop { wait_vblank }
     end)
   end
