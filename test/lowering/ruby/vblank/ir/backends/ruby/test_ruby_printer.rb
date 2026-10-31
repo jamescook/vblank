@@ -17,7 +17,7 @@ class TestRubyPrinter < Minitest::Test
   # In Ruby nought is true, so a condition is compared with nought, a loop's included.
   def test_a_condition_is_compared_with_nought
     text = printed do
-      x = var :x, 0
+      x = 0
       game_loop { x = 0 if x > 6 }
     end
 
@@ -29,9 +29,9 @@ class TestRubyPrinter < Minitest::Test
   # picked by its number is called by that method's name.
   def test_a_routine_picked_by_number_is_called_by_name
     text = printed do
-      which = var :which, 0
-      func(:left) { which.set! 1 }
-      func(:right) { which.set! 0 }
+      which = 0
+      func(:left) { which = 1 }
+      func(:right) { which = 0 }
       game_loop { call %i[left right], number: which }
     end
 

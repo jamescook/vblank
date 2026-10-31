@@ -18,8 +18,8 @@ class TestRubyCheckedRun < Minitest::Test
 
   def test_a_game_played_as_ruby_counts_its_frames
     program = program_of do
-      x = var :x, 0
-      game_loop { x.add! 3 }
+      x = 0
+      game_loop { x += 3 }
     end
 
     assert_equal 15, CheckedRun.new.run(program, frames: 5)[:x]
@@ -29,8 +29,8 @@ class TestRubyCheckedRun < Minitest::Test
   # still not be taken, nor a loop whose condition is nought be entered.
   def test_a_condition_that_is_nought_is_not_taken
     program = program_of do
-      x = var :x, 0
-      taken = var :taken, 0
+      x = 0
+      taken = 0
       game_loop do
         x += 1
         if x > 100
@@ -47,11 +47,11 @@ class TestRubyCheckedRun < Minitest::Test
   # Scenes take over from each other, and a game can end by itself, drawing nothing either way.
   def test_scenes_take_over_and_a_game_halts
     program = program_of do
-      count = var :count, 0
-      var :state, 0
+      count = 0
+      state = 0
       scene(:counting) do
         count += 1
-        set! :state, 1 if count == 3
+        state = 1 if count == 3
       end
       scene(:done) { halt }
       game_loop { case_var(:state) { when_val 0, :counting; when_val 1, :done } }
@@ -64,7 +64,7 @@ class TestRubyCheckedRun < Minitest::Test
   # one place off, a color a bit off or a frame late fails here.
   def test_a_game_that_draws_shows_the_interpreters_picture
     program = program_of do
-      x = var :x, 0
+      x = 0
       game_loop do
         clear_screen :black
         fill_rect 10, 10, 20, 8, :blue
@@ -92,10 +92,10 @@ class TestRubyCheckedRun < Minitest::Test
   # A routine the game calls by its number, and buttons the test holds, both reach the game.
   def test_routines_and_buttons_reach_the_game
     program = program_of do
-      x = var :x, 0
-      which = var :which, 0
-      func(:add_one) { x.add! 1 }
-      func(:add_ten) { x.add! 10 }
+      x = 0
+      which = 0
+      func(:add_one) { x += 1 }
+      func(:add_ten) { x += 10 }
       game_loop do
         call %i[add_one add_ten], number: which
         which = 1 if held(:a)
