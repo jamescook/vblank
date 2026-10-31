@@ -265,11 +265,12 @@ module VBlank
             emit_colors_into_bank(dest, COLORS_IN_A_BANK)
           end
 
-          def initialize(emitter:, primitives:, lowering:, drawing:)
+          def initialize(emitter:, primitives:, lowering:, drawing:, raster:)
             @emitter = emitter
             @primitives = primitives
             @lowering = lowering
             @drawing = drawing
+            @raster = raster
           end
 
           attr_writer :modes
@@ -436,8 +437,9 @@ module VBlank
           def emit_palette_tint(color:, amount:, mode:, fraction_bits: nil)
             # The tint and the fade are one effect: the display can only be told one
             # thing about the whole picture at a time, and the interpreter models the same
-            # rule. So asking for a tint puts away whatever fade was in force.
-            @emitter.write_reg16(REG_BLDY, 0) if @program_fades
+            # rule. So asking for a tint puts away whatever fade was in force. A light's
+            # darkening is not a fade, and stays.
+            @raster.emit_unless_light_holds_blend { @emitter.write_reg16(REG_BLDY, 0) } if @program_fades
 
             done = @emitter.gensym
             written = @primitives.const_int(amount)

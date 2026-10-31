@@ -447,9 +447,9 @@ module VBlank
                              # an EEPROM's last block of the pass is written back before the console sleeps
                              end_of_pass: -> { @save.emit_chip_end_of_pass if @uses_save })
           @palette_tint = PaletteTint.new(emitter: @emit, primitives: @primitives, lowering: @lowering,
-                                          drawing: self)
+                                          drawing: self, raster: @raster)
           @layer_blend = LayerBlend.new(emitter: @emit, lowering: @lowering, primitives: @primitives,
-                                        drawing: self)
+                                        drawing: self, raster: @raster)
           @buffered = Buffered.new(emitter: @emit, primitives: @primitives, lowering: @lowering,
                                    framebuffer: @framebuffer, call_cold_routine: method(:emit_call_cold_routine))
           @uploads = BlobUpload.new(emitter: @emit, primitives: @primitives,

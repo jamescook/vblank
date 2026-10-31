@@ -63,11 +63,12 @@ module VBlank
           # and a sprite cannot be both.)
           OBJ_SEMI_TRANSPARENT = 0x0400
 
-          def initialize(emitter:, lowering:, primitives:, drawing:)
+          def initialize(emitter:, lowering:, primitives:, drawing:, raster:)
             @emitter = emitter
             @lowering = lowering
             @primitives = primitives
             @drawing = drawing
+            @raster = raster
             # Nothing has a layer until the backgrounds are given their slots, and a
             # program with no tiled backgrounds never gives out any. A see-through layer of
             # SPRITES is the case that arrives here — it names no background at all.
@@ -245,11 +246,13 @@ module VBlank
           # A FADE OR A TINT THAT MOVES THE COLORS TAKES THE PLACE OF A FADE THE DISPLAY WAS
           # DOING, since a picture has one such effect at a time. It lifts that fade by
           # another road than the display's own, so it hands the blend back the way the
-          # display's own lift does. Nothing where no display fade can be in force.
+          # display's own lift does. Nothing where no display fade can be in force, and nothing
+          # while a light holds the register: its darkening has the bit a fade sets, and handing
+          # the blend back from it would put the light out.
           def emit_blend_back_from_display_fade
             return unless @fade_can_hold_blend
 
-            emit_if_fade_holds_blend { emit_restore_layer_blend }
+            emit_if_fade_holds_blend { @raster.emit_unless_light_holds_blend { emit_restore_layer_blend } }
           end
 
           # HOW SEE-THROUGH A LAYER IS, NOW. A picture whose amounts the program works out

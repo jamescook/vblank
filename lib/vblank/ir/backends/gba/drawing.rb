@@ -481,7 +481,7 @@ module VBlank
             emit_painted_run_places(name)
             emit_scene_scenery(name)
             emit_scene_backdrop(name) if scene_handover.backdrops?
-            @raster.emit_light_leaving(name, @layout.scene_blend.fetch(name, BLD_OFF)) # before the scene's own mixing
+            @raster.emit_light_leaving(name, @layout.scene_blend.fetch(name, BLD_OFF))
             emit_scene_blend(name)
             @raster.emit_light_for_lit_scene(name)
             emit_scene_layers(name)
@@ -527,8 +527,10 @@ module VBlank
           # picture drawn from it: the light's window right, and nothing outside it darkened.
           def emit_scene_blend(name)
             wanted = @layout.scene_blend[name]
-            if wanted
-              @raster.lit_scene?(name) ? @layer_blend.emit_remember_scene_blend_control(wanted) : @layer_blend.emit_scene_blend_control(wanted)
+            if wanted && @raster.light_owns_blend_in?(name)
+              @layer_blend.emit_remember_scene_blend_control(wanted)
+            elsif wanted
+              @layer_blend.emit_scene_blend_control(wanted)
             end
             @layer_blend.emit_screen_marker(name)
           end

@@ -177,14 +177,28 @@ module VBlank
             @emitter.place_label(kept)
           end
 
-          # Does this scene's pass say what the blend unit does through the light's words alone?
-          def lit_scene?(scene) = switches_light? && !@dark_scenes.include?(scene)
+          # Write the block's code so it runs only while the blend unit holds something other than
+          # the light's darkening. What puts away a fade must not take the light for one.
+          def emit_unless_light_holds_blend
+            return yield unless @light
+
+            skip = @emitter.gensym
+            @emitter.emit_number(TMP, REG_BLDCNT)
+            @emitter.emit(ASM.load_halfword(TMP, TMP))
+            @emitter.emit(ASM.cmp_imm(TMP, LIGHT_CONTROL))
+            @emitter.emit_branch(:bcond, skip, cond: :eq)
+            yield
+            @emitter.place_label(skip)
+          end
+
+          # Is +scene+ one a switching light is on in, so the light alone writes the blend unit?
+          def light_owns_blend_in?(scene) = switches_light? && !@dark_scenes.include?(scene)
 
           # ...and a scene the light is on in tells the blend unit what the last gap did: the
           # darkening if it switched the light on, nothing if the light is still off. It is the
           # only thing such a scene writes there (see Drawing#emit_scene_blend).
           def emit_light_for_lit_scene(scene)
-            return unless lit_scene?(scene)
+            return unless light_owns_blend_in?(scene)
 
             shown = @emitter.gensym
             done = @emitter.gensym
