@@ -81,6 +81,9 @@ module VBlank
           value.is_a?(Prism::CallNode) && %i[var save_var].include?(value.name) && value.receiver.nil?
         end
 
+        # `var :x, 0`, on anything: a part of a game is handed the builder and calls `build.var`.
+        def self.makes_variable?(value) = value.is_a?(Prism::CallNode) && %i[var save_var].include?(value.name)
+
         def self.number?(write)
           write.is_a?(Prism::LocalVariableWriteNode) &&
             [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode, Prism::SymbolNode].include?(write.value.class)

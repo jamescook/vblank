@@ -279,10 +279,20 @@ module VBlank
         own
       end
 
-      # `@x = value`. A part of a game keeps its variables in these. Given another variable, the
-      # name moves to it. Given a number, the game's variable takes it.
+      # `@x = var :x, 0`. A part of a game keeps its variables in these, and this one is the name's
+      # own, so #reassign can tell it from one the name was only handed.
+      def keep_as_own(variable)
+        variable.own_to_its_name = true
+        variable
+      end
+
+      # `@x = value`. Given a number, the game's variable takes it. Given another variable, a
+      # variable of the name's own takes its number, and the two then change apart, as two Ruby
+      # names would. A variable the name was only handed is left alone, and the name moves.
       def reassign(target, value)
-        return value if !variable?(target) || variable?(value)
+        return value unless variable?(target)
+        return value if variable?(value) && !target.own_to_its_name
+        return target if value.equal?(target)
 
         store_in_variable(target, value)
         target

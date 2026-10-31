@@ -780,6 +780,70 @@ class TestPlainRuby < Minitest::Test
     assert_equal [1, 1], [player[:both], player[:either]]
   end
 
+  def test_an_ivar_made_by_var_copies_another_variable
+    player = played do
+      @a = var :a, 5
+      @b = var :b, 0
+      @b = @a
+      game_loop { @a += 1 }
+    end
+
+    assert_equal [8, 5], [player[:a], player[:b]]
+  end
+
+  def test_an_ivar_made_by_var_on_a_builder_copies_a_local_variable
+    player = played do
+      build = self
+      velocity = var :velocity, 7
+      @move = build.var :move, 0
+      @move = velocity
+      @move = 3
+      game_loop { wait_vblank }
+    end
+
+    assert_equal [7, 3], [player[:velocity], player[:move]]
+  end
+
+  def test_a_right_side_doing_game_work_in_a_method_runs_only_when_the_left_holds
+    player = played do
+      @distance = var :distance, 0
+      def within_reach(from, reach)
+        @distance = from
+        @distance < reach
+      end
+      near = var :near, 1
+      far = var :far, 9
+      left_held = 0
+      left_failed = 0
+      game_loop do
+        left_held = 1 if near < 5 && within_reach(near, 3)
+        left_failed = 1 if far < 5 && within_reach(far, 3)
+      end
+    end
+
+    assert_equal [1, 0, 1], [player[:left_held], player[:left_failed], player[:distance]]
+  end
+
+  def test_an_either_right_side_doing_game_work_in_a_method_runs_only_when_the_left_fails
+    player = played do
+      @distance = var :distance, 0
+      def within_reach(from, reach)
+        @distance = from
+        @distance < reach
+      end
+      near = var :near, 1
+      far = var :far, 9
+      left_held = 0
+      left_failed = 0
+      game_loop do
+        left_held = 1 if near < 5 || within_reach(far, 3)
+        left_failed = 1 if far < 5 || within_reach(near, 3)
+      end
+    end
+
+    assert_equal [1, 1, 1], [player[:left_held], player[:left_failed], player[:distance]]
+  end
+
   def test_an_ivar_given_another_variable_moves_to_it
     player = played(frames: 2) do
       a = var :a, 1

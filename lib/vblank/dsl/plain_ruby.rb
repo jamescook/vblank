@@ -310,7 +310,10 @@ module VBlank
         # A part of a game keeps its variables in these, so one holding a game variable is changed.
         def instance_variable_write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
-          "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value_text(node.value)}))"
+          value = value_text(node.value)
+          return "#{prefix}#{STEPS}.keep_as_own(#{value})" if LocalNames.makes_variable?(node.value)
+
+          "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value}))"
         end
 
         def write_text(node)

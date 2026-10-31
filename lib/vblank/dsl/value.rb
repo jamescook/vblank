@@ -105,6 +105,9 @@ module VBlank
       # A hidden variable for a name nothing had set yet (see PlainRubySteps.promote).
       attr_accessor :unwritten
 
+      # Was this variable made for the instance variable holding it (see PlainRubySteps.reassign)?
+      attr_accessor :own_to_its_name
+
       # The variable this handle names, or nil for an expression and for a place that has no
       # name of its own (a pool field, a list slot). For a message that wants to say which.
       attr_reader :name
