@@ -747,6 +747,7 @@ module VBlank
           play_from_list: :exec_play_from_list,
           play_sound_effect: :exec_play_sound_effect,
           stop_music: :exec_stop_music,
+          hold_music: :exec_hold_music,
           play_sample: :exec_play_sample,
           stop_sample: :exec_stop_sample,
           timer_start: :exec_timer_start,
@@ -1135,6 +1136,10 @@ module VBlank
 
         def exec_stop_music(node)
           @player.stop
+        end
+
+        def exec_hold_music(node)
+          @player.hold(node.held)
         end
 
         def exec_play_sample(node)

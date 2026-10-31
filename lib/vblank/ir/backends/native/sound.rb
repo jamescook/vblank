@@ -67,6 +67,7 @@ module VBlank
              *(eval_call("rg_music_start_here") if node.this_frame)]
           end
           def lower_stop_music(_node) = [eval_call("rg_music_stop")]
+          def lower_hold_music(node) = [eval_call("rg_music_hold", C::Int.new(node.held ? 1 : 0))]
 
           # A song picked from a list by a number the game works out: the list is written as the
           # numbers of its songs, and the runtime picks one, or leaves the music alone for a

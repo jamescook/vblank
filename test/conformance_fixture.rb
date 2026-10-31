@@ -345,6 +345,8 @@ module ConformanceFixture
       B.play_song(:tune),
       B.play_from_list(:tracks, which: B.var_ref(:x)), # a number worked out as the program runs
       B.play_sound_effect(:sfx, which: B.var_ref(:x)),
+      B.hold_music,
+      B.hold_music(false),
       B.stop_music,
       B.play_song(:tune, this_frame: true), # started where it is named, not at the next frame
       B.play_from_list(:tracks, which: B.var_ref(:x), this_frame: true),

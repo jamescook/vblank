@@ -74,6 +74,7 @@ void rg_effect_request_one_of(const int32_t *effects, int32_t count, int32_t whi
 void rg_effect_start_here_one_of(const int32_t *effects, int32_t count, int32_t which);
 /* No tune, and counted: a stop and a play in one frame still start the tune again. */
 void rg_music_stop(void);
+void rg_music_hold(int32_t held);
 /* The variable the game keeps its music volume in (0 to 16), for a game that says one at all. */
 void rg_music_follow_level(const int32_t *level);
 

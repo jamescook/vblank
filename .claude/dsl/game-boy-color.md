@@ -146,6 +146,8 @@ and a test fails when the two differ. The Advance's answers are in
 - `song` — works: on the square, wave and noise voices. A part played on a recording (`voice ..., plays:`) is refused. A Game Boy Color plays one recording at a time, and the game's own recordings use it (see `sample`).
 - `play_song` — works: the same as on the Advance.
 - `stop_music` — works: the same as on the Advance.
+- `hold_music` — works: the same as on the Advance.
+- `release_music` — works: the same as on the Advance.
 - `music_volume` — works: the same as on the Advance.
 - `fade_music_in` — works: the same as on the Advance.
 - `fade_music_out` — works: the same as on the Advance.

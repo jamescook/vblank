@@ -130,6 +130,10 @@ module VBlank
           # A tune that played once and reached its end, by number (0 = none). Belongs to the
           # player alone, like everything here but WANTED (see #emit_keep_ended_tune_silent).
           MUSIC_ENDED = :__music_ended
+          # 1 while the game holds the tune where it is (Reference::Player#hold). The game writes it
+          # and so does the player, which lets go of a hold as the tune changes: one whole word
+          # either way, so neither sees half of the other's.
+          MUSIC_HELD = :__music_held
 
           # Each lane's next event, as a byte offset into the score.
           def self.music_cursor(lane) = :"__music_cursor_#{lane}"
@@ -388,6 +392,8 @@ module VBlank
             assign_song_numbers!(program)
             @recorded_note_routines.clear
             @counts_stops = program.walk.any? { |node| node.kind == :stop_music }
+            # ...and one that never holds its music checks for it nowhere (see #emit_hold_music).
+            @holds_music = program.walk.any? { |node| node.kind == :hold_music }
             @starts_songs_here = program.walk.any? { |node| %i[play_song play_from_list].include?(node.kind) && node.this_frame }
             @starts_effects_here = program.walk.any? { |node| node.kind == :play_sound_effect && node.this_frame }
             # A game that never moves the music volume plays every note exactly as it was written,
@@ -849,6 +855,14 @@ module VBlank
             @primitives.store_var(ACC, MUSIC_STOPS)
           end
 
+          # The tune stays where it is, or carries on: the player reads MUSIC_HELD each frame.
+          def emit_hold_music(node)
+            return unless needs_sound_player?
+
+            @emitter.emit(ASM.load_immediate(ACC, node.held ? 1 : 0))
+            @primitives.store_var(ACC, MUSIC_HELD)
+          end
+
           # ONE FRAME OF THE MUSIC PLAYER, emitted inside the screen's own interrupt.
           #
           # THAT IS WHERE IT HAS TO BE, for the reason the mixer's refill is there too. A tempo
@@ -1025,6 +1039,10 @@ module VBlank
               @primitives.load_var(ACC, MUSIC_STOPS)
               @primitives.store_var(ACC, MUSIC_STOPS_SEEN)
             end
+            if @holds_music
+              @emitter.emit(ASM.load_immediate(ACC, 0))
+              @primitives.store_var(ACC, MUSIC_HELD)
+            end
             @emitter.emit_load_data_address(base, MUSIC_SCORE)
             emit_tune_step(TUNE_SILENCE) { emit_silence_tune(base, at, frame, playing) }
             @emitter.emit(ASM.mov_reg(playing, value))
@@ -1053,6 +1071,8 @@ module VBlank
           def emit_tune_frame
             base, at, value, frame, playing = TUNE_REGS
             emit_apply_music_volume_change if @scales
+            held = @emitter.gensym
+            emit_branch_while_held(held) if @holds_music
             @lanes.each_with_index { |lane, number| emit_play_lane(lane, number, base, at, value, frame) }
 
             onward = @emitter.gensym
@@ -1067,6 +1087,34 @@ module VBlank
             emit_rewind_lanes(base, at, playing)
             @emitter.place_label(onward)
             @primitives.store_var(frame, MUSIC_FRAME)
+            @emitter.place_label(held)
+          end
+
+          # Go to +label+ while the game holds the tune.
+          def emit_branch_while_held(label)
+            @primitives.load_var(ACC, MUSIC_HELD)
+            @emitter.emit(ASM.cmp_imm(ACC, 0))
+            @emitter.emit_branch(:bcond, label, cond: :ne)
+          end
+
+          # A VOICE HOLDING THE HELD TUNE'S NOTE moves no further: on to +still+ while the tune is held,
+          # unless a sound effect holds this voice, whose note keeps moving (Reference::Player#held_still?).
+          def emit_skip_voice_held_still(lane, still)
+            return unless @holds_music
+
+            moves = @emitter.gensym
+            @primitives.load_var(ACC, MUSIC_HELD)
+            @emitter.emit(ASM.cmp_imm(ACC, 0))
+            @emitter.emit_branch(:bcond, moves, cond: :eq)
+            if shared_lane?(lane)
+              # A sound effect's rank has order bits and the tune's has none (IR::Tunes.effect_rank).
+              @primitives.load_var(ACC, self.class.voice_rank(lane.index))
+              @emitter.emit(ASM.lsl_imm(ACC, ACC, 32 - IR::Tunes::RANK_SHIFT))
+              @emitter.emit(ASM.cmp_imm(ACC, 0))
+              @emitter.emit_branch(:bcond, moves, cond: :ne)
+            end
+            @emitter.emit_branch(:b, still)
+            @emitter.place_label(moves)
           end
 
           # THE REGISTERS THE EFFECTS ROUTINE TAKES AND GIVES BACK: where in the table it starts and
@@ -2035,6 +2083,7 @@ module VBlank
             channels.each do |lane|
               var = ->(what) { self.class.shapes_var(lane.index, what) }
               still = @emitter.gensym
+              emit_skip_voice_held_still(lane, still)
               @primitives.load_var(WORK_REG, var.call(:bits))
               @emitter.emit(ASM.tst_imm(WORK_REG, SHAPES_STEP))
               @emitter.emit_branch(:bcond, still, cond: :eq)
@@ -2268,6 +2317,7 @@ module VBlank
               still = @emitter.gensym
               waited = @emitter.gensym
               holding = @emitter.gensym
+              emit_skip_voice_held_still(lane, still)
               @primitives.load_var(WORK_REG, var.call(:vibrato))
               @emitter.emit(ASM.and_imm(ACC, WORK_REG, vibrato::FOUR_BITS))   # its depth: nought holds still
               @emitter.emit(ASM.cmp_imm(ACC, 0))

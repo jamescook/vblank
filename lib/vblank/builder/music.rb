@@ -76,6 +76,22 @@ module VBlank
         record(Build.stop_music)
       end
 
+      # HOLD THE MUSIC WHERE IT IS, while the next screen loads. The notes sounding ring on as
+      # they are, and nothing new starts, from the next frame: `release_music` carries on from
+      # the note it stopped before, and naming another song or saying `stop_music` lets it go
+      # too. Naming the song held changes nothing, so a game that says `play_song` every frame
+      # can hold its music like any other. Sound effects play on, and the music volume still
+      # reaches the notes held. Holding when no song plays does nothing.
+      def hold_music
+        record(Build.hold_music(true))
+      end
+
+      # The music held by `hold_music` carries on from the next frame. Said when it is not held,
+      # it does nothing.
+      def release_music
+        record(Build.hold_music(false))
+      end
+
       # HOW LOUD THE MUSIC PLAYS, from 0 (silent) to 100 (as written). It reaches the song
       # playing now, notes already sounding included, from the next frame — and every song
       # after it, until it is said again. Sound effects are not the music, and keep their own

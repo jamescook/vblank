@@ -39,5 +39,5 @@ These work as their group files say:
 `if_ne`, `if_gt`, `if_lt`, `if_ge`, `if_le`, `if_gte`, `if_lte`, `func`, `call`, `scene`,
 `case_var`, `seed`, `randomize`, `roll`, `rand`, `chance`, `random_numbers`, `enable_sound`,
 `define_sound`, `beep`, `noise`, `wave`, `stop_wave`, `song`, `play_song`, `stop_music`,
-`music_volume`, `fade_music_in`, `fade_music_out`, `songs`, `sound_effects`, `sample`,
-`instrument`.
+`hold_music`, `release_music`, `music_volume`, `fade_music_in`, `fade_music_out`, `songs`,
+`sound_effects`, `sample`, `instrument`.

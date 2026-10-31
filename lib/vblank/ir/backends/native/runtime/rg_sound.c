@@ -643,6 +643,7 @@ static int32_t playing = -1; /* ...and the one the player is on, which catches u
 static int32_t ended = -1;   /* a tune that played once and reached its end, or -1 */
 static int32_t stops;        /* how many times the game has said stop... */
 static int32_t stops_seen;   /* ...and how many of those the player has acted on */
+static bool music_held;      /* the game said hold_music: the tune stays where it is */
 
 static const int32_t *song; /* the playing song's numbers */
 static int32_t song_frame;  /* how far into it, in frames */
@@ -670,6 +671,9 @@ void rg_music_stop(void) {
   wanted = -1;
   stops++;
 }
+
+/* The tune stays where it is, or carries on (Reference::Player#hold). */
+void rg_music_hold(int32_t held) { music_held = held != 0; }
 
 void rg_music_follow_level(const int32_t *variable) { level_variable = variable; }
 
@@ -895,10 +899,12 @@ static void shape_stop(int32_t voice) {
  * player's frame after the wobbles, the voices in order (Reference::Player#step_shapes), and logged
  * as it changes. The shape is written every frame, so a held note sounded again at a new music
  * volume is back in its frame's shape. */
+static bool held_still(int32_t voice);
+
 static void step_shapes(void) {
   for (int32_t voice = 1; voice <= RG_SQUARE_VOICES; voice++) {
     shape_walk *walk = &shapes[voice];
-    if (!walk->steps) continue;
+    if (!walk->steps || held_still(voice)) continue;
     int32_t now = shape_at(walk->bits, walk->frame);
     if (walk->frame > 0 && now != shape_at(walk->bits, walk->frame - 1)) rg_sound_log("duty %d %d", (int)voice, (int)now);
     squares[voice - 1].eighths_high = eighths_of_shape[now];
@@ -920,7 +926,7 @@ static void step_wobbles(void) {
   for (int32_t voice = 1; voice <= RG_WAVE_VOICE; voice++) {
     wobble *moving = &wobbles[voice];
     int32_t depth = moving->vibrato & VIBRATO_FOUR_BITS;
-    if (depth == 0) continue;
+    if (depth == 0 || held_still(voice)) continue;
     if (moving->wait > 0) {
       moving->wait--;
       continue;
@@ -970,6 +976,9 @@ static void rest_on(const part_walk *part) {
  * them go in (Reference::Player#finish_effect). */
 #define ORDER_MASK (rg_game_sound_rules[WAVE_QUARTERS + VOLUMES])
 static int32_t holders[RG_NOISE_VOICE + 1];
+
+/* Is the note on +voice+ the held tune's? A sound effect on a voice keeps moving. */
+static bool held_still(int32_t voice) { return music_held && (holders[voice] & ORDER_MASK) == 0; }
 static int32_t holder_order[RG_NOISE_VOICE];
 static int32_t holder_count;
 
@@ -1046,6 +1055,7 @@ static bool switch_to_wanted_song(void) {
   if (wanted == playing && stops == stops_seen) return false;
 
   stops_seen = stops;
+  music_held = false;
   if (playing >= 0) silence_song();
   playing = wanted;
   song_frame = 0;
@@ -1414,6 +1424,7 @@ void rg_music_start_here_one_of(const int32_t *songs, int32_t count, int32_t whi
 
 static void play_song_frame(void) {
   if (level_variable) follow_level(*level_variable);
+  if (music_held) return;
   for (int32_t i = 0; i < part_count; i++) {
     part_walk *part = &parts[i];
     if (part->next >= part->count) continue;

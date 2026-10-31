@@ -178,7 +178,8 @@ module VBlank
                                   banked_songs: lowering.music.banked?, clips: lowering.clips.any?,
                                   clip_laps: lowering.clips.loops?,
                                   dark: lowering.counts_dark_frames?, rumble: lowering.rumbles?,
-                                  kept_sprites: lowering.keeps_unchanged_sprites?)
+                                  kept_sprites: lowering.keeps_unchanged_sprites?,
+                                  holds_music: lowering.holds_music?)
           game = lowering.sections
           runs = lowering.run_uploads
           clips = lowering.clips if lowering.clips.any?

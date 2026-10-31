@@ -44,14 +44,14 @@ module VBlank
           # background bent row by row (+bends+) its rows and line tables, and one that paints tiles
           # from lists the bytes of each run (+tile_runs+) staged for the blank (Picture).
           def reserve(memory, painted: false, chip: false, sound: false, songs: false, music_follows_level: false,
-                      effects: 0, samples: false, bar: false, bends: false, tile_runs: [])
+                      effects: 0, samples: false, bar: false, bends: false, tile_runs: [], holds_music: false)
             Paint.reserve(memory, chip: chip) if painted
             Frame.reserve(memory)
             Picture.reserve(memory, bar: bar, bends: bends, tile_runs: tile_runs)
             Tint.reserve(memory)
             Chip.reserve(memory) if chip
             Sound.reserve(memory) if sound
-            Music.reserve(memory, follows_level: music_follows_level, effects: effects) if songs
+            Music.reserve(memory, follows_level: music_follows_level, effects: effects, holds: holds_music) if songs
             Recordings.reserve(memory) if samples
           end
 

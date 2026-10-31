@@ -145,6 +145,8 @@ and a test fails when the two differ. The Advance's answers are in
 - `song` — works: see `define_sound` for the square and wave voices.
 - `play_song` — works: the same as on the Advance.
 - `stop_music` — works: the same as on the Advance.
+- `hold_music` — works: the same as on the Advance.
+- `release_music` — works: the same as on the Advance.
 - `music_volume` — works: the same as on the Advance.
 - `fade_music_in` — works: the same as on the Advance.
 - `fade_music_out` — works: the same as on the Advance.

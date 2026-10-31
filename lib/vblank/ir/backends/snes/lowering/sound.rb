@@ -13,7 +13,8 @@ module VBlank
           module Sound
             STATEMENTS = Ractor.make_shareable({ enable_sound: :emit_enable_sound, beep: :emit_beep, noise: :emit_noise,
                                                  wave: :emit_wave, stop_wave: :emit_stop_wave, play_song: :emit_play_song,
-                                                 stop_music: :emit_stop_music, play_from_list: :emit_play_from_list,
+                                                 stop_music: :emit_stop_music, hold_music: :emit_hold_music,
+                                                 play_from_list: :emit_play_from_list,
                                                  play_sound_effect: :emit_play_sound_effect, play_sample: :emit_play_sample,
                                                  stop_sample: :emit_stop_sample })
 
@@ -31,7 +32,10 @@ module VBlank
             def self.sounds?(program) = program.walk.any? { |node| KINDS.include?(node.kind) }
 
             # Whether +program+ plays songs, and so carries their player (Runtime::Music).
-            def self.songs?(program) = program.walk.any? { |node| %i[song play_song stop_music play_from_list play_sound_effect].include?(node.kind) }
+            def self.songs?(program) = program.walk.any? { |node| %i[song play_song stop_music hold_music play_from_list play_sound_effect].include?(node.kind) }
+
+            # Whether +program+ holds its music, so its player looks (Runtime::Music::TUNE_HELD).
+            def self.holds_music?(program) = program.walk.any? { |node| node.kind == :hold_music }
 
             # Whether +program+ plays recordings — of its own, or as a song's part — and so carries their
             # count (Runtime::Recordings).
@@ -181,6 +185,7 @@ module VBlank
             end
 
             def emit_stop_music(_node) = runtime_call("rt_music_stop", [])
+            def emit_hold_music(node) = runtime_call(node.held ? "rt_music_hold_tune" : "rt_music_release_tune", [])
 
             # Reference#exec_play_from_list: the song at the place the game works out, of the list.
             def emit_play_from_list(node)

@@ -77,7 +77,7 @@ module VBlank
                                                see_through: :lower_see_through,
                                                # sound (Sound)
                                                beep: :lower_beep, enable_sound: :lower_enable_sound,
-                                               play_song: :lower_play_song, stop_music: :lower_stop_music,
+                                               play_song: :lower_play_song, stop_music: :lower_stop_music, hold_music: :lower_hold_music,
                                                play_from_list: :lower_play_from_list,
                                                play_sound_effect: :lower_play_sound_effect,
                                                play_sample: :lower_play_sample, stop_sample: :lower_stop_sample,

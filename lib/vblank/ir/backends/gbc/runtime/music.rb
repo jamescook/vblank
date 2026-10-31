@@ -52,6 +52,9 @@ module VBlank
             WAVE_TUNING = "rt music wave tuning"
             WAVE_SHAPE = "rt music wave shape"
             WAVE_BACK = "rt music wave back"
+            # 1 while the game holds the tune where it is, in a game that says so
+            # (Reference::Player#hold). One byte, which the player clears as the tune changes.
+            TUNE_HELD = "rt music tune held"
 
             # A square part's first register, by voice.
             SQUARE_REGISTERS = { 1 => Console::GBCHardware::NR11, 2 => Console::GBCHardware::NR21 }.freeze
@@ -74,8 +77,13 @@ module VBlank
             # Whether a wave note held across a recording is put back as it ends (WAVE_BACK).
             def wave_back?(memory) = memory.reserved?(WAVE_BACK)
 
-            def reserve(memory, effects: [], slides: false, wobbles: false, shapes: false, swells: false, noise_swells: false, banked: false)
+            # Whether the game holds its music (TUNE_HELD).
+            def holds?(memory) = memory.reserved?(TUNE_HELD)
+
+            def reserve(memory, effects: [], slides: false, wobbles: false, shapes: false, swells: false, noise_swells: false, banked: false,
+                        holds: false)
               memory.reserve(BANK_NOTED, 1) if banked
+              memory.reserve(TUNE_HELD, 1) if holds
               reserve_song_player(memory, banked)
               memory.reserve(WAVE_LOADED, 1) unless effects.empty? && !Clips.any?(memory)
               if Clips.any?(memory)
@@ -133,6 +141,30 @@ module VBlank
             SHAPE_LAST = 3
 
             def shapes?(memory) = memory.reserved?(SHAPE_WALKS)
+
+            # A VOICE HOLDING THE HELD TUNE'S NOTE moves no further: on to +still+ while the tune is held,
+            # unless a sound effect holds this voice, whose note keeps moving
+            # (Reference::Player#held_still?). Spends A, DE and HL.
+            def emit_skip_voice_held_still(asm, memory, voice, still)
+              return unless holds?(memory)
+
+              moves = "#{still}_moves"
+              asm.load(:a, [memory[TUNE_HELD]])
+              asm.and_a(:a)
+              asm.jump_relative(:z, moves)
+              if memory.reserved?(Effects::HOLDERS)
+                asm.load(:a, [memory[Effects::HOLDERS] + voice - 1])
+                asm.load(:e, :a)
+                asm.load(:d, 0)
+                asm.load(:hl, "music_rank_effects")
+                asm.add_hl(:de)
+                asm.load(:a, [:hl])
+                asm.and_a(:a)
+                asm.jump_relative(:nz, moves)
+              end
+              asm.jump(still)
+              asm.label(moves)
+            end
 
             # Whether anything moves a voice at the end of each of the player's frames (#emit_tick).
             def steps_each_frame?(memory) = wobbles?(memory) || shapes?(memory) || swells?(memory)
@@ -305,6 +337,7 @@ module VBlank
                 waited = "rt_wobble_waited_#{voice}"
                 holding = "rt_wobble_holding_#{voice}"
                 low, high = pitches.fetch(voice)
+                emit_skip_voice_held_still(asm, memory, voice, still)
                 asm.load(:a, [at])
                 asm.load(:c, :a) # its depth and speed
                 asm.and_a(0x0F)
@@ -451,6 +484,7 @@ module VBlank
               { 1 => h::NR11, 2 => h::NR21 }.each do |voice, register|
                 at = memory[SHAPE_WALKS] + ((voice - 1) * SHAPE_BYTES)
                 still = "rt_shape_still_#{voice}"
+                emit_skip_voice_held_still(asm, memory, voice, still)
                 asm.load(:a, [at + SHAPE_ON])
                 asm.and_a(:a)
                 asm.jump_relative(:z, still)
@@ -620,6 +654,17 @@ module VBlank
               asm.xor_a(:a)
               asm.load([memory[PLAYING]], :a)
               asm.reti
+              return unless holds?(memory)
+
+              # rt_music_hold_tune, rt_music_release_tune: it stays where it is, or carries on.
+              asm.label("rt_music_hold_tune")
+              asm.load(:a, 1)
+              asm.load([memory[TUNE_HELD]], :a)
+              asm.ret
+              asm.label("rt_music_release_tune")
+              asm.xor_a(:a)
+              asm.load([memory[TUNE_HELD]], :a)
+              asm.ret
             end
 
             def emit_no_songs(asm)
@@ -675,6 +720,10 @@ module VBlank
               else
                 asm.jump_relative(:z, "rt_music_tick_playing")
               end
+              if holds?(memory) # another tune lets a held one go
+                asm.xor_a(:a)
+                asm.load([memory[TUNE_HELD]], :a)
+              end
               asm.call("rt_music_quiet")
               asm.load(:a, [memory[NAMED]])
               asm.load([memory[PLAYING]], :a)
@@ -714,6 +763,12 @@ module VBlank
               asm.call("rt_music_relevel") if level
               # ...and a wave note a recording had the voice from, before any new note takes it.
               asm.call("rt_music_wave_back") if wave_back?(memory)
+              # A tune held stays on this frame, and no note of it starts.
+              if holds?(memory)
+                asm.load(:a, [memory[TUNE_HELD]])
+                asm.and_a(:a)
+                asm.ret(:nz)
+              end
               # Every part: each note whose frame this is.
               asm.call("rt_music_song")
               asm.inc(:hl)

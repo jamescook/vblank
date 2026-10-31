@@ -1261,6 +1261,15 @@ module VBlank
         category :sound
       end
 
+      # The tune playing stays where it is (+held+ true): what it sounds rings on and nothing new
+      # starts, until this says otherwise (+held+ false) or another tune, or a stop, takes over.
+      class HoldMusic
+        include Node
+        kind :hold_music
+        category :sound
+        operands held: :flag
+      end
+
       class StopSample
         include Node
         kind :stop_sample

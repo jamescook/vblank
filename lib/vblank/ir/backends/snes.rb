@@ -86,7 +86,7 @@ module VBlank
           tile_runs = Lowering::Picture.tile_run_bytes(program)
           Runtime.reserve(memory, painted: painted, chip: board.name == :super_fx, sound: sound, songs: songs,
                                   music_follows_level: follows_level, effects: effects, samples: samples, bar: bar,
-                                  bends: bends, tile_runs: tile_runs)
+                                  bends: bends, tile_runs: tile_runs, holds_music: Lowering::Sound.holds_music?(program))
           lowering = Lowering.new(program, memory: memory)
           game = lowering.sections + lowering.art_sections
           runtime = Runtime.sections(memory, main: Lowering::MAIN, frame_begins: lowering.frame_begins, painted: painted,

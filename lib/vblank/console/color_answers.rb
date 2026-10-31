@@ -230,6 +230,8 @@ module VBlank
                     "time, and the game's own recordings use it (see `sample`)."),
         play_song: works,
         stop_music: works,
+        hold_music: works,
+        release_music: works,
         music_volume: works,
         fade_music_in: works,
         fade_music_out: works,

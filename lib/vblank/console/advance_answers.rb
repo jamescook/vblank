@@ -77,8 +77,8 @@ module VBlank
 
         # --- sound and music ---
         enable_sound: works, define_sound: works, beep: works, noise: works, wave: works, stop_wave: works,
-        song: works, play_song: works, stop_music: works, music_volume: works, fade_music_in: works,
-        fade_music_out: works, songs: works, sound_effects: works, sample: works, instrument: works
+        song: works, play_song: works, stop_music: works, hold_music: works, release_music: works,
+        music_volume: works, fade_music_in: works, fade_music_out: works, songs: works, sound_effects: works, sample: works, instrument: works
       })
 
       # WHAT .claude/dsl/game-boy-advance.md SAYS: the answers with words of their own, then every

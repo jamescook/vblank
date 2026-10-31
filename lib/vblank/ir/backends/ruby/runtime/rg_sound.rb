@@ -224,6 +224,7 @@ def rg_sound_setup
   @rg_ended = -1
   @rg_stops = 0
   @rg_stops_seen = 0
+  @rg_music_held = false # the game said hold_music: the tune stays where it is
   @rg_song = 0 # where the playing song's numbers start in @rg_game_music
   @rg_song_frame = 0
   @rg_part_count = 0
@@ -492,6 +493,14 @@ def rg_music_stop
   @rg_stops += 1
 end
 
+# The tune stays where it is, or carries on (Reference::Player#hold).
+def rg_music_hold(held)
+  @rg_music_held = held != 0
+end
+
+# Is the note on +voice+ the held tune's? A sound effect on a voice keeps moving.
+def rg_held_still?(voice) = @rg_music_held && (@rg_holders[voice] & rg_order_mask) == 0
+
 def rg_music_follow_level(variable)
   @rg_level_variable = variable
 end
@@ -600,7 +609,7 @@ def rg_step_wobbles
   (1..RG_WAVE_VOICE).each do |voice|
     moving = @rg_wobbles[voice]
     depth = moving.vibrato & RG_VIBRATO_FOUR_BITS
-    next if depth == 0
+    next if depth == 0 || rg_held_still?(voice)
     next moving.wait -= 1 if moving.wait > 0
 
     if moving.left == 0
@@ -697,7 +706,7 @@ end
 def rg_step_shapes
   (1..RG_SQUARE_VOICES).each do |voice|
     walk = @rg_shapes[voice]
-    next unless walk.steps
+    next if !walk.steps || rg_held_still?(voice)
 
     now = rg_shape_at(walk.bits, walk.frame)
     rg_sound_log("duty #{voice} #{now}") if walk.frame > 0 && now != rg_shape_at(walk.bits, walk.frame - 1)
@@ -768,6 +777,7 @@ def rg_switch_to_wanted_song
   return false if @rg_wanted == @rg_playing && @rg_stops == @rg_stops_seen
 
   @rg_stops_seen = @rg_stops
+  @rg_music_held = false
   rg_silence_song if @rg_playing >= 0
   @rg_playing = @rg_wanted
   @rg_song_frame = 0
@@ -1096,6 +1106,8 @@ end
 
 def rg_play_song_frame
   rg_follow_level(@rg_level_variable.call) if @rg_level_variable
+  return if @rg_music_held
+
   @rg_part_count.times do |i|
     part = @rg_parts[i]
     next if part.next_note >= part.count

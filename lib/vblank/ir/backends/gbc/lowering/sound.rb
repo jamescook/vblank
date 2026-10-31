@@ -14,6 +14,7 @@ module VBlank
                                                  enable_sound: :emit_enable_sound, beep: :emit_beep,
                                                  noise: :emit_noise, wave: :emit_wave, stop_wave: :emit_stop_wave,
                                                  play_song: :emit_play_song, stop_music: :emit_stop_music,
+                                                 hold_music: :emit_hold_music,
                                                  play_from_list: :emit_play_from_list,
                                                  play_sound_effect: :emit_play_sound_effect,
                                                  play_sample: :emit_play_sample, stop_sample: :emit_stop_sample,
@@ -41,6 +42,9 @@ module VBlank
 
             def holds_swells? = held_swell_kinds.any?
             def holds_noise_swells? = held_swell_kinds.include?(:noise)
+
+            # Does the game hold its music? Only then does the player look (Runtime::Music::TUNE_HELD).
+            def holds_music? = @program.walk.any? { |node| node.kind == :hold_music }
 
             # Does the game run the cartridge's motor? Then its cartridge says it carries one.
             def rumbles? = @reachable.any? { |node| node.kind == :rumble }
@@ -145,6 +149,7 @@ module VBlank
             end
 
             def emit_stop_music(_node) = @asm.call("rt_music_stop")
+            def emit_hold_music(node) = @asm.call(node.held ? "rt_music_hold_tune" : "rt_music_release_tune")
 
             def emit_enable_sound(_node) = sound_writes(VBlank::Audio::Sound::Registers.enable, [:enabled])
 

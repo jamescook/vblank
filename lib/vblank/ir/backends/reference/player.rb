@@ -43,6 +43,7 @@ module VBlank
             @stops_seen = 0     # ...and how many of those this has acted on
             @wanted = nil       # the tune the program last named (nil = none)
             @playing = nil      # ...and the one this is on, which catches up each frame
+            @held = false       # the game said hold_music: the tune stays where it is (#hold)
             @ended = nil        # a tune that played once and reached its end (IR::Tunes.plays_once?)
             @frame = 0          # how far into that tune, in frames
             @events = []        # the events each of its parts is walking now
@@ -144,6 +145,12 @@ module VBlank
             @stops += 1
           end
 
+          # THE TUNE STAYS WHERE IT IS, from the next frame, or carries on. Held, its frame does not
+          # move and no note of it starts, and the voices it holds are left as they are: no wobble
+          # moves them and no shape steps. The console counts a swell by itself, so that goes on,
+          # and the music volume still reaches a note held. Whatever changes the tune lets it go.
+          def hold(held) = @held = held
+
           # ONE FRAME OF THE PLAYER — the same steps, in the same order, as the console's.
           #
           # First it catches up with what the program asked for. A different tune than the one
@@ -188,6 +195,8 @@ module VBlank
 
           def play_song_frame(level)
             apply_music_volume(level) if level
+            return if @held
+
             song = @songs[@playing]
             rank = IR::Tunes.song_rank(song)
             recorded = 0
@@ -296,6 +305,8 @@ module VBlank
           # its frame's before the frame is heard. Logged as [:duty, channel, shape] when it changes.
           def step_shapes
             @stepping_shapes.keys.sort.each do |channel|
+              next if held_still?(channel)
+
               duty, frame = @stepping_shapes[channel]
               @log << [:duty, channel, duty.at(frame)] if frame.positive? && duty.at(frame) != duty.at(frame - 1)
               @stepping_shapes[channel] = [duty, frame + 1]
@@ -312,11 +323,16 @@ module VBlank
 
           def step_wobbles
             @wobbles.keys.sort.each do |channel|
+              next if held_still?(channel)
+
               was = @wobbles[channel]
               now = @wobbles[channel] = was.stepped
               @log << [:wobble, channel, now.steps] unless now.steps == was.steps
             end
           end
+
+          # Is the note on +channel+ the held tune's? A sound effect on a voice keeps moving.
+          def held_still?(channel) = @held && (@holders[channel] & IR::Tunes::ORDER_MASK).zero?
 
           # Every sound effect with its rank, highest first.
           def ranked_effects
@@ -454,6 +470,7 @@ module VBlank
             return false if @wanted == @playing && @stops == @stops_seen
 
             @stops_seen = @stops
+            @held = false
             silence_song if @playing
             @playing = @wanted
             @frame = 0

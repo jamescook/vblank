@@ -183,6 +183,8 @@ module VBlank
         song: works("see `define_sound` for the square and wave voices."),
         play_song: works,
         stop_music: works,
+        hold_music: works,
+        release_music: works,
         music_volume: works,
         fade_music_in: works,
         fade_music_out: works,

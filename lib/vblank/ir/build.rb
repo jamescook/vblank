@@ -317,6 +317,11 @@ module VBlank
         Nodes.build(:stop_music)
       end
 
+      # The tune playing stays where it is, or with +held+ false carries on.
+      def hold_music(held = true)
+        Nodes.build(:hold_music, held: held)
+      end
+
       # A named list of songs, in order, to be picked by number.
       def song_list(name, songs)
         Nodes.build(:song_list, name: name, songs: songs)

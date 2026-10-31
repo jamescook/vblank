@@ -550,6 +550,7 @@ module VBlank
             noise: @audio.method(:emit_noise), wave: @audio.method(:emit_wave),
             stop_wave: @audio.method(:emit_stop_wave),
             play_song: @audio.method(:emit_play_song), stop_music: @audio.method(:emit_stop_music),
+            hold_music: @audio.method(:emit_hold_music),
             play_from_list: @audio.method(:emit_play_from_list),
             play_sound_effect: @audio.method(:emit_play_sound_effect),
             timer_start: method(:emit_timer_start), timer_stop: method(:emit_timer_stop),

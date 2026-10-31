@@ -29,6 +29,7 @@ module VBlank
             STOPS = "rt music stops" # how many times the game said stop_music...
             STOPS_SEEN = "rt music stops seen" # ...and how many of those the player has acted on
             ENDED = "rt music ended" # a tune that played once and reached its end
+            TUNE_HELD = "rt music tune held" # 1 while the game holds the tune, in a game that says so
             FRAME = "rt music frame" # how far into the tune, in frames
             AGAIN = "rt music again" # 1 once the tune has come round
             SONG = "rt music song" # where the playing tune's record is in the table
@@ -65,7 +66,8 @@ module VBlank
 
             # +follows_level+ for a game that sets the music volume (SNES::Music.follows_level?);
             # +effects+ how many sound effects the game has (Effects).
-            def reserve(memory, follows_level: false, effects: 0)
+            def reserve(memory, follows_level: false, effects: 0, holds: false)
+              memory.reserve(TUNE_HELD, 2) if holds
               [NAMED, PLAYING, STOPS, STOPS_SEEN, ENDED, FRAME, AGAIN, SONG, PART, PARTS_IN, COUNT, LIST,
                ENTRY, NOTE].each { |name| memory.reserve(name, 2) }
               memory.reserve(CURSORS, SNES::Music::PARTS * 2)
@@ -85,12 +87,28 @@ module VBlank
               at = ->(name, plus = 0) { asm.abs(memory[name], plus) }
               sharing = effects.positive?
               emit_game_side(asm, at)
+              emit_tune_hold(asm, at) if holds?(memory)
               emit_frames(asm, at, sharing)
               emit_switch(asm, at, memory, level_at, sharing, recorded)
               emit_song_frame(asm, at, memory, level_at, sharing, recorded)
               emit_level(asm, at, memory, level_at) if level_at
               Effects.emit(asm, memory, effects, level_at, recorded: recorded) if sharing
               emit_group(asm)
+            end
+
+            # Whether the game holds its music (TUNE_HELD).
+            def holds?(memory) = memory.reserved?(TUNE_HELD)
+
+            # rt_music_hold_tune, rt_music_release_tune: it stays where it is, or carries on
+            # (Reference::Player#hold).
+            def emit_tune_hold(asm, at)
+              asm.label("rt_music_hold_tune")
+              asm.lda(1)
+              asm.sta(at.call(TUNE_HELD))
+              asm.rtl
+              asm.label("rt_music_release_tune")
+              asm.stz(at.call(TUNE_HELD))
+              asm.rtl
             end
 
             # rt_music_play(tune): play it from the next frame, unless it is playing already.
@@ -209,6 +227,7 @@ module VBlank
               asm.lda(0)
               asm.rts
               asm.label("rt_music_switch_change")
+              asm.stz(at.call(TUNE_HELD)) if holds?(memory)
               asm.lda(at.call(STOPS))
               asm.sta(at.call(STOPS_SEEN))
               asm.lda(at.call(PLAYING))
@@ -308,6 +327,10 @@ module VBlank
               asm.lda(asm.long_x("music_data", m::PART_COUNT))
               asm.sta(at.call(PARTS_IN))
               asm.jsr(asm.abs("rt_music_relevel")) if level_at
+              if holds?(memory) # a tune held stays on this frame, and no note of it starts
+                asm.lda(at.call(TUNE_HELD))
+                asm.branch_long(:bne, "rt_music_song_frame_done")
+              end
               asm.stz(at.call(PART))
               asm.label("rt_music_part")
               asm.lda(at.call(PART))
