@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "console/gba/vblank/audio/test_song_instruments_on_the_advance"
+require "song_instrument_tests"
 
 # A song part that plays a recorded instrument, as the Advance's cartridge plays it: the mixer's
 # voices read back in the emulator. The surface — the friendly errors and the warnings — is in
 # test/all/vblank/audio/test_song_instruments.rb, and what the run's own player sounds is in
-# test/console/gba/vblank/audio/test_song_instruments_on_the_advance.rb.
+# test/song_instrument_tests.rb.
 class TestSongInstrumentsCartridge < Minitest::Test
   include SongInstrumentsSharing
 

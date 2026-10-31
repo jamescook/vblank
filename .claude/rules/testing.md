@@ -90,6 +90,7 @@ to, sample for sample against the native one's), `midpoint_circle.rb` (the answe
 rows), `many_rooms_game.rb` (a scene of many rooms with sprite pictures grouped by room),
 `status_bar_games.rb` (small games with a status bar, for the verb's and its handle's tests),
 `clock_tests.rb` (the clock's tests, played by each console that has one),
+`song_instrument_tests.rb` (a song part playing a recorded instrument, played by each console that mixes them),
 `screen_backdrop_games.rb` (small tiled games for `screen ... backdrop:`),
 `first_pass_presses.rb` (presses counted from a game's first pass, for a game that sets up save
 records first),

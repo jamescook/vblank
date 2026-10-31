@@ -74,11 +74,12 @@ module VBlank
           # colour math of a game's see-through layer, which its power-on sets; +sprite_depths+ for a
           # game with a sprite behind a background, whose sprites are placed with their priority (Picture);
           # +colors_shown+ the runs of the colour memory a picture can show, which a fade moves (Tint); +big_tiles+
-          # the size bits of the layers drawn from 16×16 tiles (Lowering::Picture#big_tile_layers).
+          # the size bits of the layers drawn from 16×16 tiles (Lowering::Picture#big_tile_layers); +recorded_parts+
+          # for a game whose songs have parts that play recordings (Lowering::Sound#recorded_parts?).
           def sections(memory, main:, frame_begins: nil, painted: false, board: Cartridge::SNESROM::PLAIN, saves: false,
                        sound: false, sound_waves: [], music: nil, music_level_at: nil, effects: 0, recordings: [],
                        plays: nil, bar: false, bent: [], tile_runs: 0, see_through: nil, sprite_depths: false, big_tiles: 0,
-                       colors_shown: [[0, 256]])
+                       colors_shown: [[0, 256]], recorded_parts: false)
             chip = board.name == :super_fx
             vectors = W65816.new("runtime vectors", home: :first)
             Boot.emit_vectors(vectors)
@@ -100,7 +101,7 @@ module VBlank
             if sound
               Sound.emit(asm, memory, sound_waves, recordings: recordings, songs: !music.nil?, samples: !plays.nil?)
             end
-            Music.emit(asm, memory, level_at: music_level_at, effects: effects) if music
+            Music.emit(asm, memory, level_at: music_level_at, effects: effects, recorded: recorded_parts) if music
             Recordings.emit(asm, memory) if plays
             emit_start(asm, chip: chip, sound: sound)
             emit_frame_begins(asm, frame_begins)

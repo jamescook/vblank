@@ -331,7 +331,7 @@ module VBlank
               asm.sta(state.call(RUNNING))
               asm.lda(0)
               asm.sta(state.call(FRAME))
-              SNES::Music::PARTS.times { |p| asm.sta(state.call(CURSORS + (p * 2))) }
+              SNES::Music::CONSOLE_PARTS.times { |p| asm.sta(state.call(CURSORS + (p * 2))) }
               asm.ldx(at.call(RECORD))
               asm.lda(asm.long_x("music_data", m::EFFECT_START_LOG))
               asm.tax

@@ -166,9 +166,12 @@ module VBlank
           Voicing = Data.define(:waves, :parts, :effects) do
             def initialize(waves: [], parts: {}, effects: []) = super
 
-            # The voices +song+'s parts play on, a bit each.
+            # The voices +song+'s parts play on, a bit each. A part that plays a recording plays in one of
+            # Runtime::Recordings' places, which the tune lets go of itself.
             def song_voices(song)
-              parts.keys.sum { |name, channel| name == song ? 1 << CHANNEL_VOICES.fetch(channel) : 0 }
+              parts.keys.sum do |name, channel|
+                name == song && !SNES::Music.recorded?(channel) ? 1 << CHANNEL_VOICES.fetch(channel) : 0
+              end
             end
           end
 

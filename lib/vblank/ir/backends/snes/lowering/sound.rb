@@ -33,8 +33,12 @@ module VBlank
             # Whether +program+ plays songs, and so carries their player (Runtime::Music).
             def self.songs?(program) = program.walk.any? { |node| %i[song play_song stop_music play_from_list play_sound_effect].include?(node.kind) }
 
-            # Whether +program+ plays recordings of its own, and so carries their count (Runtime::Recordings).
-            def self.samples?(program) = program.walk.any? { |node| node.kind == :play_sample }
+            # Whether +program+ plays recordings — of its own, or as a song's part — and so carries their
+            # count (Runtime::Recordings).
+            def self.samples?(program)
+              program.walk.any? { |node| node.kind == :play_sample } ||
+                program.walk.any? { |node| node.kind == :song && node.voices.any? { |part| IR::Tunes.part_kind(part) == :recorded } }
+            end
 
             # Every entry of the sound log the cartridge can write, by the number it writes.
             def sound_entries = @sound_entries.dup
@@ -67,7 +71,44 @@ module VBlank
 
             # The section of the game's songs (SNES::Music), each note's sound-log entries numbered
             # among the rest.
-            def music_section = @music.section(@music.words(sound_voicing) { |entry| sound_entry_number(entry) })
+            def music_section
+              words = @music.words(sound_voicing, recording_row: method(:recorded_note_row),
+                                                  shape_of: ->(name) { Assets::Sample.of(declared_sample(name)).envelope }) do |entry|
+                sound_entry_number(entry)
+              end
+              @music.section(words)
+            end
+
+            # Whether a song has a part that plays a recording, whose notes are played in the places
+            # Runtime::Recordings keeps.
+            def recorded_parts? = @music.recorded_parts?
+
+            # THE ROW A NOTE OF A RECORDED PART PLAYS (Reference::Mixer#start_music_note): recording +name+
+            # read at +frequency+, from its start, back to where it holds from at its end (or played
+            # once, for one that does not hold), at its written +volume+ as a mixer voice's loudness.
+            # Nothing is logged as it comes round. Its number in "recording_plays".
+            def recorded_note_row(name, frequency, volume)
+              declared = declared_sample(name)
+              info = Assets::Sample.of(declared)
+              clock = Console::SUPER_NINTENDO.sample_clock(declared.rate)
+              back = info.loop_length
+              step = IR::Mixing.step(info, frequency, clock.rate)
+              refuse_unreadable_play!(name, step, back)
+              @recordings << [name, back] unless @recordings.include?([name, back])
+              row = Runtime::Recordings.row(
+                source: Samples::FIRST_WAVE + @sound_waves.size + @recordings.index([name, back]),
+                pitch: [step / RECORDING_STEP_TO_PITCH, 1].max,
+                volume: (IR::Tunes.mix_loudness(volume) * DSPWrites::MAIN_VOLUME / IR::Tunes::MIX_FULL.to_f).round,
+                length: info.length, back: back, advance: step * clock.samples_a_frame,
+                logged: Runtime::Recordings::NOT_LOGGED, name: @samples.keys.index(name)
+              )
+              @plays << row unless @plays.include?(row)
+              @plays.index(row)
+            end
+
+            def declared_sample(name)
+              @samples.fetch(name) { raise LoweringError, "the instrument #{name.inspect} is not declared" }
+            end
 
             private
 

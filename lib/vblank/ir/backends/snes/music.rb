@@ -80,6 +80,7 @@ module VBlank
           NOTE_TAIL = 4
           NOTE_VOLUME = 6
           NOTE_SOUNDS = 8
+          NOTE_RECORDING = 10 # a recorded part's note: its row of "recording_plays", one up; nought for a rest
           NOTE_BYTES = 16
           COMMAND_FIRST = 2
           COMMAND_SECOND = 4
@@ -96,8 +97,17 @@ module VBlank
           EFFECT_RECORD_BYTES = 12
           EFFECT_RELEASE = 4
 
-          # The most parts a song has: one on each of the voices the Advance plays itself.
-          PARTS = 4
+          # The most parts a song has: one on each of the voices the Advance plays itself, and one for each
+          # recording the Super Nintendo sounds at once.
+          RECORDED_PARTS = Console::SUPER_NINTENDO.recordings_at_once
+          CONSOLE_PARTS = 4 # ...the most a sound effect has, which plays no recording
+          PARTS = CONSOLE_PARTS + RECORDED_PARTS
+
+          # A RECORDED PART'S CHANNEL: past the console voices' channels, this and its place among the
+          # song's recorded parts. Its notes are played in Runtime::Recordings' places, the part's own
+          # number there (OWNER) the place among them one up.
+          RECORDED_CHANNEL = 0x10
+          def self.recorded?(channel) = channel >= RECORDED_CHANNEL
 
           # The volumes a voice the Advance plays itself has, and so the loudnesses a level can take a
           # note to (IR::Tunes.scaled_volume).
@@ -175,9 +185,16 @@ module VBlank
             end
           end
 
+          # Whether any song has a part that plays a recording.
+          def recorded_parts? = @songs.any? { |song| song.voices.any? { |part| IR::Tunes.part_kind(part) == :recorded } }
+
           # The table, as words. +voicing+ is the game's (DSPWrites::Voicing), and the block gives
-          # the number the cartridge's sound log keeps an entry as.
-          def words(voicing, &number_of)
+          # the number the cartridge's sound log keeps an entry as. +recording_row+ gives the row of
+          # "recording_plays" a recorded part's note plays (Lowering::Sound#recorded_note_row), for
+          # its recording, its pitch and its volume as written.
+          def words(voicing, recording_row: nil, shape_of: nil, &number_of)
+            @recording_row = recording_row
+            @shapes_of = shape_of
             @songs.each { |song| refuse_parts!(song) }
             @groups = [] # every group's commands, each once, in the order first met
             # A tune stopping logs its own stop (Music.stop_entry); the voices it lets go of are worked
@@ -248,7 +265,8 @@ module VBlank
             song, stop_log, parts = tune
             lambda do |start|
               head = [song.total_frames, IR::Tunes.loop_frame(song), IR::Tunes.plays_once?(song) ? 1 : 0, parts.size,
-                      places.fetch(stop_log), parts.sum { |part| 1 << DSPWrites::CHANNEL_VOICES.fetch(part[:channel]) },
+                      places.fetch(stop_log),
+                      parts.sum { |part| self.class.recorded?(part[:channel]) ? 0 : 1 << DSPWrites::CHANNEL_VOICES.fetch(part[:channel]) },
                       rank_place(IR::Tunes.song_rank(song))]
               entries = Array.new(parts.size * PART_BYTES / 2, 0)
               tail = []
@@ -294,8 +312,9 @@ module VBlank
 
           # A note's words: its frame, its two groups' places, its volume as written, whether it sounds.
           def note_words(note, places)
-            frame, head, tail, written, sounds = note
-            [frame, places.fetch(head), places.fetch(tail), written, sounds ? 1 : 0] + Array.new((NOTE_BYTES / 2) - 5, 0)
+            frame, head, tail, written, sounds, recording = note
+            [frame, places.fetch(head), places.fetch(tail), written, sounds ? 1 : 0, recording || 0] +
+              Array.new((NOTE_BYTES / 2) - 6, 0)
           end
 
           # What the table holds for one part: its two lists of notes, the first time round and every
@@ -327,12 +346,26 @@ module VBlank
           # One note of +song+'s +part+ on +channel+ (an +event+ of its list), with +between+ its head
           # and its tail.
           def note_layout(song, part, channel, event, between, voicing, &number_of)
+            return recorded_note_layout(song, part, event, &number_of) if self.class.recorded?(channel)
+
             frame, frequency, _, volume = event
             volume ||= part.volume
             head = [[:note, song.name, frequency], [:voice, channel, song.name, frequency, volume]]
             commands = entry_commands(head + between + wave_or_noise_entries(part, frequency), voicing, song.name, &number_of)
             [frame, keep_group(commands.take(2).flatten(1)), keep_group(commands.drop(2 + between.size).flatten(1)),
              frequency.zero? ? 0 : volume, DSPWrites.sounds?(channel, frequency, volume)]
+          end
+
+          # A NOTE OF A PART THAT PLAYS A RECORDING (Reference::Player#play_recorded_note): its head logs
+          # [:note ...] once the note has a place (Runtime::Recordings), and nothing is written to a
+          # voice of the console's own; its row of "recording_plays" (#recording_row, one up), nought
+          # for a rest.
+          def recorded_note_layout(song, part, event, &number_of)
+            frame, frequency, instrument, volume = event
+            volume ||= part.volume
+            head = keep_group([[GROUP_LOG, number_of.call([:note, song.name, frequency]), 0]])
+            row = frequency.zero? ? 0 : @recording_row.call(instrument || part.instrument, frequency, volume) + 1
+            [frame, head, keep_group([]), frequency.zero? ? 0 : volume, frequency.positive?, row]
           end
 
           # What the table holds for one sound effect (Reference::Player#play_effect_frame): its rank,
@@ -407,30 +440,54 @@ module VBlank
           # the square parts 1 and 2 in the order written, the wave part 3, the noise part 4.
           def channels_of(song)
             squares = 0
+            recorded = 0
             song.voices.map do |part|
               channel = case IR::Tunes.part_kind(part)
                         when :square then squares += 1
                         when :wave then Reference::Player::WAVE_CHANNEL
                         when :noise then Reference::Player::NOISE_CHANNEL
+                        else (recorded += 1) + RECORDED_CHANNEL - 1
                         end
               [part, channel]
             end
           end
 
           def refuse_parts!(song)
-            if song.voices.any? { |part| IR::Tunes.part_kind(part) == :recorded }
-              raise Lowering::NotMadeYet.new(
-                "The song #{song.name.inspect} has a part that plays a recording. The Super Nintendo build does not " \
-                "make that yet. To fix this, build the game for the Game Boy Advance alone for now " \
-                "(`consoles: %i[gba]`).", part: "the sound"
-              )
-            end
+            refuse_unmade_recorded_parts!(song)
             refuse_note_changes!(song)
             kinds = song.voices.map { |part| IR::Tunes.part_kind(part) }
             return if kinds.count(:square) <= 2 && kinds.count(:wave) <= 1 && kinds.count(:noise) <= 1
 
             raise LoweringError, "The song #{song.name.inspect} has too many parts for one voice. A song can have two " \
                                  "square parts, one wave part and one noise part. To fix this, remove the extra parts."
+          end
+
+          # A PART THAT PLAYS A RECORDING, where the build does not make it yet: in a sound effect, in a
+          # game that sets its music volume, with a shape (an envelope: the note's, the part's or the
+          # recording's), or more of them in a song than recordings sound at once.
+          def refuse_unmade_recorded_parts!(song)
+            recorded = song.voices.select { |part| IR::Tunes.part_kind(part) == :recorded }
+            return if recorded.empty?
+
+            unmade = if @effect_names.include?(song.name) then "a sound effect part that plays a recording"
+                     elsif follows_level? then "a part that plays a recording in a game that sets its music volume"
+                     elsif recorded.any? { |part| shaped?(part) } then "a part that plays a recording with an envelope"
+                     elsif recorded.size > RECORDED_PARTS then "more than #{RECORDED_PARTS} parts that play recordings"
+                     end
+            return unless unmade
+
+            raise Lowering::NotMadeYet.new(
+              "The song #{song.name.inspect} has #{unmade}. The Super Nintendo build does not make that yet. To fix " \
+              "this, build the game for the Game Boy Advance alone for now (`consoles: %i[gba]`).", part: "the sound"
+            )
+          end
+
+          # Whether a recorded part's notes have a shape: one a note or the part says, or one the
+          # recording was declared with (Reference::Mixer#recording_fields).
+          def shaped?(part)
+            shapes = part.events.filter_map { |event| event[4] } + [part.envelope] +
+                     part.events.map { |event| @shapes_of.call(event[2] || part.instrument) }
+            shapes.compact.any? { |shape| !shape.plain? }
           end
 
           # A NOTE THAT CHANGES AS IT PLAYS — fading out or swelling in, sliding or wobbling its

@@ -81,13 +81,13 @@ module VBlank
 
             # +level_at+ is where a game that sets its music volume keeps it (IR::Tunes::LEVEL), or nil;
             # +effects+ how many sound effects the game has.
-            def emit(asm, memory, level_at: nil, effects: 0)
+            def emit(asm, memory, level_at: nil, effects: 0, recorded: false)
               at = ->(name, plus = 0) { asm.abs(memory[name], plus) }
               sharing = effects.positive?
               emit_game_side(asm, at)
               emit_frames(asm, at, sharing)
-              emit_switch(asm, at, memory, level_at, sharing)
-              emit_song_frame(asm, at, memory, level_at, sharing)
+              emit_switch(asm, at, memory, level_at, sharing, recorded)
+              emit_song_frame(asm, at, memory, level_at, sharing, recorded)
               emit_level(asm, at, memory, level_at) if level_at
               Effects.emit(asm, memory, effects, level_at) if sharing
               emit_group(asm)
@@ -180,7 +180,7 @@ module VBlank
 
             # rt_music_switch: caught up with the tune the game names (Reference::Player#switch_to_wanted_song).
             # A is 1 when that changed what is playing, nought when not.
-            def emit_switch(asm, at, memory, level_at, sharing)
+            def emit_switch(asm, at, memory, level_at, sharing, recorded)
               asm.label("rt_music_switch")
               asm.lda(at.call(ENDED))
               asm.beq("rt_music_switch_live")
@@ -241,6 +241,7 @@ module VBlank
               # effect's — every voice the tune held free, no note held, and the tune's own stop
               # logged (Music.stop_entry).
               asm.label("rt_music_quiet")
+              asm.jsl(asm.long("rt_recordings_release_music")) if recorded # the places its parts hold
               if level_at
                 SNES::Music::PARTS.times do |p|
                   asm.stz(asm.abs(memory[HELD], p * 2))
@@ -262,9 +263,45 @@ module VBlank
               asm.jmp(asm.abs("rt_sound_group"))
             end
 
+            # rt_music_recorded_note: the note at NOTE of a part that plays a recording, A its channel
+            # (SNES::Music::RECORDED_CHANNEL on): a note takes a place for the part (rt_recordings_note),
+            # and logs itself if it found one; a rest gives the part's place back and logs itself
+            # whether the part had one or not (Reference::Player#play_song_frame).
+            def emit_recorded_note(asm, at)
+              m = SNES::Music
+              asm.label("rt_music_recorded_note")
+              asm.sec
+              asm.sbc(m::RECORDED_CHANNEL - 1) # the part's own number in Recordings' places
+              asm.sta(asm.direct(Sound::R1))
+              asm.ldx(at.call(NOTE))
+              asm.lda(asm.long_x("music_data", m::NOTE_RECORDING))
+              asm.bne("rt_music_recorded_note_plays")
+              asm.lda(asm.direct(Sound::R1))
+              asm.sta(asm.direct(Sound::R0))
+              asm.jsl(asm.long("rt_recordings_note_release"))
+              asm.bra("rt_music_recorded_note_log")
+              asm.label("rt_music_recorded_note_plays")
+              asm.dec
+              asm.sta(asm.direct(Sound::R0))
+              asm.ldx(at.call(SONG))
+              asm.lda(asm.long_x("music_data", m::RANK))
+              asm.inc # above the game's own sounds, at nought
+              asm.sta(asm.direct(Sound::R2))
+              asm.jsl(asm.long("rt_recordings_note"))
+              asm.cmp(0)
+              asm.beq("rt_music_recorded_note_done") # no place: not heard
+              asm.label("rt_music_recorded_note_log")
+              asm.ldx(at.call(NOTE))
+              asm.lda(asm.long_x("music_data", m::NOTE_HEAD))
+              asm.tax
+              asm.jsr(asm.abs("rt_sound_group"))
+              asm.label("rt_music_recorded_note_done")
+              asm.rts
+            end
+
             # rt_music_song_frame: each part's note whose frame has come, then the frame on
             # (Reference::Player#play_song_frame and #advance_song_frame).
-            def emit_song_frame(asm, at, memory, level_at, sharing)
+            def emit_song_frame(asm, at, memory, level_at, sharing, recorded)
               m = SNES::Music
               asm.label("rt_music_song_frame")
               asm.ldx(at.call(SONG))
@@ -299,6 +336,15 @@ module VBlank
               asm.cmp(at.call(FRAME))
               asm.branch_long(:bne, "rt_music_part_next")
               asm.stx(at.call(NOTE))
+              if recorded # a part that plays a recording: its note in Recordings' places
+                asm.ldx(at.call(ENTRY))
+                asm.lda(asm.long_x("music_data", m::CHANNEL))
+                asm.cmp(m::RECORDED_CHANNEL)
+                asm.bcc("rt_music_part_console")
+                asm.jsr(asm.abs("rt_music_recorded_note"))
+                asm.brl("rt_music_part_passed")
+                asm.label("rt_music_part_console")
+              end
               if sharing
                 # A voice a sound effect holds with a higher rank: the part carries on in time,
                 # silent here (Reference::Player#play_song_frame).
@@ -336,6 +382,8 @@ module VBlank
               asm.sta(at.call(ENTRY))
               asm.tax
               asm.rts
+
+              emit_recorded_note(asm, at) if recorded
 
               asm.label("rt_music_parts_done")
               asm.inc(at.call(FRAME))
