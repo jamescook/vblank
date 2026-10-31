@@ -55,6 +55,12 @@ class TestPlainRubyRewrite < Minitest::Test
     assert_includes VBlank::DSL::PlainRuby.rewritten_source(second), "two = 2"
   end
 
+  def test_a_lambda_is_not_rewritten
+    refute VBlank::DSL::PlainRuby.rewritable?(-> {})
+    refute VBlank::DSL::PlainRuby.rewritable?(lambda {})
+    assert VBlank::DSL::PlainRuby.rewritable?(proc {})
+  end
+
   def test_a_number_changed_by_a_menu_row_is_declared_with_var
     source = rewritten do
       picked = 0

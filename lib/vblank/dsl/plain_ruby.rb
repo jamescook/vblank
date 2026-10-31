@@ -50,8 +50,11 @@ module VBlank
       end
 
       # Can +block+ be rewritten? It takes a file to read and a scope to run in, and a proc this
-      # module made already has no file of its own, which is how it is not rewritten twice.
+      # module made already has no file of its own, which is how it is not rewritten twice. A
+      # lambda checks what it is given and a proc does not, so one is left as it was written.
       def rewritable?(block)
+        return false if block.lambda?
+
         iseq = RubyVM::InstructionSequence.of(block)
         return false unless iseq&.absolute_path && File.file?(iseq.absolute_path)
 
