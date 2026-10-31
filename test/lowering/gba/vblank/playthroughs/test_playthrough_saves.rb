@@ -117,8 +117,8 @@ class TestPlaythroughSaves < Minitest::Test
   def test_a_cartridge_with_no_save_memory_hands_back_no_save
     counting = VBlank.build("COUNTING", console: :gba, out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
 
     assert_nil file_screen.play(counting).save

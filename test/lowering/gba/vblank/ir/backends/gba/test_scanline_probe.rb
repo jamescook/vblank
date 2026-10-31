@@ -20,9 +20,10 @@ class TestScanlineProbe < Minitest::Test
     builder.extend(VBlank::Builder::Debug)
     builder.instance_eval do
       screen :bitmap
+      sample = var :sample, 0
       wait_vblank
       fills.times { |i| dma_fill_rect 0, i % 100, 240, 1, :red }
-      set! :sample, read_scanline
+      sample = read_scanline
       halt
     end
     builder.finalize_program

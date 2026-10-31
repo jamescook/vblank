@@ -21,18 +21,18 @@ class TestQuickMemoryByScene < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       timer(:clock, per_second: 60).on_tick { call :play_work } if ticked
-      a = var :a, 0
-      b = var :b, 0
-      t = var :t, 0
-      var :where, 0
-      func(:title_work) { adds.times { a.add! 1 } }
-      func(:play_work) { adds.times { b.add! 1 } }
+      a = 0
+      b = 0
+      t = 0
+      where = 0
+      func(:title_work) { adds.times { a += 1 } }
+      func(:play_work) { adds.times { b += 1 } }
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
         t += 1
-        set! :where, 1 if t == 6
-        set! :where, 0 if t == 12
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -47,12 +47,12 @@ class TestQuickMemoryByScene < Minitest::Test
   private def two_screens_by_name(adds:)
     builder = Builder.new
     builder.instance_eval do
-      a = var :a, 0
-      b = var :b, 0
-      t = var :t, 0
+      a = 0
+      b = 0
+      t = 0
       where = var :where, :title
-      func(:title_work) { adds.times { a.add! 1 } }
-      func(:play_work) { adds.times { b.add! 1 } }
+      func(:title_work) { adds.times { a += 1 } }
+      func(:play_work) { adds.times { b += 1 } }
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
@@ -74,16 +74,16 @@ class TestQuickMemoryByScene < Minitest::Test
   private def two_insisting_screens(adds:, logos: false, play_first: false)
     builder = Builder.new
     builder.instance_eval do
-      b = var :b, 0
+      b = 0
       hearts = var :hearts, 3
-      var :where, logos ? 2 : 0
+      where = var :where, logos ? 2 : 0
       files = save_data(:file, copies: 1, fast: true) { keep hearts }
-      func(:play_work, fast: true) { adds.times { b.add! 1 } }
-      scene(:logos) { pressed(:a).then { set! :where, 0 } } if logos
+      func(:play_work, fast: true) { adds.times { b += 1 } }
+      scene(:logos) { where = 0 if pressed(:a) } if logos
       scene(:files) { files[0].save if pressed(:a) }
       scene(:play) { call :play_work }
       game_loop do
-        set! :where, 1 if pressed(:start)
+        where = 1 if pressed(:start)
         case_var(:where) do
           when_val 2, :logos if logos
           when_val 1, :play if play_first
@@ -101,11 +101,11 @@ class TestQuickMemoryByScene < Minitest::Test
   private def two_screens_sharing(adds:)
     builder = Builder.new
     builder.instance_eval do
-      x = var :x, 0
-      var :where, 0
-      func(:shared_work) { adds.times { x.add! 1 } }
-      func(:title_work) { adds.times { x.add! 2 } }
-      func(:play_work) { adds.times { x.add! 3 } }
+      x = 0
+      where = 0
+      func(:shared_work) { adds.times { x += 1 } }
+      func(:title_work) { adds.times { x += 2 } }
+      func(:play_work) { adds.times { x += 3 } }
       scene(:title) do
         call :shared_work
         call :title_work
@@ -115,7 +115,7 @@ class TestQuickMemoryByScene < Minitest::Test
         call :play_work
       end
       game_loop do
-        set! :where, 1 if pressed(:a)
+        where = 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -139,19 +139,19 @@ class TestQuickMemoryByScene < Minitest::Test
       image(:grass, "#" => :green) { "########\n" * 8 }
       image(:dirt, "#" => :orange, "." => :black) { "####....\n" * 8 }
       tiles :field, "#" => :grass, "." => :dirt
-      a = var :a, 0
-      b = var :b, 0
-      t = var :t, 0
-      where = var :where, 0
-      func(:title_work) { adds.times { a.add! 1 } }
-      func(:play_work) { adds.times { b.add! 1 } }
-      func(:play_extra) { (adds / 4).times { b.add! 2 } }
+      a = 0
+      b = 0
+      t = 0
+      where = 0
+      func(:title_work) { adds.times { a += 1 } }
+      func(:play_work) { adds.times { b += 1 } }
+      func(:play_extra) { (adds / 4).times { b += 2 } }
       scene(:title) { call :title_work }
       scene :play do
         ground = background :ground, tiles: :field, map: Array.new(30) { |row| ("#.." * 24)[row % 3, 70] }
         sparks = pool :spark, x: 0, y: 0, capacity: 4, image: :dot
         sparks.spawn(x: 10, y: 10) if sparks.count == 0
-        sparks.each { |spark| spark.x.add! 1 }
+        sparks.each { |spark| spark.x += 1 }
         ground.scroll_by 1, 0
         call :play_work
       end
@@ -177,13 +177,13 @@ class TestQuickMemoryByScene < Minitest::Test
   private def loop_working_for_play(extra:, work: BIG)
     builder = Builder.new
     builder.instance_eval do
-      a = var :a, 0
-      b = var :b, 0
-      c = var :c, 0
-      t = var :t, 0
-      where = var :where, 0
-      func(:title_work) { work.times { a.add! 1 } }
-      func(:play_work) { work.times { b.add! 1 } }
+      a = 0
+      b = 0
+      c = 0
+      t = 0
+      where = 0
+      func(:title_work) { work.times { a += 1 } }
+      func(:play_work) { work.times { b += 1 } }
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
@@ -191,7 +191,7 @@ class TestQuickMemoryByScene < Minitest::Test
         where = 1 if t == 3
         where = 0 if t == 9
         if where == 1
-          extra.times { c.add! 1 }
+          extra.times { c += 1 }
         end
         case_var(:where) do
           when_val 0, :title
@@ -243,10 +243,10 @@ class TestQuickMemoryByScene < Minitest::Test
     builder.instance_eval do
       a = var :a, 0
       b = var :b, 0
-      c = var :c, 0
+      c = 0
       where = var :where, 1
-      func(:title_work) { BIG.times { a.add! 1 } }
-      func(:play_work) { BIG.times { b.add! 1 } }
+      func(:title_work) { BIG.times { a += 1 } }
+      func(:play_work) { BIG.times { b += 1 } }
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
@@ -273,10 +273,10 @@ class TestQuickMemoryByScene < Minitest::Test
       image(:grass, "#" => :green) { "########\n" * 8 }
       tiles :field, "#" => :grass
       a = var :a, 0
-      b = var :b, 0
-      var :where, 0
-      func(:title_work) { BIG.times { a.add! 1 } }
-      func(:play_work, fast: true) { adds.times { b.add! 1 } }
+      b = 0
+      where = 0
+      func(:title_work) { BIG.times { a += 1 } }
+      func(:play_work, fast: true) { adds.times { b += 1 } }
       scene(:title) { call :title_work }
       scene :play do
         ground = background :ground, tiles: :field, map: Array.new(30) { "#" * 70 }
@@ -284,7 +284,7 @@ class TestQuickMemoryByScene < Minitest::Test
         call :play_work
       end
       game_loop do
-        set! :where, 1 if pressed(:a)
+        where = 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -460,10 +460,10 @@ class TestQuickMemoryByScene < Minitest::Test
   private def files_beside_growing_play(adds, pile: CROWDING_PILE)
     VBlank.game("GROWING", consoles: %i[gba]) do
       enable_sound
-      b = var :b, 0
+      b = 0
       spin = var :spin, 0
       hearts = var :hearts, 3
-      var :where, 0
+      where = 0
       heap = list :heap, capacity: pile, fast: true
       files = save_data(:file, copies: 1, fast: true) { keep hearts }
       song(:tune) do
@@ -472,13 +472,13 @@ class TestQuickMemoryByScene < Minitest::Test
         voice(:bass) { 8.times { note :C3, :quarter } }
       end
       play_song :tune
-      func(:play_work) { adds.times { b.add! 1 } }
+      func(:play_work) { adds.times { b += 1 } }
       scene(:files) { files[0].save if pressed(:a) }
       scene(:play) { call :play_work }
       game_loop do
         heap.push 1
-        300.times { spin.add! 1 }
-        set! :where, 1 if pressed(:start)
+        300.times { spin += 1 }
+        where = 1 if pressed(:start)
         case_var(:where) do
           when_val 0, :files
           when_val 1, :play

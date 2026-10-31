@@ -39,8 +39,8 @@ class TestSceneSpriteWrites < Minitest::Test
       screen :tiled
       image :hero, width: 16, height: 16, data: Array.new(256, RED)
       image :marker, width: 16, height: 16, data: Array.new(256, GREEN)
-      t = var :t, 0
-      where = var :where, 0
+      t = 0
+      where = 0
       scene(:playing) { sprite(:hero, at: [8, 100]).move(:right, by: 1) }
       scene :files do
         markers.times { |i| sprite(:marker, at: [(i * 24) + 8, 8]).move(:down, by: 1) }
@@ -102,7 +102,7 @@ class TestSceneSpriteWrites < Minitest::Test
       colors :faded, %i[transparent blue red green]
       image :tall, width: 16, height: 16, places: Array.new(256, 1), colors: :worn
       image :short, width: 16, height: 16, places: Array.new(256) { |i| i < 128 ? 0 : 2 }, colors: :worn
-      made = var :made, 0
+      made = 0
       var :where, 0
       scene :playing do
         crowd = pool :thing, x: 0, y: 0, picture: 0, wears: 0, capacity: things, facing: { tall: :tall, short: :short }
@@ -153,7 +153,7 @@ class TestSceneSpriteWrites < Minitest::Test
       layers :world, :ui if dimmed
       image :plank, width: 72, height: 8, data: Array.new(72 * 8) { |i| (i % 72) < 64 ? RED : GREEN }
       image :block, width: 8, height: 8, data: Array.new(64, GREEN)
-      made = var :made, 0
+      made = 0
       declare = -> { pool :plank, x: 0, y: 0, capacity: capacity, image: dimmed ? :block : :plank }
       layer(:world) { sprite(:block, at: [100, 120]) } if dimmed
       stack = dimmed ? layer(:ui, &declare) : declare.call
@@ -163,7 +163,7 @@ class TestSceneSpriteWrites < Minitest::Test
           stack.spawn(x: (made * 30) + 4, y: (made * 20) + 8)
           made += 1
         end
-        stack.each { |plank| plank.x.add! 1 }
+        stack.each { |plank| plank.x += 1 }
       end
     end
   end

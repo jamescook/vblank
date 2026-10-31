@@ -52,9 +52,9 @@ class TestQuickMemoryNumbers < Minitest::Test
   private def program_with_every_kind(fast:)
     program_of do
       screen :bitmap
-      big = var :big, 0
-      kept = var :kept, 0
-      found = var :found, 0
+      big = 0
+      kept = 0
+      found = 0
       steps = table :steps, [3, 1, 4, 1, 5, 9, 2, 6], width: :byte
       pad = list :pad, capacity: 5
       trail = list :trail, capacity: 9
@@ -107,12 +107,12 @@ class TestQuickMemoryNumbers < Minitest::Test
   private def long_program
     program_of do
       screen :bitmap
-      first = var :first, 0
-      last = var :last, 0
+      first = 0
+      last = 0
       filler = var :filler, 0
       func(:work, fast: true) do
         first = PLAIN
-        600.times { filler.add! 1 }
+        600.times { filler += 1 }
         last = PLAIN
       end
       game_loop { call :work }
@@ -144,11 +144,11 @@ class TestQuickMemoryNumbers < Minitest::Test
   private def shrinking_program(fast: true)
     program_of do
       screen :bitmap
-      first = var :first, 0
+      first = 0
       rest = var :rest, 0
       func(:work, fast: fast) do
         first = PLAIN
-        SHRINKING.times { |n| rest.set! PLAIN + 1 + n }
+        SHRINKING.times { |n| rest = PLAIN + 1 + n }
       end
       game_loop { call :work }
     end
@@ -202,11 +202,11 @@ class TestQuickMemoryNumbers < Minitest::Test
   def test_a_routine_with_a_table_is_charged_at_least_what_it_comes_out_at
     program = program_of do
       screen :bitmap
-      a = var :a, 0
-      b = var :b, 0
-      func(:cold, fast: false) { b.add! 1 }
+      a = 0
+      b = 0
+      func(:cold, fast: false) { b += 1 }
       func(:work, fast: true) do
-        3.times { a.set! PLAIN }
+        3.times { a = PLAIN }
         call :cold
         a = PLAIN + 1
       end

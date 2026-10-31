@@ -31,21 +31,21 @@ class TestSaveDataFast < Minitest::Test
     said = fast.nil? ? {} : { fast: fast }
     VBlank.game("SAVEFAST", consoles: %i[gba], **words) do
       screen :bitmap
-      hearts = var :hearts, 3
-      spin = var :spin, 0
-      written = var :written, 0
+      hearts = 3
+      spin = 0
+      written = 0
       best = Array.new(save_vars) { |n| save_var :"best#{n}", 0 }
       bag = list :bag, capacity: 1000, width: :byte, fast: false
       files = save_data(:file, copies: 2, **said) { keep hearts, bag }
       game_loop do
-        pressed(:a).then { files[0].save } if saves
+        files[0].save if saves && pressed(:a)
         files[0].load if pressed(:b)
-        pressed(:l).then { files[1].erase } if asks.include?(:erase)
-        pressed(:r).then { files.copy 0, to: 1 } if asks.include?(:copy)
-        pressed(:select).then { files.reset } if asks.include?(:reset)
+        files[1].erase if asks.include?(:erase) && pressed(:l)
+        files.copy 0, to: 1 if asks.include?(:copy) && pressed(:r)
+        files.reset if asks.include?(:reset) && pressed(:select)
         written += 1 if files.finished?
-        best.each { |one| pressed(:start).then { one.add! 1 } }
-        repeat(work) { spin.add! 1 } if work.positive?
+        best.each { |one| one += 1 if pressed(:start) }
+        repeat(work) { spin += 1 } if work.positive?
         hearts += 1
       end
     end
@@ -210,7 +210,7 @@ class TestSaveDataFast < Minitest::Test
   end
 
   def test_a_record_whose_routines_do_not_fit_says_which_record_and_what_to_do
-    game = game_with_no_room { |files| pressed(:a).then { files[0].save } }
+    game = game_with_no_room { |files| files[0].save if pressed(:a) }
     error = assert_raises(GBA::LoweringError) { game.build_rom(out: StringIO.new, err: StringIO.new, profile: false) }
 
     assert_match(/save_data :file, fast: true/, error.message)
@@ -249,7 +249,7 @@ class TestSaveDataFast < Minitest::Test
       game_loop do
         files[0].save if pressed(:a)
         pile.push 1
-        300.times { spin.add! 1 }
+        300.times { spin += 1 }
       end
     end
   end

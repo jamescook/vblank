@@ -43,8 +43,8 @@ class TestTopOfQuickMemory < Minitest::Test
   # all that is held back, where the whole top 4K used to be.
   def test_a_game_that_never_divides_has_all_but_the_stack_and_the_consoles_room
     rom = VBlank.build("ROOMY", console: :gba, out: StringIO.new, err: StringIO.new) do
-      n = var :n, 0
-      game_loop { n.add! 1 }
+      n = 0
+      game_loop { n += 1 }
     end
     placement = rom.built.placement
 
@@ -53,8 +53,8 @@ class TestTopOfQuickMemory < Minitest::Test
 
   def test_a_game_can_say_how_much_stack_room_it_wants
     rom = VBlank.build("STACKY", console: :gba, stack_room: 2048, out: StringIO.new, err: StringIO.new) do
-      n = var :n, 0
-      game_loop { n.add! 1 }
+      n = 0
+      game_loop { n += 1 }
     end
     placement = rom.built.placement
 
@@ -77,8 +77,8 @@ class TestTopOfQuickMemory < Minitest::Test
 
   def test_a_deep_chain_of_calls_counts_right_on_the_console
     rom = VBlank.build("DEEPCALL", console: :gba, out: StringIO.new, err: StringIO.new) do
-      total = var :total, 0
-      func(:"level#{DEEP}") { total.add! DEEP }
+      total = 0
+      func(:"level#{DEEP}") { total += DEEP }
       (1...DEEP).reverse_each do |level|
         func(:"level#{level}") do
           total += level
@@ -120,14 +120,14 @@ class TestTopOfQuickMemory < Minitest::Test
   # return addresses are at the top of its stack whenever the handler runs.
   def test_a_handler_forty_routines_deep_leaves_the_game_running_on_the_console
     rom = VBlank.build("TICKDEEP", console: :gba, out: StringIO.new, err: StringIO.new) do
-      var :hits, 0
-      passes = var :passes, 0
-      sum = var :sum, 0
+      hits = 0
+      passes = 0
+      sum = 0
       (1..TICK_DEPTH).each do |level|
-        func(:"tick#{level}") { level == TICK_DEPTH ? add!(:hits, 1) : call(:"tick#{level + 1}") }
+        func(:"tick#{level}") { level == TICK_DEPTH ? hits += 1 : call(:"tick#{level + 1}") }
       end
       timer(:beat, per_second: 4000).on_tick { call :tick1 }
-      func(:inner) { repeat(3000) { |i| sum.set! sum + i } }
+      func(:inner) { repeat(3000) { |i| sum = sum + i } }
       func(:outer) { call :inner }
       game_loop do
         call :outer

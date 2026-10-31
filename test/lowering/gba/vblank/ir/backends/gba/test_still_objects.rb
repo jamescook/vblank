@@ -45,11 +45,11 @@ class TestStillObjects < Minitest::Test
         image :"letter#{i}", width: 16, height: 16, data: Array.new(256, YELLOW)
       end
       image :hero, width: 16, height: 16, data: Array.new(256, RED)
-      var :state, 0
+      state = 0
       scene :title do
         made = Array.new(letters) { |i| sprite(:"letter#{i}", at: [(i * 16) + 8, 40]) }
         made.first.move(:right, by: 1) if moving && made.any?
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene(:playing) { sprite(:hero, at: [100, 100]).move(:right, by: 1) }
       game_loop do
@@ -146,7 +146,7 @@ class TestStillObjects < Minitest::Test
       screen :tiled
       image :hero, width: 16, height: 16, data: Array.new(256, RED)
       moved = sprite(:hero, at: [8, 40])
-      timer(:tick, per_second: 60).on_tick { moved.x.add! 1 }
+      timer(:tick, per_second: 60).on_tick { moved.x += 1 }
       game_loop { wait_vblank }
     end
   end
@@ -186,10 +186,10 @@ class TestStillObjects < Minitest::Test
     built do
       image(:hero, "#" => :green) { "########\n" * 8 }
       screen :bitmap
-      var :state, 0
+      state = 0
       scene :title do
         clear_screen :red
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene :play do
         screen :tiled

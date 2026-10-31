@@ -46,7 +46,7 @@ class TestTileSetSwap < Minitest::Test
       end
       where = var :room, 0
       busy = var :busy, 0
-      func(:busywork) { 16.times { busy.add! 1 } } if busywork
+      func(:busywork) { 16.times { busy += 1 } } if busywork
       tint :blue, 20 if tinted
       game_loop do
         where = 1 if held(:a)

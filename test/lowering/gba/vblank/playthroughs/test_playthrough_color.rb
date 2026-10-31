@@ -16,12 +16,12 @@ class TestPlaythroughColor < Minitest::Test
   COUNTING = VBlank.game("COUNTING", consoles: %i[gba gbc]) do
     screen :tiled
     image(:block, "#" => :white) { "########\n" * 8 }
-    ticks = var :ticks, 0
-    x = var :x, 0
+    ticks = 0
+    x = 0
     block = sprite :block, at: [x, 60]
     game_loop do
-      ticks.add! 1
-      held(:right).then { x.add! 2 }
+      ticks += 1
+      x += 2 if held(:right)
       block.move_to x, 60
     end
   end
@@ -120,9 +120,9 @@ class TestPlaythroughColor < Minitest::Test
   # refused the count in plain words rather than given a wrong one.
   def test_passes_is_refused_for_a_game_that_waits_for_the_screen_itself
     manual = VBlank.game("WAITS", consoles: %i[gba gbc], frame_sync: :manual) do
-      ticks = var :ticks, 0
+      ticks = 0
       game_loop do
-        ticks.add! 1
+        ticks += 1
         wait_vblank
       end
     end

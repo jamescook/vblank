@@ -87,11 +87,11 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       image :enemy_1, width: 32, height: 32, data: t.frame_art(101)
       link = sprite :link, at: [40, 40], facing: poses
       sprite :enemy, at: [120, 60], frames: %i[enemy_0 enemy_1], rate: 2
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tick += 1
-        10.times { |n| (tick == 3 + n).then { link.face t.link_pose(:down, "walk", n) } }
-        10.times { |n| (tick == 13 + n).then { link.face t.link_pose(:left, "run", n) } }
+        10.times { |n| link.face t.link_pose(:down, "walk", n) if tick == 3 + n }
+        10.times { |n| link.face t.link_pose(:left, "run", n) if tick == 13 + n }
       end
     end
   end
@@ -118,7 +118,7 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       sprite :hero, at: [40, 40], frames: hero, rate: 1
       guards = pool :guard, x: 0, y: 0, capacity: 6, frames: walk, rate: 1
       6.times { |n| guards.spawn(x: 20 + (n * 30), y: 100) }
-      game_loop { guards.each { |g| g.x.add! 1 } }
+      game_loop { guards.each { |g| g.x += 1 } }
     end
   end
 
@@ -146,7 +146,7 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       image :enemy_1, width: 32, height: 32, data: t.frame_art(101)
       hero = sprite :hero, at: [40, 40], rate: 1, facing: facings.merge(left: mirror(facings[:right]))
       sprite :enemy, at: [120, 60], frames: %i[enemy_0 enemy_1], rate: 2
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tick += 1
         hero.face :right if tick == 2
@@ -197,15 +197,15 @@ class TestSpriteOneFrameAtATime < Minitest::Test
         [name, names]
       end
       image :banner, width: 32, height: 32, data: t.frame_art(2000)
-      var :state, 0
-      tick = var :tick, 0
+      state = 0
+      tick = 0
       scene(:playing) { frames.each_with_index { |(name, poses), n| sprite name, at: [40 + (n * 80), 40], frames: poses, rate: 60 } }
       scene(:paused) { sprite :banner, at: [40, 40] }
       game_loop do
         tick += 1
-        set! :state, 1 if tick == 3
-        set! :state, 0 if tick == 5
-        set! :state, 1 if tick == 8
+        state = 1 if tick == 3
+        state = 0 if tick == 5
+        state = 1 if tick == 8
         case_var(:state) { when_val 0, :playing; when_val 1, :paused }
       end
     end
@@ -289,7 +289,7 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       walk.each_with_index { |name, n| image name, width: 32, height: 32, data: t.frame_art(4000 + n) }
       guards = pool :guard, x: 0, y: 0, capacity: 8, frames: walk, rate: 2
       guards.spawn(x: 10, y: 10)
-      game_loop { guards.each { |g| g.x.add! 1 } }
+      game_loop { guards.each { |g| g.x += 1 } }
     end
     assert_operator sprite_memory_used(prog), :<=, SPRITE_MEMORY
   end

@@ -95,7 +95,7 @@ class TestPerSceneModeCartridge < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :state, 0
+      state = 0
 
       func :unrelated do
         flash_screen :red, frames: 4 # never called — presence alone must not break anything
@@ -108,7 +108,7 @@ class TestPerSceneModeCartridge < Minitest::Test
         board = background :board, tiles: :ground, map: (["#" * 32] * 32)
         board.scale(1.0)
         draw_text "HI", 100, 20, :white
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene(:playing) { clear_screen :black }
 

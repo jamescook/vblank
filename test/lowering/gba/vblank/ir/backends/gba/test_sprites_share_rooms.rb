@@ -44,11 +44,11 @@ class TestSpritesShareRooms < Minitest::Test
     program do |t|
       screen :tiled
       POSES.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(n) }
-      tick = var :tick, 0
+      tick = 0
       shards = pool :shard, x: 0, y: 0, look: 0, capacity: 3, facing: POSES.to_h { |name| [name, name] }
       game_loop do
         tick += 1
-        (tick == 2).then do
+        if tick == 2
           shards.spawn(x: 0, y: 8, look: 2)
           shards.spawn(x: 80, y: 8, look: 2)
           shards.spawn(x: 160, y: 8, look: 7)
@@ -76,11 +76,11 @@ class TestSpritesShareRooms < Minitest::Test
       POSES.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(n) }
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 0
-      tick = var :tick, 0
+      state = 0
+      tick = 0
       scene(:playing) do
         shards = pool :shard, x: 0, y: 0, look: 0, capacity: 3, facing: POSES.to_h { |name| [name, name] }
-        (tick == 2).then do
+        if tick == 2
           shards.spawn(x: 0, y: 8, look: 1)
           shards.spawn(x: 80, y: 8, look: 1)
           shards.spawn(x: 160, y: 8, look: 4)
@@ -211,11 +211,11 @@ class TestSpritesShareRooms < Minitest::Test
     program do |t|
       screen :tiled
       poses.each_with_index { |name, n| image name, width: 48, height: 48, data: t.growing_art(n), transparent: true }
-      tick = var :tick, 0
+      tick = 0
       walkers = pool :giant, x: 0, y: 0, look: 0, capacity: 2, facing: poses.to_h { |name| [name, name] }
       game_loop do
         tick += 1
-        (tick == 1).then do
+        if tick == 1
           walkers.spawn(x: 8, y: 8, look: 0)
           walkers.spawn(x: 120, y: 8, look: 1)
         end

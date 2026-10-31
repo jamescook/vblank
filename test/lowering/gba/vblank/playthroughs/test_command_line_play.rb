@@ -60,10 +60,10 @@ class TestCommandLinePlay < Minitest::Test
     VBlank.game "COLOR WALKER", consoles: %i[gba gbc] do
       screen :tiled
       image(:box, "#" => :white) { "########\\n" * 8 }
-      x = var :x, 20
+      x = 20
       box = sprite :box, at: [x, 60]
       game_loop do
-        held(:right).then { x.add! 2 }
+        x += 2 if held(:right)
         box.move_to x, 60
       end
     end

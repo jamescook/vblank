@@ -38,10 +38,10 @@ class TestSoundEffectPlayerSize < Minitest::Test
       enable_sound
       instrument :voice, pcm: [20, -20] * 400, rate: 8000, note: :C4
       sfx = sound_effects :sfx, effects
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        effects.each_index { |n| (pass == 3 + (20 * n)).then { sfx.play n } }
+        effects.each_index { |n| sfx.play n if pass == 3 + (20 * n) }
       end
     end
     b.finalize_program
@@ -68,9 +68,9 @@ class TestSoundEffectPlayerSize < Minitest::Test
       enable_sound
       music = songs :music, [tune]
       sfx = sound_effects :sfx, [hit]
-      pass = var :pass, 0
-      ticks = var :ticks, 0
-      timer(:beat, per_second: 120).on_tick { ticks.add! 1 }
+      pass = 0
+      ticks = 0
+      timer(:beat, per_second: 120).on_tick { ticks += 1 }
       game_loop do
         pass += 1
         music.play 0

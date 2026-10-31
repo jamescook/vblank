@@ -27,13 +27,13 @@ class TestSceneLoadsFirst < Minitest::Test
       pictures.times do |n|
         image(:"art#{n}", width: 64, height: 64, colors: colors, places: Array.new(64 * 64) { random.rand(16) })
       end
-      state = var :state, 0
-      step = var :step, 0
-      sum = var :sum, 0
+      state = 0
+      step = 0
+      sum = 0
       scene(:title) { state = 1 if step == 4 }
       scene(:play, loads_first: loads_first) do
         pictures.times { |n| sprite :"art#{n}", at: [(n % 4) * 60, (n / 4) * 40] }
-        repeat(WORK) { |i| sum.set! sum + (i * 3) }
+        repeat(WORK) { |i| sum = sum + (i * 3) }
       end
       game_loop do
         case_var(:state) do

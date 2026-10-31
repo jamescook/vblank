@@ -32,9 +32,9 @@ class TestSpriteTableCopy < Minitest::Test
         image(:"#{color}_square", "#" => color) { "########\n" * 8 }
         pool :"#{color}s", x: 0, y: 0, capacity: capacity, image: :"#{color}_square"
       end
-      started = var :started, 0
+      started = 0
       game_loop do
-        (started == 0).then do
+        if started == 0
           pools.each_with_index do |things, k|
             live.times { |n| things.spawn(x: 20 + (k * 4) + ((n % 20) * 10), y: 20 + ((n / 20) * 10)) }
           end
@@ -86,15 +86,15 @@ class TestSpriteTableCopy < Minitest::Test
   def test_the_count_left_out_runs_on_across_a_change_of_screen
     builder = Builder.new
     builder.instance_eval do
-      t = var :t, 0
-      where = var :where, 0
+      t = 0
+      where = 0
       scene :play do
         screen :tiled
         pools = COLORS.map do |color|
           image(:"#{color}_square", "#" => color) { "########\n" * 8 }
           pool :"#{color}s", x: 0, y: 0, capacity: 60, image: :"#{color}_square"
         end
-        (pools.first.count == 0).then do
+        if pools.first.count == 0
           pools.each { |things| 50.times { |n| things.spawn(x: 20 + ((n % 20) * 10), y: 20 + ((n / 20) * 10)) } }
         end
       end

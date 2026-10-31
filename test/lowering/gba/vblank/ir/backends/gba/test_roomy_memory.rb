@@ -136,7 +136,7 @@ class TestRoomyMemory < Minitest::Test
       screen :bitmap
       hoard = list :hoard, capacity: 7300
       total = var :total, 0
-      func(:tally, fast: true) { 200.times { total.add! 1 } }
+      func(:tally, fast: true) { 200.times { total += 1 } }
       game_loop do
         hoard.push 1
         call :tally
@@ -154,12 +154,12 @@ class TestRoomyMemory < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       hoard = list :hoard, capacity: 7300
-      total = var :total, 0
+      total = 0
       spin = var :spin, 0
-      func(:tally, fast: true) { 200.times { spin.add! 1 } }
+      func(:tally, fast: true) { 200.times { spin += 1 } }
       clear_screen :black
       repeat(8) { hoard.push 3 }
-      repeat(8) { |n| total.add! hoard[n] }
+      repeat(8) { |n| total += hoard[n] }
       draw_rect_at 0, 10, total, 4, :green
       game_loop { call :tally }
     end
@@ -184,10 +184,10 @@ class TestRoomyMemory < Minitest::Test
       rocks = pool :rock, x: 0, y: 0, capacity: 400
       dust = list :dust, capacity: 5700
       spin = var :spin, 0
-      func(:tally, fast: true) { 150.times { spin.add! 1 } }
+      func(:tally, fast: true) { 150.times { spin += 1 } }
       game_loop do
         rocks.spawn(x: 1, y: 2)
-        rocks.each { |rock| rock.x.add! 1 }
+        rocks.each { |rock| rock.x += 1 }
         dust.push 1
         call :tally
       end
@@ -207,7 +207,7 @@ class TestRoomyMemory < Minitest::Test
       cold = list :cold, capacity: 7300
       spin = var :spin, 0
       cold.push 1
-      game_loop { 300.times { spin.add! 1 } }
+      game_loop { 300.times { spin += 1 } }
     end
 
     assert_includes rom.built.placement.funcs, GBA::Placement::FRAME_ROUTINE
@@ -221,7 +221,7 @@ class TestRoomyMemory < Minitest::Test
       screen :bitmap
       trickle = list :trickle, capacity: TRICKLE_WORDS
       spin = var :spin, 0
-      func(:busy) { BUSY_ADDS.times { spin.add! 1 } }
+      func(:busy) { BUSY_ADDS.times { spin += 1 } }
       game_loop do
         trickle[3] = spin
         call :busy
@@ -256,14 +256,14 @@ class TestRoomyMemory < Minitest::Test
       screen :bitmap
       trickle = list :trickle, capacity: SHARED_TRICKLE_WORDS
       spin = var :spin, 0
-      var :where, 0
-      func(:left_work) { LEFT_ADDS.times { spin.add! 1 } }
-      func(:right_work) { RIGHT_ADDS.times { spin.add! 2 } }
+      where = 0
+      func(:left_work) { LEFT_ADDS.times { spin += 1 } }
+      func(:right_work) { RIGHT_ADDS.times { spin += 2 } }
       scene(:left) { 3.times { call :left_work } }
       scene(:right) { call :right_work }
       game_loop do
         trickle[3] = spin
-        set! :where, 1 if pressed(:start)
+        where = 1 if pressed(:start)
         case_var(:where) do
           when_val 0, :left
           when_val 1, :right
@@ -336,7 +336,7 @@ class TestRoomyMemory < Minitest::Test
       stood = pool :stood, x: 0, y: 0, hp: 0, capacity: 8, image: :dot, fast: false
       game_loop do
         stood.spawn(x: 10, y: 10) if pressed(:a)
-        stood.each { |one| one.x.add! 1 }
+        stood.each { |one| one.x += 1 }
       end
     end
     counters = counters_of(rom, "pool :stood")
@@ -388,7 +388,7 @@ class TestRoomyMemory < Minitest::Test
       stood = pool :stood, x: 0, y: 0, capacity: 4, image: :dot, fast: false
       queue = list :queue, capacity: 8, width: :byte, fast: false
       bar = sprite :bar, at: [0, 140]
-      ticks = var :ticks, 0
+      ticks = 0
       game_loop do
         ticks += 1
         stood.spawn(x: 0, y: ticks) if (ticks % 6) == 1
@@ -419,10 +419,10 @@ class TestRoomyMemory < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       far = list :far, capacity: 5000, fast: false
-      total = var :total, 0
+      total = 0
       clear_screen :black
       repeat(8) { far.push 3 }
-      repeat(8) { |n| total.add! far[n] }
+      repeat(8) { |n| total += far[n] }
       # A stripe as wide as the total, so the console can be asked what it read back.
       draw_rect_at 0, 10, total, 4, :green
       game_loop { wait_vblank }

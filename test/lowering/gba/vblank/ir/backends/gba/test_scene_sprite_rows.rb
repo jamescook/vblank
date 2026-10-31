@@ -30,8 +30,8 @@ class TestSceneSpriteRows < Minitest::Test
       image :letter, width: 8, height: 8, data: Array.new(64, RED)
       image :walker, width: 8, height: 8, data: Array.new(64, GREEN)
       image :spark, width: 8, height: 8, data: Array.new(64, GREEN)
-      t = var :t, 0
-      var :where, 0
+      t = 0
+      where = 0
       scene :title do
         TITLE_LETTERS.times { |i| sprite :letter, at: [(i % 25) * 9, (i / 25) * 9] }
       end
@@ -42,8 +42,8 @@ class TestSceneSpriteRows < Minitest::Test
       end
       game_loop do
         t += 1
-        set! :where, 1 if t == 6
-        set! :where, 0 if t == 12
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -80,8 +80,8 @@ class TestSceneSpriteRows < Minitest::Test
       screen :tiled
       image :letter, width: 8, height: 8, data: Array.new(64, RED)
       image :walker, width: 8, height: 8, data: Array.new(64, GREEN)
-      t = var :t, 0
-      var :where, 0
+      t = 0
+      where = 0
       scene :title do
         TITLE_LETTERS.times { |i| sprite :letter, at: [(i % 25) * 9, (i / 25) * 9] }
       end
@@ -92,8 +92,8 @@ class TestSceneSpriteRows < Minitest::Test
       end
       game_loop do
         t += 1
-        set! :where, 1 if t == 6
-        set! :where, 0 if t == 12
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
