@@ -83,12 +83,12 @@ module BufferedSnake
     xs = list :xs, capacity: BODY_CAP
     ys = list :ys, capacity: BODY_CAP
 
-    var :state, 0               # 0 = title, 1 = playing, 2 = game over
+    state    = var :state, 0    # 0 = title, 1 = playing, 2 = game over
     blink    = true
     dx       = var :dx, 1
     dy       = var :dy, 0
-    var :ndx, 1
-    var :ndy, 0
+    ndx      = var :ndx, 1
+    ndy      = var :ndy, 0
     hx       = var :hx, 0
     hy       = var :hy, 0
     food_x   = var :food_x, 0
@@ -106,7 +106,7 @@ module BufferedSnake
           roll :food_y, MIN_ROW..MAX_ROW
           placed = true
           repeat(xs.length) do |i|
-            placed = false if xs[i] == :food_x && ys[i] == :food_y
+            placed = false if xs[i] == food_x && ys[i] == food_y
           end
         end
       end
@@ -139,36 +139,36 @@ module BufferedSnake
         xs.push cx
         ys.push cy
       end
-      set! :dx, 1
-      set! :dy, 0
-      set! :ndx, 1
-      set! :ndy, 0
-      set! :score, 0
+      dx = 1
+      dy = 0
+      ndx = 1
+      ndy = 0
+      score = 0
       call :spawn_food
-      set! :state, 1
+      state = 1
     end
 
     # Advance the snake one cell — pure game logic, no drawing (draw_all handles the
     # picture). Commit the buffered turn, work out the new head, then die, eat, or
     # slide.
     func :step_snake do
-      copy! :dx, :ndx
-      copy! :dy, :ndy
-      set! :hx, xs.last + dx
-      set! :hy, ys.last + dy
+      dx = ndx
+      dy = ndy
+      hx = xs.last + dx
+      hy = ys.last + dy
 
       self_hit = false
       repeat(xs.length) do |i|
-        self_hit = true if xs[i] == :hx && ys[i] == :hy
+        self_hit = true if xs[i] == hx && ys[i] == hy
       end
 
       dead = hx < MIN_COL || hx > MAX_COL || hy < MIN_ROW || hy > MAX_ROW || self_hit
       if dead
-        set! :state, 2
+        state = 2
         beep :die
       else
-        xs.push :hx
-        ys.push :hy
+        xs.push hx
+        ys.push hy
         if hx == food_x && hy == food_y
           score += 1
           beep :eat
@@ -198,26 +198,26 @@ module BufferedSnake
     scene :playing do
       if held(:up)
         if dy == 0
-          set! :ndx, 0
-          set! :ndy, -1
+          ndx = 0
+          ndy = -1
         end
       end
       if held(:down)
         if dy == 0
-          set! :ndx, 0
-          set! :ndy, 1
+          ndx = 0
+          ndy = 1
         end
       end
       if held(:left)
         if dx == 0
-          set! :ndx, -1
-          set! :ndy, 0
+          ndx = -1
+          ndy = 0
         end
       end
       if held(:right)
         if dx == 0
-          set! :ndx, 1
-          set! :ndy, 0
+          ndx = 1
+          ndy = 0
         end
       end
 

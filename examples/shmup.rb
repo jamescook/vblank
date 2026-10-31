@@ -53,7 +53,7 @@ module Shmup
     colors :warm_orange,       [:transparent, :orange, :yellow]
     colors :warm_red,          [:transparent, :red, :orange]
     colors :warm_orange_again, [:transparent, :orange, :yellow]
-    var :state, PLAYING
+    state = var :state, PLAYING
     new_game = false # true asks the playing scene to start over
     leaving  = false # true while the field dims on the way to the game-over screen
 
@@ -99,7 +99,7 @@ module Shmup
       end
       if leaving
         if fade_level == 100
-          set! :state, GAME_OVER
+          state = GAME_OVER
           fade_in frames: 12
           leaving = false
         end
@@ -113,7 +113,7 @@ module Shmup
       draw_text "PRESS START", :center, 88, :white
       if pressed(:start)
         new_game = true
-        set! :state, PLAYING
+        state = PLAYING
       end
     end
 

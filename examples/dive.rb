@@ -108,7 +108,7 @@ module Dive
     # FRONT of the diver.
     layers :shafts_far, :shafts_near, :sun, :name, :deep, :reef, :swimmers, :surface, :panel, :over
 
-    var :state, TITLE
+    state = var :state, TITLE
     fresh = true # true asks the dive to start over from the top
     blacking_out = false # true while the world is going dark
 
@@ -119,7 +119,7 @@ module Dive
     scene :title do
       title = Title.new(self)
       title.update
-      set! :state, PLAY if pressed(:start)
+      state = PLAY if pressed(:start)
     end
 
     scene :play do
@@ -179,7 +179,7 @@ module Dive
       end
       if blacking_out
         if fade_level == 100
-          set! :state, OVER
+          state = OVER
           fade_in frames: BLACKOUT
           blacking_out = false
         end
@@ -195,7 +195,7 @@ module Dive
       end
       if pressed(:start)
         fresh = true
-        set! :state, PLAY
+        state = PLAY
       end
     end
 

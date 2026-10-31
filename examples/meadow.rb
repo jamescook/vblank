@@ -32,7 +32,10 @@
 # it did.
 #
 #     pixelate_out frames: DOOR_FRAMES, under: :words     # walking into the door
-#     ((in_door) & (pixelate_size == BIGGEST_BLOCK)).then { ...swap the room...; pixelate_in }
+#     if in_door && pixelate_size == BIGGEST_BLOCK
+#       ...swap the room...
+#       pixelate_in
+#     end
 #
 # `pixelate_size` is how big a block is on screen right now, and waiting for it to read
 # the biggest is how the swap waits for the walk — the way `fade_level == 100` is for a

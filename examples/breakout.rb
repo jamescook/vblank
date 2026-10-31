@@ -178,8 +178,8 @@ module Breakout
     # Drop the ball onto the middle of the paddle and send it up again. Used at the
     # start of a life and after losing one.
     func :serve do
-      copy! :ball_x, :paddle_x
-      add! :ball_x, (PADDLE_W - BALL_SIZE) / 2 # centre it over the paddle
+      ball_x = paddle_x
+      ball_x += (PADDLE_W - BALL_SIZE) / 2 # centre it over the paddle
       ball_y = layout.paddle_y - BALL_SIZE - 2
       ball_dx = BALL_SPEED
       ball_dy = -BALL_SPEED                # up
@@ -218,9 +218,9 @@ module Breakout
       if ball_dy >= 0
         if ball.overlaps?(paddle)
           ball_dy.negate_abs!                      # always send it back up
-          copy! :_hit, :ball_x
-          add! :_hit, BALL_SIZE / 2
-          sub! :_hit, :paddle_x
+          _hit = ball_x
+          _hit += BALL_SIZE / 2
+          _hit -= paddle_x
           quarter = PADDLE_W / 4
           if _hit < quarter
             ball_dx = -4
@@ -288,13 +288,13 @@ module Breakout
     # Start a fresh game: stand every brick back up, reset the counters, centre the
     # paddle, and serve.
     func :new_game do
-      bricks.each { |b| set! b[:name], 1 }
-      set! :lives, START_LIVES
-      set! :score, 0
-      set! :bricks_left, bricks.length
-      set! :paddle_x, layout.start_paddle_x
+      bricks.each { |b| alive[b[:name]] = 1 }
+      lives = START_LIVES
+      score = 0
+      bricks_left = bricks.length
+      paddle_x = layout.start_paddle_x
       call :serve
-      set! :state, 1
+      state = 1
     end
 
     # --- Scenes ---

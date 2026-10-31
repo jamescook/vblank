@@ -165,7 +165,7 @@ module Jukebox
     # --- State ---
     # A bobbing block's position (bar_y#) and signed speed (bar_v#), one pair each.
     bar_y = BARS.each_index.map { |i| var :"bar_y#{i}", BARS[i][1] }
-    BARS.each_index { |i| var :"bar_v#{i}", BARS[i][2] }
+    bar_v = BARS.each_index.map { |i| var :"bar_v#{i}", BARS[i][2] }
 
     # The tune actually playing, which is not always the one the cursor is on: when the cursor
     # moves, the old tune fades out first, and only once nobody can hear it does this catch up
@@ -178,14 +178,14 @@ module Jukebox
       # --- Advance the bobbing blocks: move each by its speed, and reverse (snap
       # to the edge, flip the sign) whenever it reaches the top or bottom. ---
       BARS.each_with_index do |(_x, _y0, spd), i|
-        add! :"bar_y#{i}", :"bar_v#{i}"
+        bar_y[i] += bar_v[i]
         if bar_y[i] >= BAR_BOTTOM
           bar_y[i] = BAR_BOTTOM
-          set! :"bar_v#{i}", -spd
+          bar_v[i] = -spd
         end
         if bar_y[i] <= BAR_TOP
           bar_y[i] = BAR_TOP
-          set! :"bar_v#{i}", spd
+          bar_v[i] = spd
         end
       end
 

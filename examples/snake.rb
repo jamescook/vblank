@@ -128,12 +128,12 @@ module Snake
     ys = list :ys, capacity: here.body_cap
 
     # --- RAM variables (each `var` hands back a handle we compare and mutate) ---
-    var :state, 0               # 0 = title, 1 = playing, 2 = game over (read via case_var)
+    state    = var :state, 0    # 0 = title, 1 = playing, 2 = game over (read via case_var)
     blink    = true # flashes the "PRESS START" prompt on and off
     dx       = var :dx, 1       # current heading, in cells per step (one axis at a time)
     dy       = var :dy, 0
-    var :ndx, 1                 # the turn we'll commit on the next step (set/copied by name)
-    var :ndy, 0
+    ndx      = var :ndx, 1      # the turn we'll commit on the next step
+    ndy      = var :ndy, 0
     hx       = var :hx, 0       # where the head is about to move
     hy       = var :hy, 0
     tail_x   = var :tail_x, 0   # the cell the tail vacates on a slide (so we can erase it)
@@ -171,7 +171,7 @@ module Snake
           placed = true # assume it's clear...
           repeat(xs.length) do |i|
             # ...unless a body cell is already sitting there.
-            placed = false if xs[i] == :food_x && ys[i] == :food_y
+            placed = false if xs[i] == food_x && ys[i] == food_y
           end
         end
       end
@@ -216,38 +216,38 @@ module Snake
         xs.push cx
         ys.push cy
       end
-      set! :dx, 1
-      set! :dy, 0
-      set! :ndx, 1
-      set! :ndy, 0
-      set! :score, 0
+      dx = 1
+      dy = 0
+      ndx = 1
+      ndy = 0
+      score = 0
       # Pick the food cell first, then paint the whole board once (which clears the
       # screen, so the food has to be placed before, not drawn before, the clear).
       call :spawn_food
       call :draw_board
-      set! :state, 1
+      state = 1
       painted = false # the game-over screen, when it comes, is painted afresh
     end
 
     # Advance the snake one cell: commit the buffered turn, work out the new head,
     # and either die, eat, or slide — repainting only the cells that change.
     func :step_snake do
-      copy! :dx, :ndx
-      copy! :dy, :ndy
-      set! :hx, xs.last + dx
-      set! :hy, ys.last + dy
+      dx = ndx
+      dy = ndy
+      hx = xs.last + dx
+      hy = ys.last + dy
 
       # Would the new head land on a cell the body already occupies?
       self_hit = false
       repeat(xs.length) do |i|
-        self_hit = true if xs[i] == :hx && ys[i] == :hy
+        self_hit = true if xs[i] == hx && ys[i] == hy
       end
 
       # Game over if we hit a wall or ourselves. (Landing on the very last tail
       # cell counts too — the simplest "don't touch yourself at all" rule.)
       dead = hx < here.min_col || hx > here.max_col || hy < here.min_row || hy > here.max_row || self_hit
       if dead
-        set! :state, 2
+        state = 2
         beep :die
         # Record a new best. Setting a save_var writes it through to save memory
         # automatically, so the high score is kept even after the power goes off.
@@ -256,11 +256,11 @@ module Snake
         # The current head is about to become a body segment — repaint it green.
         board.set_cell xs.last, ys.last, :green
         # Remember the tail cell before we might drop it, so we can erase it.
-        set! :tail_x, xs.first
-        set! :tail_y, ys.first
+        tail_x = xs.first
+        tail_y = ys.first
         # Grow a new head at the front of the body, and paint it white.
-        xs.push :hx
-        ys.push :hy
+        xs.push hx
+        ys.push hy
         board.set_cell hx, hy, :white
         # Eat (keep the tail, so we're one longer) or slide (drop and erase it).
         if hx == food_x && hy == food_y
@@ -328,26 +328,26 @@ module Snake
       # current heading, so you can't spin 180° straight into your own neck.
       if held(:up)
         if dy == 0
-          set! :ndx, 0
-          set! :ndy, -1
+          ndx = 0
+          ndy = -1
         end
       end
       if held(:down)
         if dy == 0
-          set! :ndx, 0
-          set! :ndy, 1
+          ndx = 0
+          ndy = 1
         end
       end
       if held(:left)
         if dx == 0
-          set! :ndx, -1
-          set! :ndy, 0
+          ndx = -1
+          ndy = 0
         end
       end
       if held(:right)
         if dx == 0
-          set! :ndx, 1
-          set! :ndy, 0
+          ndx = 1
+          ndy = 0
         end
       end
 
