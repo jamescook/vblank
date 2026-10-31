@@ -804,6 +804,154 @@ class TestPlainRuby < Minitest::Test
     assert_equal 6, player[:seen]
   end
 
+  def test_nil_given_a_number_in_game_code_answers_as_the_game_plays
+    player = played(frames: 2) do
+      target = nil
+      a_set = 0
+      b_set = 0
+      passes = 0
+      game_loop do
+        a_set = 1 if target
+        passes += 1
+        target = 5 if passes == 1
+        b_set = 1 if target
+      end
+    end
+
+    assert_equal [1, 1], [player[:a_set], player[:b_set]]
+  end
+
+  def test_nil_is_falsy_and_answers_nil_before_a_number_arrives
+    player = played(frames: 1) do
+      target = nil
+      truthy = 0
+      unless_ran = 0
+      is_nil = 0
+      game_loop do
+        truthy = 1 if target
+        unless_ran = 1 unless target
+        is_nil = 1 if target.nil?
+        target = 0 if truthy == 5
+      end
+    end
+
+    assert_equal [0, 1, 1], [player[:truthy], player[:unless_ran], player[:is_nil]]
+  end
+
+  def test_zero_is_truthy_in_a_name_that_started_as_nil
+    player = played(frames: 2) do
+      target = nil
+      truthy = 0
+      game_loop do
+        truthy = 1 if target
+        target = 0
+      end
+    end
+
+    assert_equal 1, player[:truthy]
+  end
+
+  def test_nil_clears_a_name_in_game_code
+    player = played(frames: 3) do
+      target = 5
+      passes = 0
+      still = 0
+      game_loop do
+        passes += 1
+        target = nil if passes == 2
+        still = passes if target
+      end
+    end
+
+    assert_equal 1, player[:still]
+  end
+
+  def test_or_on_a_name_that_may_hold_nil_picks_the_number_or_the_other_side
+    player = played(frames: 2) do
+      target = nil
+      first = 0
+      later = 0
+      passes = 0
+      game_loop do
+        passes += 1
+        first = target || 7 if passes == 1
+        target = 3
+        later = target || 7
+      end
+    end
+
+    assert_equal [7, 3], [player[:first], player[:later]]
+  end
+
+  def test_a_name_started_as_nil_can_take_something_made_while_building
+    player = played(frames: 1) do
+      hero = nil
+      seen = 0
+      image(:hero, "#" => :red) { "#" }
+      func :play do
+        hero = sprite :hero, at: [1, 2] if hero.nil?
+        seen = hero.x
+      end
+      game_loop { call :play }
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_a_true_or_false_name_given_zero_is_truthy
+    player = played do
+      ok = true
+      seen = 0
+      game_loop do
+        ok = 0
+        seen += 1 if ok
+      end
+    end
+
+    assert_equal 3, player[:seen]
+  end
+
+  def test_a_number_name_given_false_is_falsy
+    player = played do
+      n = 1
+      seen = 0
+      game_loop do
+        n = false
+        seen += 1 if n
+      end
+    end
+
+    assert_equal 0, player[:seen]
+  end
+
+  def test_false_and_nil_are_told_apart_by_nil
+    player = played(frames: 1) do
+      flag = nil
+      was_nil = 0
+      game_loop do
+        flag = false
+        was_nil = 1 if flag.nil?
+      end
+    end
+
+    assert_equal 0, player[:was_nil]
+  end
+
+  def test_a_name_under_a_game_test_with_no_other_side_is_nil_until_it_is_set
+    player = played do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        if hp > 9
+          found = 1
+        end
+        seen = 1 if found
+      end
+    end
+
+    assert_equal 0, player[:seen]
+  end
+
   def test_an_ivar_made_by_var_copies_another_variable
     player = played do
       @a = var :a, 5

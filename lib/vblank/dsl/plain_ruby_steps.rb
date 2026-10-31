@@ -20,7 +20,7 @@ module VBlank
       # Truthiness is Ruby's. Only a test, or a yes or no the game keeps, has an answer that waits
       # for the game to play. Every other value is answered here: nil and false are falsy, and
       # everything else is truthy, a number of the game's among them, whatever it holds.
-      def game_test?(value) = value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
+      def game_test?(value) = value.is_a?(Condition) || (value.is_a?(Value) && (value.boolean? || !value.truth.nil?))
 
       # Does this name a place that keeps a number, rather than a working-out of one?
       def variable?(value) = value.is_a?(Value) && value.handle?
@@ -28,7 +28,14 @@ module VBlank
       # Can a game variable start with this?
       def game_value?(value) = [Integer, Float, Symbol, TrueClass, FalseClass].any? { |kind| value.is_a?(kind) }
 
-      def as_condition(value) = value.is_a?(Value) ? value != 0 : value
+      def as_condition(value)
+        return value unless value.is_a?(Value)
+
+        value.truth ? value.truth == Value::TRUTHY_HELD : value != 0
+      end
+
+      # `x.nil?`. A name that keeps what it holds is asked as the game plays.
+      def nil_test(value) = value.is_a?(Value) && value.truth ? value.truth == Value::NIL_HELD : value.nil?
 
       # A conditional's test, as an object the rewritten `if` asks which sides to run. A number
       # worked out for it is truthy and used for nothing more, so no check counts it as dropped.
@@ -41,9 +48,9 @@ module VBlank
 
       # The other answer to a test, for `!` and `unless`.
       def opposite(value)
-        return !value unless value.is_a?(Value) && value.boolean?
+        return !value unless value.is_a?(Value) && game_test?(value)
 
-        value == 0
+        value.truth ? value.truth != Value::TRUTHY_HELD : value == 0
       end
 
       # `&&`. Two tests that only compare numbers join into one, both worked out as the game
@@ -64,6 +71,7 @@ module VBlank
       # `||`, the same way round.
       def join_either(left, used: true)
         return left || yield unless game_test?(left)
+        return number_or_other_side(left) { yield } if left.is_a?(Value) && left.truth
 
         condition = as_condition(left)
         unless_left = !condition
@@ -99,6 +107,20 @@ module VBlank
         below_top = range.exclude_end? ? subject < range.end : subject <= range.end
         (subject >= range.begin) & below_top
       end
+
+      # `target || 7` on a name that may hold nil: its number if it is truthy, and the right side
+      # if not, picked the way `x = test ? a : b` picks.
+      def number_or_other_side(left)
+        test = GameTest.new(as_condition(left))
+        test.open_yes_side
+        test.keep_side_value(number_of(left))
+        test.open_no_side
+        test.keep_side_value(yield)
+        test.picked_value
+      end
+
+      # The number alone, which no longer counts as a test.
+      def number_of(value) = value + 0
 
       # The left side of `found or next`, as Ruby would answer it. A test the game makes has no
       # answer yet, and a jump needs one now.
@@ -193,12 +215,58 @@ module VBlank
       # Put +value+ in a game variable. A yes or no is kept as 1 or 0, and a test's answer is
       # worked out as the game plays.
       def store_in_variable(target, value)
+        return store_with_truth(target, value) if target.truth
+
         case value
         when true then target.set!(1)
         when false then target.set!(0)
         when Condition then store_answer(target, value)
         else target.set!(value)
         end
+      end
+
+      # The same, on a name that keeps what it holds (see Value#truth).
+      def store_with_truth(target, value)
+        case value
+        when nil then target.truth.set!(Value::NIL_HELD)
+        when false then target.truth.set!(Value::FALSE_HELD)
+        when true then store_truthy(target, 1)
+        when Condition then store_truth_of_test(target, value)
+        when Value then store_value_with_truth(target, value)
+        else store_truthy(target, value)
+        end
+      end
+
+      def store_truthy(target, number)
+        target.set!(number)
+        target.truth.set!(Value::TRUTHY_HELD)
+      end
+
+      def store_truth_of_test(target, condition)
+        answer = GameTest.new(condition)
+        answer.open_yes_side
+        store_truthy(target, 1)
+        answer.close_side(nil)
+        answer.open_no_side
+        store_with_truth(target, false)
+        answer.close_side(nil)
+      end
+
+      def store_value_with_truth(target, value)
+        return store_truthy(target, value) unless value.truth
+
+        target.set!(value)
+        target.truth.set!(value.truth)
+      end
+
+      # The first line of a name that can hold nil or false as well as a number.
+      def start_with_truth(value)
+        own = yield(0)
+        return own.tap(&:start_truth_as_nil!) if value.nil?
+
+        own.keep_truth!
+        store_with_truth(own, value)
+        own
       end
 
       def store_answer(target, condition)
@@ -215,13 +283,14 @@ module VBlank
       # while building, so a plain name would end up with the last side's value whichever way
       # the game goes. It gets a hidden variable holding its value now, and the sides change that.
       # Tests already open around this one have seen to it, in +outer+.
-      def promote(value, test, *outer)
+      def promote(value, test, *outer, may_stay_nil: false)
         return value unless test.game? && outer.none?(&:game?)
         return value unless value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
 
         own = test.hidden_variable
         own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
         own.unwritten = value.nil?
+        own.start_truth_as_nil! if may_stay_nil && value.nil?
         store_in_variable(own, value) unless value.nil?
         own
       end
@@ -234,9 +303,10 @@ module VBlank
 
         refuse_object_under_test!(name, target) unless variable?(target)
         return assign(target, value) if game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
-        return value if target.unwritten
 
-        refuse_object_under_test!(name, value)
+        refuse_object_under_test!(name, value) unless target.unwritten
+        target.forget_truth!
+        value
       end
 
       # `x += amount` on such a name.
@@ -251,10 +321,14 @@ module VBlank
                           "keep a number and pick with it.")
       end
 
-      # `x = value` where x is a game variable.
+      def number_kept?(value) = value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
+
+      # `x = value` where x is a game variable. On a name started as nil, something made while
+      # building is held as Ruby holds it, and the name keeps no number.
       def assign(target, value)
         return value unless variable?(target)
         return target if value.equal?(target)
+        return value.tap { target.forget_truth! } if target.truth && !number_kept?(value)
 
         store_in_variable(target, value)
         target

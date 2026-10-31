@@ -108,6 +108,39 @@ module VBlank
       # Was this variable made for the instance variable holding it (see PlainRubySteps.reassign)?
       attr_accessor :own_to_its_name
 
+      # A game has no nil, and a number variable has no false. A name that can hold those as well
+      # as a number keeps which it holds in a hidden variable beside it: NIL_HELD, FALSE_HELD or
+      # TRUTHY_HELD. The number is read as it stands, so a nil reads as 0.
+      NIL_HELD = 0
+      FALSE_HELD = 1
+      TRUTHY_HELD = 2
+
+      attr_reader :truth
+
+      def keep_truth! = @truth = @builder.hidden_variable
+
+      # A name given nothing yet starts as nil, and that start is one statement. If what it is
+      # given turns out to be something made while building, no number is kept and it goes.
+      def start_truth_as_nil!
+        keep_truth!
+        @truth.set!(NIL_HELD)
+        @truth_start = @builder.last_statement_place
+      end
+
+      def forget_truth!
+        @builder.take_back_statement(*@truth_start) if @truth_start
+        @truth = nil
+      end
+
+      # The number and what it counts as, as they are now, on a hidden pair.
+      def hidden_copy_with_truth
+        kept = @builder.hidden_variable
+        kept.keep_truth!
+        kept.set!(self)
+        kept.truth.set!(truth)
+        kept
+      end
+
       # The variable this handle names, or nil for an expression and for a place that has no
       # name of its own (a pool field, a list slot). For a message that wants to say which.
       attr_reader :name
@@ -130,6 +163,8 @@ module VBlank
 
       # A hidden variable holding this number as it is now, whatever changes it later.
       def hidden_copy
+        return hidden_copy_with_truth if truth
+
         kept = @builder.hidden_variable
         kept.set!(self)
         kept.mark_boolean! if boolean?

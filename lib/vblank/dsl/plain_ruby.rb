@@ -268,6 +268,7 @@ module VBlank
           return "#{STEPS}.opposite(#{argument(node.receiver)})" if node.name == :! && node.receiver
           return index_write_text(node) if node.name == :[]= && node.receiver
           return attribute_write_text(node) if node.attribute_write? && node.receiver
+          return "#{STEPS}.nil_test(#{argument(node.receiver)})" if node.name == :nil? && node.receiver
           return bits_text(node) if PlainRubySteps::BIT_JOINS.include?(node.name) && node.receiver && node.arguments
           return "self.#{copied_text(node)}" if node.receiver.nil? && @outer_locals.include?(node.name)
 
@@ -323,16 +324,25 @@ module VBlank
           case @names.action_for(node)
           when :declare then "#{prefix}#{declaration(node)}"
           # The line that makes a variable in game code sets it on every pass, as Ruby would.
-          when :start then "#{prefix}#{STEPS}.assign(#{declaration(node)}, #{rewritten_text(node.value)})"
+          when :start then "#{prefix}#{start_text(node)}"
           when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
           else "#{prefix}#{kept_value_text(node.value)}"
           end
+        end
+
+        def start_text(node)
+          return declaration(node) if @names.keeps_truth?(node)
+
+          "#{STEPS}.assign(#{declaration(node)}, #{rewritten_text(node.value)})"
         end
 
         # Anything but a number written out can hold anything, so what it starts is asked as the
         # line runs. Its value is kept in a local of its own, so the right side runs once.
         def declaration(node)
           name = @names.variable_name_of(node)
+          if @names.keeps_truth?(node)
+            return "#{STEPS}.start_with_truth(#{value_text(node.value)}) { |start| var(:#{name}, start) }"
+          end
           return "var(:#{name}, #{rewritten_text(node.value)})" if LocalNames.number?(node)
 
           start = "__plain_ruby_#{@answers += 1}"
@@ -439,7 +449,10 @@ module VBlank
         # still holds whichever way the test goes. +outer+ are tests already open around this one.
         def promotions_text(node, sides, answer, outer: @open_tests)
           given = [answer, *outer].join(", ")
-          @names.names_to_promote(node, sides).map { |name| "#{name} = #{STEPS}.promote(#{name}, #{given}); " }.join
+          @names.names_to_promote(node, sides).map do |name|
+            stays = @names.written_on_every_side?(name, sides) ? "" : ", may_stay_nil: true"
+            "#{name} = #{STEPS}.promote(#{name}, #{given}#{stays}); "
+          end.join
         end
 
         def change_text(node)

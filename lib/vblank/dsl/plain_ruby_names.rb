@@ -71,6 +71,13 @@ module VBlank
 
           def plain_name? = parameter? || !variable?
 
+          # Does this name hold nil, or both a number and true or false? One kept number cannot
+          # say which of those it is.
+          def keeps_truth?
+            kinds = @writes.map { |write| LocalNames.kind_written(write.node) }
+            kinds.include?(:nil) || (kinds.include?(:yes_or_no) && kinds.include?(:other))
+          end
+
           def variable? = auto_variable? || made_by_var?
         end
 
@@ -86,7 +93,20 @@ module VBlank
 
         def self.number?(write)
           write.is_a?(Prism::LocalVariableWriteNode) &&
-            [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode, Prism::SymbolNode].include?(write.value.class)
+            [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode, Prism::SymbolNode,
+             Prism::NilNode].include?(write.value.class)
+        end
+
+        # What a write says it gives a name. Only a value written out can say, so a name given
+        # another name is left to what it starts as.
+        def self.kind_written(write)
+          return unless write.is_a?(Prism::LocalVariableWriteNode)
+
+          case write.value
+          when Prism::NilNode then :nil
+          when Prism::TrueNode, Prism::FalseNode then :yes_or_no
+          when Prism::IntegerNode, Prism::FloatNode then :other
+          end
         end
 
         # A number written out, or something only running the line can say is one: `state = PLAYING`,
@@ -146,6 +166,15 @@ module VBlank
           kept.each { |write| @promoted_writes[write] = true }
           kept.map(&:name).uniq
         end
+
+        # Does each of +sides+ write +name+, so that it holds something whichever way the test goes?
+        def written_on_every_side?(name, sides)
+          sides.none?(&:nil?) && sides.length > 1 &&
+            sides.all? { |side| plain_writes_in(side).any? { |write| write.name == name } }
+        end
+
+        # Is this first write's name one that keeps what it holds (see Value#truth)?
+        def keeps_truth?(write) = @locals_by_node[write]&.keeps_truth? || false
 
         # Is this a write to a name that #names_to_promote named?
         def promoted?(write) = @promoted_writes.key?(write)

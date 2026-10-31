@@ -918,6 +918,13 @@ module VBlank
       @container_stack.last.children.delete_at(-1) if @container_stack.last.children.last.equal?(if_node)
     end
 
+    # Where the statement just recorded stands, to hand to #take_back_statement.
+    def last_statement_place = [@container_stack.last, @container_stack.last.children.last]
+
+    def take_back_statement(container, statement)
+      container.children.delete_if { |each_statement| each_statement.equal?(statement) }
+    end
+
     # A `repeat` with a stop test, likewise opened and closed rather than given a block.
     def open_repeat(most_passes, stop_node)
       @repeat_seq += 1
