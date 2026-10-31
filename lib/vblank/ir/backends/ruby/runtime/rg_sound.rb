@@ -46,6 +46,8 @@ RG_PAN_LEFT = 1 # the left alone,
 RG_PAN_RIGHT = 2 # ...the right alone, or nought for both
 RG_SAID_DUTY = 1 << 8 # a note's sixth number: set when it or its part said its shapes,
 RG_DUTY_BITS = 0xFF # ...whose eight bits (Audio::Duty#bits) are under it
+RG_CARRIES_VIBRATO = 1 << 9 # ...and above it, set when its vibrato carries its swing on
+RG_VIBRATO_CARRIES_LOGGED = 1 << 16 # ...which the log says above the vibrato's bits
 RG_SLIDE_TICK_SAMPLES = RG_SOUND_RATE / 128 # the slide clock ticks 128 times a second
 RG_NUMBERS_PER_NOTE_SOUND = 8
 RG_NUMBERS_PER_BEEP = 4
@@ -579,7 +581,15 @@ def rg_wobble_start(voice, note)
   return if voice > RG_WAVE_VOICE
 
   vibrato = @rg_game_music[note + 1] == 0 ? 0 : rg_note_vibrato(note)
-  @rg_wobbles[voice] = RgWobble.new(vibrato, vibrato >> RG_VIBRATO_AFTER_AT, 0, false, 0, @rg_game_music[note + 3])
+  was = @rg_wobbles[voice]
+  if (vibrato & RG_VIBRATO_FOUR_BITS).zero?
+    was.vibrato = 0
+    was.steps = 0
+    return
+  end
+  carries = @rg_game_music[note + 5].anybits?(RG_CARRIES_VIBRATO)
+  @rg_wobbles[voice] = RgWobble.new(vibrato, vibrato >> RG_VIBRATO_AFTER_AT, carries ? was.left : 0, carries ? was.rising : false,
+                                    0, @rg_game_music[note + 3])
 end
 
 def rg_wobble_stop(voice)
@@ -809,7 +819,7 @@ def rg_log_voice_set(voice, who, pitch, volume, note)
   said = @rg_game_music[note + 4]
   told = [said.anybits?(RG_SAID_FADE) ? said & (RG_FADE_UP | RG_FADE_STEP_BITS) : -1,
           said.anybits?(RG_SAID_SLIDE) ? rg_note_slide(note) : -1,
-          said.anybits?(RG_SAID_VIBRATO) ? rg_note_vibrato(note) : -1,
+          said.anybits?(RG_SAID_VIBRATO) ? rg_note_vibrato(note) | (@rg_game_music[note + 5].anybits?(RG_CARRIES_VIBRATO) ? RG_VIBRATO_CARRIES_LOGGED : 0) : -1,
           rg_note_pan(note).positive? ? rg_note_pan(note) : -1,
           @rg_game_music[note + 5].anybits?(RG_SAID_DUTY) ? @rg_game_music[note + 5] & RG_DUTY_BITS : -1]
   told.pop while !told.empty? && told.last.negative?

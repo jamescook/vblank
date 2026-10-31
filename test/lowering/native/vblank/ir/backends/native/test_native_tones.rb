@@ -242,6 +242,27 @@ class TestNativeTones < Minitest::Test
     assert_native_sounds_like_the_console program, frames: 70, voices: [:square2]
   end
 
+  # A vibrato that carries its swing from note to note: short notes, each starting part way through a
+  # swing, and a rest that leaves the swing where it was.
+  def test_a_carried_vibrato_wobbles_as_the_consoles_does
+    program = program_of do
+      enable_sound
+      song :tune do
+        tempo 150
+        voice :melody do
+          vibrato depth: 15, speed: 8, carries: true
+          3.times { note :A4, :sixteenth }
+          rest :sixteenth
+          note :C5, :quarter
+        end
+      end
+      play_song :tune
+      game_loop { wait_vblank }
+    end
+
+    assert_native_sounds_like_the_console program, frames: 70, voices: [:square1]
+  end
+
   # A sound effect's note wobbles the same way.
   def test_a_sound_effects_notes_wobble_as_the_consoles_do
     score = VBlank::Audio::Score

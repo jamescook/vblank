@@ -56,6 +56,7 @@ module VBlank
             @running = {}       # an effect sounding -> how far into it, and each part's next event
             @holders = Hash.new(0) # a console voice -> the rank of whoever holds it (IR::Tunes.song_rank)
             @wobbles = {}       # a console voice -> how the note it holds wobbles (IR::Tunes::Wobble)
+            @swings = {}        # ...and where its last one left off, for a vibrato that carries
             @stepping_shapes = {}        # a square voice -> the shapes its note steps through, and its frame (#step_shapes)
             @swells = {}        # a square voice -> the song's swelling note it holds under the music volume (IR::Tunes::Swell)
           end
@@ -131,7 +132,7 @@ module VBlank
           # wobbles no note of a song's, and steps no song note's shapes: the next note written there
           # says again.
           def game_sound_on(channel)
-            @wobbles.delete(channel)
+            stop_wobble(channel)
             @stepping_shapes.delete(channel)
             @swells.delete(channel)
           end
@@ -253,9 +254,9 @@ module VBlank
                                           slide: IR::Tunes.said_slide(part, event), vibrato: vibrato,
                                           side: IR::Tunes.note_side(part, event), duty: duty)
             if Audio::Vibrato.moves?(vibrato)
-              @wobbles[channel] = IR::Tunes::Wobble.starting(vibrato)
+              @wobbles[channel] = IR::Tunes::Wobble.starting(vibrato, @wobbles[channel] || @swings[channel])
             else
-              @wobbles.delete(channel)
+              stop_wobble(channel)
             end
             duty&.steps? ? @stepping_shapes[channel] = [duty, 0] : @stepping_shapes.delete(channel)
             @swells.delete(channel)
@@ -302,6 +303,12 @@ module VBlank
 
           # EVERY WOBBLING VOICE MOVED ON A FRAME, the voices in order, once everything due on the
           # frame has played: [:wobble, channel, steps] when it moves the voice's pitch.
+          # +channel+ wobbles nothing now; where its swing was is kept for a vibrato that carries.
+          def stop_wobble(channel)
+            stopped = @wobbles.delete(channel)
+            @swings[channel] = stopped if stopped
+          end
+
           def step_wobbles
             @wobbles.keys.sort.each do |channel|
               was = @wobbles[channel]
@@ -396,7 +403,7 @@ module VBlank
             @running.delete(name)
             @holders.select { |_, holder| holder == rank }.each_key do |channel|
               @holders[channel] = 0
-              @wobbles.delete(channel)
+              stop_wobble(channel)
               @stepping_shapes.delete(channel)
               @log << [:note, name, 0]
               @log << [:voice, channel, name, 0, 0]
@@ -457,7 +464,7 @@ module VBlank
           # Every voice the tune holds goes quiet and is free. Harmless when it holds none.
           def silence_song
             @log << [:stop_music]
-            @wobbles.delete_if { |channel, _| (@holders[channel] & IR::Tunes::ORDER_MASK).zero? }
+            @wobbles.keys.each { |channel| stop_wobble(channel) if (@holders[channel] & IR::Tunes::ORDER_MASK).zero? }
             @stepping_shapes.delete_if { |channel, _| (@holders[channel] & IR::Tunes::ORDER_MASK).zero? }
             @swells.delete_if { |channel, _| (@holders[channel] & IR::Tunes::ORDER_MASK).zero? }
             @holders.each_key { |channel| @holders[channel] = 0 if (@holders[channel] & IR::Tunes::ORDER_MASK).zero? }

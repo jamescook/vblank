@@ -169,15 +169,16 @@ module VBlank
             # says whether any note says how it fades or swells (GBC::Music#fades?), +slides+ whether
             # any slides its pitch (GBC::Music#slides?), and +pans+ whether any plays from one speaker
             # (GBC::Music#pans?). Whether any wobbles is whether its place was reserved (#wobbles?).
-            def emit(asm, memory, level:, songs:, effects: [], by_rank: [], fades: false, slides: false, pans: false)
+            def emit(asm, memory, level:, songs:, effects: [], by_rank: [], fades: false, slides: false, pans: false,
+                     carries: false)
               sharing = !effects.empty?
               emit_game_side(asm, memory, sharing)
               return emit_no_songs(asm) unless songs
 
-              bytes = GBC::Music.note_bytes(slides, pans, shapes?(memory), wobbles?(memory))
+              bytes = GBC::Music.note_bytes(slides, pans, shapes?(memory), wobbles?(memory), carries)
               emit_tick(asm, memory, level, sharing)
               emit_notes(asm, memory, level, sharing, fades, slides, pans, bytes)
-              emit_wobbles(asm, memory) if wobbles?(memory)
+              emit_wobbles(asm, memory, carries) if wobbles?(memory)
               emit_set_speakers(asm, memory) if pans
               emit_shapes(asm, memory) if shapes?(memory)
               emit_swells(asm, memory) if swells?(memory)
@@ -236,7 +237,7 @@ module VBlank
             # pitch, is back where its wobble has it before the frame is heard. A run of the
             # cartridge reads each turn to the other side at rt_wobble_turned_N, where A holds the
             # steps it turns to (GBC::SoundLog).
-            def emit_wobbles(asm, memory)
+            def emit_wobbles(asm, memory, carries)
               h = Console::GBCHardware
               asm.label("rt_wobble_start")
               asm.load(:a, [memory[PART]])
@@ -246,6 +247,11 @@ module VBlank
               asm.load(:c, [:hl]) # its depth and speed
               asm.inc(:hl)
               asm.load(:b, [:hl]) # its wait
+              if carries # ...and whether it starts the swing over (GBC::Music#carries?)
+                asm.inc(:hl)
+                asm.push(:de)
+                asm.load(:e, [:hl])
+              end
               asm.dec(:a) # HL = this voice's wobble: WOBBLES + its place × WOBBLE_BYTES
               3.times { asm.add_a(:a) }
               asm.add_a(memory[WOBBLES] & 0xFF)
@@ -257,8 +263,25 @@ module VBlank
               asm.load([:hli], :a)
               asm.load(:a, :b)
               asm.load([:hli], :a)
-              asm.xor_a(:a)
-              3.times { asm.load([:hli], :a) } # nothing left of a swing, none of them yet, no steps
+              if carries
+                # A note whose vibrato carries, a rest and a note that holds still all leave the swing
+                # where it was (Audio::Vibrato#carries); any other starts it over.
+                asm.load(:a, :e)
+                asm.and_a(:a)
+                asm.jump_relative(:z, "rt_wobble_swing_kept")
+                asm.xor_a(:a)
+                2.times { asm.load([:hli], :a) } # nothing left of a swing, none of them yet
+                asm.jump_relative("rt_wobble_no_steps")
+                asm.label("rt_wobble_swing_kept")
+                2.times { asm.inc(:hl) }
+                asm.label("rt_wobble_no_steps")
+                asm.xor_a(:a)
+                asm.load([:hli], :a)
+                asm.pop(:de)
+              else
+                asm.xor_a(:a)
+                3.times { asm.load([:hli], :a) } # nothing left of a swing, none of them yet, no steps
+              end
               asm.load(:a, :e)
               asm.load([:hli], :a)
               asm.load(:a, :d)

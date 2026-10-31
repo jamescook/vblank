@@ -61,7 +61,8 @@ module VBlank
             code = places.code
             @tables = places.sound_tables.to_h { |label, entry| [code.fetch(label).address, entry] }
             bytes = Music.note_bytes(Music.slides_in?(places.notes), Music.pans_in?(places.notes),
-                                     Music.shapes_in?(places.notes), Music.wobbles_in?(places.notes))
+                                     Music.shapes_in?(places.notes), Music.wobbles_in?(places.notes),
+                                     Music.carries_in?(places.notes))
             # Each note by where it is. Songs kept in the cartridge's banks (GBC::Music#sections) put
             # notes of two banks at one address, so there a note is known by its bank as well, which
             # the player holds in A as the note arrives (Runtime::Music#emit_notes).

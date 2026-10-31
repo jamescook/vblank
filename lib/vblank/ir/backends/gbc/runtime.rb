@@ -103,7 +103,8 @@ module VBlank
             Sound.emit(asm, memory)
             Music.emit(asm, memory, level: music_level, songs: songs, effects: music&.effects || [],
                                     by_rank: music&.effects_by_rank || [], fades: music&.fades? || false,
-                                    slides: music&.slides? || false, pans: music&.pans? || false)
+                                    slides: music&.slides? || false, pans: music&.pans? || false,
+                                    carries: music&.carries? || false)
             Saving.emit(asm, memory)
             Clips.emit(asm, memory, counts: clips.timer_counts, entry_bytes: clips.entry_bytes, lines: clips.rows_bent?) if shown
             Rumble.emit(asm, memory) if Rumble.any?(memory)

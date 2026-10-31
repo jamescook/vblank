@@ -65,6 +65,48 @@ class TestSongVibrato < Minitest::Test
                  "two steps up (half of three, rounded up), then one below where it began, two frames each"
   end
 
+  # A VIBRATO THAT CARRIES keeps its swing from one note to the next, as another Game Boy game's
+  # music engine does: only the wait starts again. A note starting part way through a swing holds
+  # its own pitch until that swing runs out, then turns to the other side. Six-frame notes, a
+  # swing of four frames each way: the second note starts two frames into the swing below.
+  def test_a_vibrato_that_carries_keeps_its_swing_from_note_to_note
+    moves = voice_moves(song_game do
+      voice :lead do |v|
+        v.vibrato depth: 2, speed: 4, carries: true
+        3.times { v.note :C5, :sixteenth }
+      end
+    end, frames: 20)
+
+    assert_equal [[0, 1], [4, -1], [2, 1], [0, -1]], wobbles_on(moves, 1).first(4),
+                 "the second note turns up two frames in; the third starts as the swing runs out, and turns down"
+  end
+
+  # ...where one that does not starts each note over, up first.
+  def test_a_vibrato_that_does_not_carry_starts_each_note_over
+    moves = voice_moves(song_game do
+      voice :lead do |v|
+        v.vibrato depth: 2, speed: 4
+        3.times { v.note :C5, :sixteenth }
+      end
+    end, frames: 20)
+
+    assert_equal [[0, 1], [4, -1], [0, 1], [4, -1]], wobbles_on(moves, 1).first(4)
+  end
+
+  # A rest, or a note that holds still, leaves the swing where it was.
+  def test_a_rest_leaves_a_carried_swing_where_it_was
+    moves = voice_moves(song_game do
+      voice :lead do |v|
+        v.vibrato depth: 2, speed: 4, carries: true
+        v.note :C5, :sixteenth
+        v.rest :sixteenth
+        v.note :C5, :sixteenth
+      end
+    end, frames: 20)
+
+    assert_equal [[0, 1], [4, -1], [2, 1]], wobbles_on(moves, 1).first(3)
+  end
+
   # The [:voice] entry names the note's wobble after its fade and slide, when it says one.
   def test_the_voice_is_told_the_notes_vibrato
     moves = voice_moves(song_game { voice(:lead) { |v| v.note :C5, :whole, vibrato: { depth: 5, speed: 3 } } }, frames: 4)

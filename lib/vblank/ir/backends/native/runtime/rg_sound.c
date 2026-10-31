@@ -153,6 +153,8 @@
 #define PAN_RIGHT 2            /* ...the right alone, or nought for both */
 #define SAID_DUTY (1 << 8)     /* a note's sixth number: set when it or its part said its shapes, */
 #define DUTY_BITS 0xFF         /* ...whose eight bits (Audio::Duty#bits) are under it */
+#define CARRIES_VIBRATO (1 << 9) /* ...and above it, set when its vibrato carries its swing on */
+#define VIBRATO_CARRIES_LOGGED (1 << 16) /* ...which the log says above the vibrato's bits */
 #define NUMBERS_PER_NOTE_SOUND 8
 #define NUMBERS_PER_BEEP 4
 #define NUMBERS_PER_WAVE 3
@@ -780,11 +782,19 @@ static int32_t note_vibrato(const int32_t *note) {
 }
 
 /* +voice+ has just been given +note+: it wobbles that, or — a rest, or a note that says none —
- * holds still. The hiss has no pitch to wobble. */
+ * holds still, its swing left where it was. A vibrato that carries takes that swing up; any other
+ * starts it over. The hiss has no pitch to wobble. */
 static void wobble_start(int32_t voice, const int32_t *note) {
   if (voice > RG_WAVE_VOICE) return;
   int32_t vibrato = note[1] == 0 ? 0 : note_vibrato(note);
-  wobbles[voice] = (wobble){vibrato, vibrato >> VIBRATO_AFTER_AT, 0, 0, 0, note[3]};
+  wobble *was = &wobbles[voice];
+  if ((vibrato & VIBRATO_FOUR_BITS) == 0) {
+    was->vibrato = 0;
+    was->steps = 0;
+    return;
+  }
+  int32_t carries = note[5] & CARRIES_VIBRATO;
+  *was = (wobble){vibrato, vibrato >> VIBRATO_AFTER_AT, carries ? was->left : 0, carries ? was->rising : 0, 0, note[3]};
 }
 
 /* A SONG'S SWELLING NOTE HELD UNDER THE MUSIC VOLUME, by the square voice it is on
@@ -1095,7 +1105,7 @@ static int32_t note_pan(const int32_t *note) { return (int32_t)(((uint32_t)note[
 static void log_voice_set(int32_t voice, int32_t who, int32_t pitch, int32_t volume, const int32_t *note) {
   int32_t said[] = {note[4] & SAID_FADE ? note[4] & (FADE_UP | FADE_STEP_BITS) : -1,
                     note[4] & SAID_SLIDE ? note_slide(note) : -1,
-                    note[4] & SAID_VIBRATO ? note_vibrato(note) : -1,
+                    note[4] & SAID_VIBRATO ? note_vibrato(note) | (note[5] & CARRIES_VIBRATO ? VIBRATO_CARRIES_LOGGED : 0) : -1,
                     note_pan(note) ? note_pan(note) : -1,
                     note[5] & SAID_DUTY ? note[5] & DUTY_BITS : -1};
   int32_t count = 5;

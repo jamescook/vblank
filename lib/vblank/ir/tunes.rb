@@ -151,8 +151,14 @@ module VBlank
       # +left+ the frames the swing it is in has still to hold, +rising+ whether that swing is the
       # one above, and +steps+ how far from the note's own pitch it has the voice now.
       Wobble = Data.define(:vibrato, :wait, :left, :rising, :steps) do
-        # A voice given a note that wobbles: nothing moved yet.
-        def self.starting(vibrato) = new(vibrato: vibrato, wait: vibrato.after, left: 0, rising: false, steps: 0)
+        # A voice given a note that wobbles: nothing moved yet. A vibrato that carries
+        # (Audio::Vibrato#carries) takes up the swing +before+ left off — the voice's last wobble,
+        # or nil for none — and starts only its wait over.
+        def self.starting(vibrato, before = nil)
+          return new(vibrato: vibrato, wait: vibrato.after, left: 0, rising: false, steps: 0) unless vibrato.carries && before
+
+          new(vibrato: vibrato, wait: vibrato.after, left: before.left, rising: before.rising, steps: 0)
+        end
 
         # The wobble a frame on, stepped once at the end of every frame the player plays, the frame
         # its note began included. It waits, and then, as each swing runs out, turns to the other

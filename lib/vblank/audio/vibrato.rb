@@ -15,9 +15,17 @@ module VBlank
     # The note is not started again as its pitch moves, so its loudness and any fade carry on. The
     # square voices and the wave voice wobble; the hiss has no pitch to wobble, and a recording
     # plays at a rate of the mixer's.
-    Vibrato = Data.define(:depth, :speed, :after)
+    #
+    # A VIBRATO THAT +carries+ keeps its swing from one note to the next — which side of the pitch
+    # it is on, and how long it has still to hold there — and only its wait starts again. That is how
+    # some Game Boy games' music engines wobble, so a song converted from one says it. A note that
+    # starts part way through a swing holds its own pitch until the swing runs out, then turns. A
+    # rest, or a note that holds still, leaves the swing where it was; a note whose vibrato does not
+    # carry starts it over.
+    Vibrato = Data.define(:depth, :speed, :after, :carries)
 
     class Vibrato
+      def initialize(depth:, speed:, after:, carries: false) = super
       # The most a wobble can say, as the four, four and eight bits a note keeps it in — the speed
       # kept less one, since it is never nought, so a converted engine's slowest swing fits: that
       # engine counts a swing down from fifteen to nought, which is sixteen frames.
@@ -51,12 +59,21 @@ module VBlank
       def self.said(said, where:, frames: nil)
         return nil if said.nil?
         return NONE if said == :none
-        refuse_unknown!(said, where) unless said.is_a?(Hash) && (said.keys - %i[depth speed after]).empty?
+        refuse_unknown!(said, where) unless said.is_a?(Hash) && (said.keys - %i[depth speed after carries]).empty?
 
         new(depth: checked_amount(said.fetch(:depth, :medium), DEPTHS, DEEPEST, "depth", where),
             speed: checked_amount(said.fetch(:speed, :medium), SPEEDS, SLOWEST, "speed", where),
-            after: checked_wait(said.fetch(:after, 0), frames, where))
+            after: checked_wait(said.fetch(:after, 0), frames, where),
+            carries: checked_carries(said.fetch(:carries, false), where))
       end
+
+      def self.checked_carries(said, where)
+        return said if [true, false].include?(said)
+
+        raise ArgumentError, "#{where} says a vibrato `carries: #{said.inspect}`. It is true or false. " \
+                             "To fix this, give one of those."
+      end
+      private_class_method :checked_carries
 
       def self.checked_amount(said, words, most, word, where)
         return words.fetch(said) if words.key?(said)
@@ -80,7 +97,7 @@ module VBlank
 
       def self.refuse_unknown!(said, where)
         raise ArgumentError, "#{where} says `vibrato: #{said.inspect}`. A vibrato is :none, or " \
-                             "{ depth:, speed:, after: }. To fix this, give one of those."
+                             "{ depth:, speed:, after:, carries: }. To fix this, give one of those."
       end
       private_class_method :refuse_unknown!
 
@@ -108,8 +125,16 @@ module VBlank
 
       def bits = depth | ((speed - 1) << SPEED_AT) | (after << AFTER_AT)
 
+      # Whether it carries is kept apart from those sixteen, where each player has a bit to spare;
+      # a log says it as this bit above them (#logged_bits, .from_bits).
+      CARRIES_BIT = 1 << 16
+      BYTE = 0xFF
+
+      def logged_bits = bits | (carries ? CARRIES_BIT : 0)
+
       def self.from_bits(bits)
-        new(depth: bits & FOUR_BITS, speed: ((bits >> SPEED_AT) & FOUR_BITS) + 1, after: bits >> AFTER_AT)
+        new(depth: bits & FOUR_BITS, speed: ((bits >> SPEED_AT) & FOUR_BITS) + 1, after: (bits >> AFTER_AT) & BYTE,
+            carries: bits.anybits?(CARRIES_BIT))
       end
     end
   end

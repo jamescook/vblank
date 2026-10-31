@@ -173,10 +173,15 @@ module VBlank
           #
           # A square note that steps its shapes keeps them above that (Audio::Duty#bits), with
           # SHAPES_STEP set beside them (see #emit_start_shapes).
+          #
+          # In a game where a vibrato carries its swing on (Audio::Vibrato#carries), KEEPS_SWING is set
+          # above the shapes on a row whose note leaves the swing where it was: a note whose vibrato
+          # carries, a rest, and a note that holds still.
           WOBBLE_AT = SQUARE_ROW
           PAN_SHIFT = 16
           SHAPES_SHIFT = 18
           SHAPES_STEP = 1 << 8
+          KEEPS_SWING = 1 << 27
           def note_word? = @wobbles || @pans || @shape_steps
           def console_row_bytes = note_word? ? SQUARE_ROW + 4 : SQUARE_ROW
 
@@ -399,6 +404,11 @@ module VBlank
             # #emit_step_wobbles).
             @wobbles = IR::Tunes.playable_songs(program).any? do |song|
               song.voices.any? { |part| part.events.any? { |event| VBlank::Audio::Vibrato.moves?(IR::Tunes.said_vibrato(part, event)) } }
+            end
+            # ...and one where a vibrato carries its swing on says in each row whether the note keeps
+            # the swing (KEEPS_SWING; see #emit_start_wobble).
+            @carries = @wobbles && IR::Tunes.playable_songs(program).any? do |song|
+              song.voices.any? { |part| part.events.any? { |event| IR::Tunes.said_vibrato(part, event)&.carries } }
             end
             # ...and one where every note plays from both speakers never writes which (see
             # #emit_set_speakers).
@@ -1961,7 +1971,7 @@ module VBlank
 
             var = ->(what) { self.class.wobble_var(lane.index, what) }
             @emitter.emit(ASM.ldr_offset(ACC, row, WOBBLE_AT))
-            if @pans || @shape_steps # the speaker and the shapes above it are not the wobble's
+            if @pans || @shape_steps || @carries # the speaker and the shapes above it are not the wobble's
               @emitter.emit(ASM.lsl_imm(ACC, ACC, 32 - PAN_SHIFT))
               @emitter.emit(ASM.lsr_imm(ACC, ACC, 32 - PAN_SHIFT))
             end
@@ -1973,7 +1983,15 @@ module VBlank
             @emitter.emit(ASM.lsr_imm(TMP, TMP, 32 - PITCH_BITS)) # the pitch, without the start bit
             @primitives.store_var(TMP, var.call(:pitch))
             @emitter.emit(ASM.load_immediate(ACC, 0))
-            %i[left rising steps].each { |what| @primitives.store_var(ACC, var.call(what)) }
+            return %i[left rising steps].each { |what| @primitives.store_var(ACC, var.call(what)) } unless @carries
+
+            kept = @emitter.gensym
+            @primitives.store_var(ACC, var.call(:steps))
+            @emitter.emit(ASM.ldr_offset(TMP, row, WOBBLE_AT))
+            @emitter.emit(ASM.tst_imm(TMP, KEEPS_SWING))
+            @emitter.emit_branch(:bcond, kept, cond: :ne)
+            %i[left rising].each { |what| @primitives.store_var(ACC, var.call(what)) }
+            @emitter.place_label(kept)
           end
 
           # A SQUARE NOTE'S SHAPES, as the player keeps them between frames, by the voice it is on: its
@@ -1992,6 +2010,7 @@ module VBlank
 
             @emitter.emit(ASM.ldr_offset(ACC, row, WOBBLE_AT))
             @emitter.emit(ASM.lsr_imm(ACC, ACC, SHAPES_SHIFT))
+            @emitter.emit(ASM.bic_imm(ACC, ACC, KEEPS_SWING >> SHAPES_SHIFT)) if @carries # not the shapes'
             @primitives.store_var(ACC, self.class.shapes_var(lane.index, :bits))
             @emitter.emit(ASM.load_immediate(ACC, 0))
             @primitives.store_var(ACC, self.class.shapes_var(lane.index, :frame))
@@ -2592,7 +2611,9 @@ module VBlank
                 wobble = IR::Tunes.said_vibrato(part, event) if frequency.positive?
                 side = frequency.positive? ? VBlank::Audio::Pan.bits_of(IR::Tunes.note_side(part, event)) : 0
                 stepping = shapes&.steps? ? (shapes.bits | SHAPES_STEP) << SHAPES_SHIFT : 0
-                row + [(VBlank::Audio::Vibrato.moves?(wobble) ? wobble.bits : 0) | (side << PAN_SHIFT) | stepping].pack("V")
+                moves = VBlank::Audio::Vibrato.moves?(wobble)
+                keeps = @carries && (!moves || wobble.carries) ? KEEPS_SWING : 0
+                row + [(moves ? wobble.bits : 0) | (side << PAN_SHIFT) | stepping | keeps].pack("V")
               end
               rows.join + [NEVER, 0, 0].pack("Vvv") + (note_word? ? [0].pack("V") : "")
             end

@@ -54,8 +54,8 @@ module VBlank
           # In a game where a note wobbles, two more after those: the note's vibrato
           # (Audio::Vibrato#bits, nought for a note that holds still), its depth and speed in the
           # first and its wait in the second, which the player keeps for the frames after.
-          def self.note_bytes(slides, pans, shapes, wobbles)
-            NOTE_BYTES + (slides ? 1 : 0) + (pans ? 1 : 0) + (shapes ? 1 : 0) + (wobbles ? 2 : 0)
+          def self.note_bytes(slides, pans, shapes, wobbles, carries = false)
+            NOTE_BYTES + (slides ? 1 : 0) + (pans ? 1 : 0) + (shapes ? 1 : 0) + (wobbles ? 2 : 0) + (carries ? 1 : 0)
           end
 
           # Whether any note of these lists (#notes) slides its pitch, whether any plays from one
@@ -64,6 +64,10 @@ module VBlank
           def self.pans_in?(notes) = notes.each_value.any? { |list| list.any?(&:side) }
           def self.shapes_in?(notes) = notes.each_value.any? { |list| list.any?(&:duty) }
           def self.wobbles_in?(notes) = notes.each_value.any? { |list| list.any? { |note| VBlank::Audio::Vibrato.moves?(note.vibrato) } }
+
+          # Whether any wobbling note's vibrato carries its swing on (Audio::Vibrato#carries): only then
+          # does a note carry a byte saying whether it starts the swing over.
+          def self.carries_in?(notes) = notes.each_value.any? { |list| list.any? { |note| note.vibrato&.carries } }
 
           # One note of a part as the music table holds it, with what it is to the interpreter: the
           # song's name, the part, the voice it plays on, its pitch (0 for a rest), its volume, and
@@ -213,7 +217,12 @@ module VBlank
           end
 
           # How many bytes a note of this game's takes (.note_bytes).
-          def note_bytes = Music.note_bytes(slides?, pans?, shapes?, wobbles?)
+          def note_bytes = Music.note_bytes(slides?, pans?, shapes?, wobbles?, carries?)
+
+          def carries?
+            @carries = Music.carries_in?(notes) unless defined?(@carries)
+            @carries
+          end
 
           private
 
@@ -228,7 +237,8 @@ module VBlank
           end
 
           # A note as the table holds it: when it starts, its tuning with its fade in the top bits
-          # (FADE_SHIFT), and its volume — and in a game where a note slides, its slide, where one
+          # plays from one speaker, its speaker, and where one wobbles, its vibrato — then, where a
+          # vibrato carries its swing on, whether this note starts the swing over (.note_bytes).
           # plays from one speaker, its speaker, and where one wobbles, its vibrato (.note_bytes).
           def emit_note(asm, voice, part, event)
             at, pitch, _, volume = event
@@ -240,7 +250,9 @@ module VBlank
             return unless wobbles?
 
             wobble = Tunes.said_vibrato(part, event) unless pitch.zero?
-            asm.data_words(VBlank::Audio::Vibrato.moves?(wobble) ? wobble.bits : 0)
+            moves = VBlank::Audio::Vibrato.moves?(wobble)
+            asm.data_words(moves ? wobble.bits : 0)
+            asm.data_bytes(moves && !wobble.carries ? 1 : 0) if carries? # 1: the swing starts over
           end
 
           # A note's shapes as its byte holds them: the ones it or its part said, or else its part's one.

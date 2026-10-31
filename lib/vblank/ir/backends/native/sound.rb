@@ -46,6 +46,9 @@ module VBlank
           # SAID_DUTY beside them, and 0 for a note that plays its part's one shape (rg_sound.c's
           # SAID_DUTY).
           SAID_DUTY = 1 << 8
+          # ...and above that, set when the note's vibrato carries its swing from the note before
+          # (Audio::Vibrato#carries; rg_sound.c's CARRIES_VIBRATO).
+          CARRIES_VIBRATO = 1 << 9
 
           private
 
@@ -358,7 +361,7 @@ module VBlank
             side = pitch.zero? ? 0 : Audio::Pan.bits_of(Tunes.note_side(part, note))
             shapes = Tunes.said_duty(part, note) unless pitch.zero?
             [at, @sound_log.pitch_number(pitch), heard, last, Int32.wrap(said | (side << PAN_AT)),
-             shapes ? SAID_DUTY | shapes.bits : 0]
+             (shapes ? SAID_DUTY | shapes.bits : 0) | (wobble&.carries ? CARRIES_VIBRATO : 0)]
           end
 
           # EVERYTHING A RECORDED NOTE IS BUT HOW LOUD, the interpreter's way
