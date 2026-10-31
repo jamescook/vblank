@@ -9,10 +9,6 @@ module VBlank
       module Steps
         MOST_PASSES = IR::Guardrails::Checks::LoopNeverWaits::MOST_PASSES
 
-        # What `+=` and its relatives are on a game variable, where one exists. Any other
-        # operator is the variable set to the sum.
-        CHANGING_VERBS = { :+ => :increase!, :- => :decrease! }.freeze
-
         # Bits on numbers, and on tests a join with both sides worked out.
         BIT_JOINS = %i[& | ^].freeze
 
@@ -179,7 +175,7 @@ module VBlank
 
         # A test's answer goes in as the game plays. Anything else counts by Ruby's truthiness.
         def store_truthiness(target, value)
-          return store_in_variable(target, as_condition(value)) if game_test?(value)
+          return Writes.store_in_variable(target, as_condition(value)) if game_test?(value)
 
           forget_value(value)
           target.store!(value ? 1 : 0)
@@ -213,117 +209,6 @@ module VBlank
         def loop_while(&test) = LoopTest.new(test, stops_when: false)
         def loop_until(&test) = LoopTest.new(test, stops_when: true)
 
-        # Put +value+ in a game variable. A yes or no is kept as 1 or 0, and a test's answer is
-        # worked out as the game plays.
-        def store_in_variable(target, value)
-          return store_with_truth(target, value) if target.truth
-
-          case value
-          when true then target.store!(1)
-          when false, nil then target.store!(0)
-          when Condition then store_answer(target, value)
-          else
-            refuse_number_in_boolean!(target) if target.boolean? && value.is_a?(Value) && !value.boolean?
-            target.store!(value)
-          end
-        end
-
-        # The same, on a name that keeps what it holds (see Value#truth).
-        def store_with_truth(target, value)
-          case value
-          when nil then target.truth.store!(Value::NIL_HELD)
-          when false then target.truth.store!(Value::FALSE_HELD)
-          when true then store_truthy(target, 1)
-          when Condition then store_truth_of_test(target, value)
-          when Value then store_value_with_truth(target, value)
-          else store_truthy(target, value)
-          end
-        end
-
-        def store_truthy(target, number)
-          target.store!(number)
-          target.truth.store!(Value::TRUTHY_HELD)
-        end
-
-        def store_truth_of_test(target, condition)
-          answer = GameTest.new(condition)
-          answer.open_yes_side
-          store_truthy(target, 1)
-          answer.close_side(nil)
-          answer.open_no_side
-          store_with_truth(target, false)
-          answer.close_side(nil)
-        end
-
-        def store_value_with_truth(target, value)
-          return store_truthy(target, value) unless value.truth
-
-          target.store!(value)
-          target.truth.store!(value.truth)
-        end
-
-        # The first line of a name that can hold nil or false as well as a number.
-        def start_with_truth(value)
-          own = yield(0)
-          return own.tap(&:start_truth_as_nil!) if value.nil?
-
-          own.keep_truth!
-          store_with_truth(own, value)
-          own
-        end
-
-        def store_answer(target, condition)
-          answer = GameTest.new(condition)
-          answer.open_yes_side
-          target.store!(1)
-          answer.close_side(nil)
-          answer.open_no_side
-          target.store!(0)
-          answer.close_side(nil)
-        end
-
-        # A plain name is about to be changed under +test+. A test the game makes runs both sides
-        # while building, so a plain name would end up with the last side's value whichever way
-        # the game goes. It gets a hidden variable holding its value now, and the sides change that.
-        # Tests already open around this one have seen to it, in +outer+.
-        def promote(value, test, *outer, may_stay_nil: false)
-          return value unless test.game? && outer.none?(&:game?)
-          return value unless value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
-
-          own = test.hidden_variable(:promoted, like: value.is_a?(Value) ? value : nil)
-          own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
-          own.unwritten = value.nil?
-          own.start_truth_as_nil! if may_stay_nil && value.nil?
-          store_in_variable(own, value) unless value.nil?
-          own
-        end
-
-        # `x = value` on a name #promote saw to, if one of +tests+ is the game's. A name not given
-        # anything yet can take an object made here, as `actions = menu ...` does, since a verb
-        # that declares something runs once however the test goes.
-        def write_under(tests, name, target, value)
-          return value unless tests.any?(&:game?)
-
-          refuse_object_under_test!(name, target) unless variable?(target)
-          return assign(target, value) if game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
-
-          refuse_object_under_test!(name, value) unless target.unwritten
-          target.forget_truth!
-          value
-        end
-
-        # `x = value` under open tests, where x may turn out to hold an object.
-        def assign_under(tests, name, target, value)
-          refuse_object_under_test!(name, target) if tests.any?(&:game?) && !target.nil? && !number_kept?(target)
-
-          assign(target, value)
-        end
-
-        # `x += amount` on such a name.
-        def change_under(tests, target, operator, amount)
-          tests.any?(&:game?) ? change(target, operator, amount) : target.public_send(operator, amount)
-        end
-
         # The left of a join whose right side changes a name, asked like an `if`'s test.
         class JoinSide
           attr_reader :value
@@ -337,160 +222,6 @@ module VBlank
 
         def side_of_join(value) = JoinSide.new(value)
 
-        def refuse_change_in_block!(name, tests)
-          return unless tests.any?(&:game?)
-
-          refuse_game_code!("`#{name}` is changed inside a block, under a test the game makes as it plays. The " \
-                            "block runs while building, so the game cannot follow this. To fix this, start it " \
-                            "with `#{name} = var :#{name}, 0`.")
-        end
-
-        def refuse_begin_while!(name)
-          refuse_game_code!("This `begin` loop changes `#{name}`, and its test is one the game makes as it plays. " \
-                            "To fix this, start it with `#{name} = var :#{name}, 0`.")
-        end
-
-        def refuse_number_in_boolean!(target)
-          refuse_game_code!("`#{target.name}` started as `true` or `false`, and this line gives it a number. A " \
-                            "game variable keeps one kind unless the line says so. To fix this, compare the " \
-                            "number, like `#{target.name} = count > 0`, or start it with a number.")
-        end
-
-        def refuse_object_under_test!(name, held)
-          shown = held.is_a?(String) ? held.inspect : "a #{held.class.name.split('::').last}"
-          refuse_game_code!("`#{name}` holds #{shown}, and this line changes it under a test the game makes " \
-                            "as it plays. A game can keep only numbers, symbols, `true` and `false`. To fix this, " \
-                            "keep a number and pick with it.")
-        end
-
-        # A variable the author never wrote `var` for, which the out-of-memory error names.
-        #
-        # A game block runs on the builder, which has `var`. A part of a game is a plain class
-        # that holds one, so the variable comes from the builder in use, under a name nothing has
-        # taken: two parts, or two of one part, each have a local of their own, as in Ruby.
-        def variable_with_no_var_line(owner, name, start)
-          variable = owner.respond_to?(:var, true) ? owner.__send__(:var, name, start) : variable_for_part(name, start)
-          variable.note_made_with_no_var_line
-          variable
-        end
-
-        def variable_for_part(name, start)
-          builder = Builder.in_use
-          refuse_game_code!("`#{name}` is changed by game code, but no game is being built. To fix this, " \
-                            "make this part while a game is being built.") if builder.nil?
-
-          builder.var(builder.free_variable_name(name), start)
-        end
-
-        def number_kept?(value) = value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
-
-        # `x = value` where x is a game variable. On a name started as nil, something made while
-        # building is held as Ruby holds it, and the name keeps no number.
-        def assign(target, value)
-          return value unless variable?(target)
-          return target if value.equal?(target)
-          return value.tap { target.forget_truth! } if target.truth && !number_kept?(value)
-
-          store_in_variable(target, value)
-          target
-        end
-
-        # The first line of a name the game changes later. A number starts a variable. A variable or
-        # a working-out gives it a variable of its own holding that number now, since a Ruby name
-        # holds a value and never another name. Anything else stays what it is.
-        def start_name(value)
-          return yield(value) if game_value?(value)
-
-          case value
-          when Condition then assign(yield(false), value)
-          when Value then assign(own_variable(value) { |start| yield(start) }, value)
-          else value
-          end
-        end
-
-        def own_variable(value)
-          own = yield(value.fraction? ? 0.0 : 0)
-          own.mark_boolean! if value.boolean?
-          own
-        end
-
-        # `@x = var :x, 0`. A part of a game keeps its variables in these, and this one is the name's
-        # own, so #reassign can tell it from one the name was only handed.
-        def keep_as_own(variable)
-          variable.own_to_its_name = true
-          variable
-        end
-
-        # `@x = value`. Given a number, the game's variable takes it. Given another variable, a
-        # variable of the name's own takes its number, and the two then change apart, as two Ruby
-        # names would. A variable the name was only handed is left alone, and the name moves.
-        def reassign(target, value)
-          return value unless variable?(target)
-          return value if variable?(value) && !target.own_to_its_name
-          return target if value.equal?(target)
-
-          store_in_variable(target, value)
-          target
-        end
-
-        # `x += amount`, and every operator like it.
-        def change(target, operator, amount)
-          return target.public_send(operator, amount) unless variable?(target)
-          return assign(target, bits(target, operator, amount)) if game_test?(target) && BIT_JOINS.include?(operator)
-
-          verb = CHANGING_VERBS[operator]
-          verb ? target.public_send(verb, amount) : target.store!(target.public_send(operator, amount))
-          target
-        end
-
-        # `hash[:x] += amount` and `hero.x += amount`.
-        def change_place(current, operator, amount)
-          return change(current, operator, amount) if variable?(current)
-
-          yield current.public_send(operator, amount)
-        end
-
-        # `collection[key] = value`. A game variable kept in a Hash or an Array is changed where
-        # it stands: putting a new number in its slot would leave the game's variable as it was.
-        # A game's own list answers `[]=` itself. A Hash is asked with `fetch`, since `[]` runs its
-        # default block for a key it does not hold, and that block may be this very write.
-        def assign_index(collection, *keys, value)
-          current = collection.fetch(keys.first, nil) if collection.is_a?(Hash)
-          current = collection[*keys] if collection.is_a?(Array)
-          refuse_new_slot!(collection, keys.first, value) if current.nil?
-          return collection[*keys] = value unless variable?(current)
-
-          store_in_variable(current, value)
-        end
-
-        # A number given to a key that a Hash of game variables does not hold is a misspelt key: it
-        # would go in as a plain Ruby number, and the game's variable would stay as it was.
-        def refuse_new_slot!(collection, key, value)
-          return unless collection.is_a?(Hash) && !collection.empty? && game_value?(value) && !value.is_a?(Symbol)
-          return unless collection.each_value.all? { |each_value| variable?(each_value) }
-
-          refuse_game_code!("This Hash holds game variables and has no key #{key.inspect}, so the game would never " \
-                  "see this number. The keys are #{collection.keys.map(&:inspect).join(', ')}. To fix " \
-                  "this, use one of those keys.")
-        end
-
-        # `hero.x = value`.
-        def assign_attribute(receiver, name, value)
-          current = receiver.public_send(name) if receiver.respond_to?(name)
-          return receiver.public_send(:"#{name}=", value) unless variable?(current)
-
-          store_in_variable(current, value)
-        end
-
-        # A plain number changed by code the game runs would change once, while building, and the
-        # game would never see it. See Rewriter#guarded_write_text.
-        def refuse_lost_number!(name, recording_game_code)
-          return unless recording_game_code
-
-          refuse_game_code!("`#{name}` is a plain number, and this line runs as the game plays, so the game " \
-                  "will never see the change. To fix this, start it with `#{name} = var :#{name}, 0`.")
-        end
-
         # A right side of `a, b = b, a`, kept before the writes reach what it reads.
         def number_now(value) = value.is_a?(Value) ? value.hidden_copy(:swap) : value
 
@@ -502,7 +233,7 @@ module VBlank
 
           kept = value.hidden_variable(:copy)
           kept.mark_boolean!
-          store_answer(kept, value)
+          Writes.store_answer(kept, value)
           kept
         end
 
@@ -531,7 +262,7 @@ module VBlank
           def close_side(value) = @answer = value
           def keep_side_value(value) = @answer = value
           def keep_tail_value(value) = @answer = value
-          def store_side(target, value) = @answer = Steps.assign(target, value)
+          def store_side(target, value) = @answer = Writes.give_variable(target, value)
           def refuse_jump!(_word) = nil
         end
 
@@ -570,7 +301,7 @@ module VBlank
             end
             @kept ||= @condition.hidden_variable(:picked)
             @kept.mark_boolean! if boolean || (value.is_a?(Value) && value.boolean?)
-            Steps.store_in_variable(@kept, value)
+            Writes.store_in_variable(@kept, value)
             @condition.close_branch
           end
 
@@ -585,7 +316,7 @@ module VBlank
 
           # A side of `x = test ? a : b` on a game variable: the number goes straight into x.
           def store_side(target, value)
-            Steps.assign(target, value)
+            Writes.give_variable(target, value)
             @condition.close_branch
           end
 

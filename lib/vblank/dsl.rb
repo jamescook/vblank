@@ -15,7 +15,8 @@ require_relative "dsl/branch"
 require_relative "dsl/plain_ruby" # a game block in normal Ruby, read with Prism and rewritten
 require_relative "dsl/plain_ruby_names" # ...what each local name in that block is
 require_relative "dsl/plain_ruby_checks" # ...what that block is refused
-require_relative "dsl/plain_ruby_steps" # ...and what the rewritten block calls as it runs
+require_relative "dsl/plain_ruby_steps" # ...what the rewritten block calls as it runs
+require_relative "dsl/plain_ruby_writes" # ...and what a write in it does
 # A handle that does its work in game words is written in normal Ruby, as a game is, so it comes in
 # the way a part of a game does. Everything above this line is what that needs.
 VBlank.require_game_file "dsl/bounds"

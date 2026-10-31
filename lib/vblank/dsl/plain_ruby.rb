@@ -158,6 +158,8 @@ module VBlank
       # than editing in place, since a trailing `if` is evaluated before what stands to its left.
       class Rewriter
         STEPS = "::VBlank::DSL::PlainRuby::Steps"
+        WRITES = "::VBlank::DSL::PlainRuby::Writes"
+        NEW_VALUE = "__plain_ruby_new"
         JUMPS = [Prism::ReturnNode, Prism::BreakNode, Prism::NextNode].freeze
 
         attr_reader :block_node
@@ -292,22 +294,50 @@ module VBlank
         end
 
         def index_write_text(node)
-          arguments = node.arguments.arguments.map { |each_argument| argument(each_argument) }.join(", ")
-          "#{STEPS}.assign_index(#{argument(node.receiver)}, #{arguments})"
+          *keys, value = node.arguments.arguments.map { |each_argument| argument(each_argument) }
+          slot_write_text(argument(node.receiver), keys, value, written_place(node, node.arguments))
         end
 
         def attribute_write_text(node)
-          name = node.name.to_s.delete_suffix("=")
-          value = argument(node.arguments.arguments.first)
-          "#{STEPS}.assign_attribute(#{argument(node.receiver)}, :#{name}, #{value})"
+          label = node.slice[/\A[^=]*/].strip
+          attribute_write(argument(node.receiver), node.name.to_s.delete_suffix("="), argument(node.arguments.arguments.first), label)
+        end
+
+        def written_place(node, arguments) = "#{node.receiver.slice}[#{arguments.arguments[0...-1].map(&:slice).join(', ')}]"
+
+        def fresh_name = "__plain_ruby_#{@answers += 1}"
+
+        # Every write in the game comes to Writes.write through here. See that for what it decides.
+        def write_call(read, value, label, assign: NEW_VALUE, options: "")
+          "#{WRITES}.write(#{read}, #{value}, #{open_tests_text}, #{label.to_sym.inspect}#{options}) " \
+            "{ |#{NEW_VALUE}| #{assign} }"
+        end
+
+        # The receiver and the keys are held, so what they are worked out from runs once.
+        def slot_write_text(receiver, keys, value, label)
+          holder = fresh_name
+          held_keys = fresh_name
+          held = fresh_name
+          write = write_call("#{WRITES}.slot(#{holder}, #{held_keys}, #{held})", held, label,
+                             assign: "#{holder}[*#{held_keys}] = #{NEW_VALUE}",
+                             options: ", needs_slot: #{WRITES}.keeps_ruby_values?(#{holder})")
+          "(#{holder} = #{receiver}; #{held_keys} = [#{keys.join(', ')}]; #{held} = #{value}; #{write})"
+        end
+
+        def attribute_write(receiver, name, value, label)
+          holder = fresh_name
+          held = fresh_name
+          write = write_call("#{WRITES}.attribute(#{holder}, :#{name})", held, label, assign: "#{holder}.#{name} = #{NEW_VALUE}")
+          "(#{holder} = #{receiver}; #{held} = #{value}; #{write})"
         end
 
         def index_text(node) = "#{rewritten_text(node.receiver)}[#{node.arguments ? rewritten_text(node.arguments) : ''}]"
 
         # `+=` on a place. The block is what Ruby would do, for a place that holds no variable.
         def place_change_text(node, place)
-          "#{STEPS}.change_place(#{place}, :#{node.binary_operator}, #{argument(node.value)}) " \
-            "{ |__plain_ruby_changed| #{place} = __plain_ruby_changed }"
+          label = between(node.location.start_offset, node.binary_operator_loc.start_offset).strip
+          "#{WRITES}.change(#{place}, :#{node.binary_operator}, #{argument(node.value)}, #{open_tests_text}, " \
+            "#{label.to_sym.inspect}) { |#{NEW_VALUE}| #{place} = #{NEW_VALUE} }"
         end
 
         # A plain number changed from inside a block no one can place: `each` may be Ruby's, which
@@ -315,33 +345,33 @@ module VBlank
         # looks, using the question the block's builder answers.
         def guarded_write_text(node, written)
           if !@block_tests.empty? && node.depth.positive? && @names.plain_name_write?(node)
-            return "(#{STEPS}.refuse_change_in_block!(:#{node.name}, [#{@block_tests.join(', ')}]); #{written})"
+            return "(#{WRITES}.refuse_change_in_block!(:#{node.name}, [#{@block_tests.join(', ')}]); #{written})"
           end
           return written unless @names.plain_number_changed_from_block?(node)
 
           recording = "(respond_to?(:recording_game_code?) && recording_game_code?)"
-          "(#{STEPS}.refuse_lost_number!(:#{node.name}, #{recording}); #{written})"
+          "(#{WRITES}.refuse_lost_number!(:#{node.name}, #{recording}); #{written})"
         end
 
         # A part of a game keeps its variables in these, so one holding a game variable is changed.
         def instance_variable_write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
           value = value_text(node.value)
-          return "#{prefix}#{STEPS}.keep_as_own(#{value})" if LocalNames.makes_variable?(node.value)
+          return "#{prefix}#{WRITES}.keep_as_own(#{value})" if LocalNames.makes_variable?(node.value)
 
-          "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value}))"
+          "#{prefix}#{write_call(node.name, "(#{value})", node.name, options: ", moves: true")}"
         end
 
         # `@x ||= var :x, 0`, the same as `@x = var :x, 0` the first time.
         def instance_variable_or_text(node)
           return copied_text(node) unless LocalNames.makes_variable?(node.value)
 
-          "#{node.name} ||= #{STEPS}.keep_as_own(#{value_text(node.value)})"
+          "#{node.name} ||= #{WRITES}.keep_as_own(#{value_text(node.value)})"
         end
 
         def write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
-          return "#{prefix}#{STEPS}.write_under(#{open_tests_text}, #{promoted_name_text(node)}, (#{value_text(node.value)}))" if promoted?(node)
+          return "#{prefix}#{second_name_write(node.name, "(#{value_text(node.value)})")}" if promoted?(node)
           return picked_into_text(node) if picks_into_variable?(node)
           return joined_into_text(node, prefix) if joins_into_variable?(node)
 
@@ -357,7 +387,7 @@ module VBlank
         def start_text(node)
           return declaration(node) if @names.keeps_truth?(node)
 
-          "#{STEPS}.assign(#{declaration(node)}, #{rewritten_text(node.value)})"
+          "#{WRITES}.give_variable(#{declaration(node)}, #{rewritten_text(node.value)})"
         end
 
         # Anything but a number written out can hold anything, so what it starts is asked as the
@@ -365,13 +395,13 @@ module VBlank
         def declaration(node)
           name = @names.variable_name_of(node)
           if @names.keeps_truth?(node)
-            return "#{STEPS}.start_with_truth(#{value_text(node.value)}) { |start| #{made_variable_text(name, 'start')} }"
+            return "#{WRITES}.start_with_truth(#{value_text(node.value)}) { |start| #{made_variable_text(name, 'start')} }"
           end
           return made_variable_text(name, "false") if node.value.is_a?(Prism::NilNode)
           return made_variable_text(name, rewritten_text(node.value)) if LocalNames.number?(node)
 
           start = "__plain_ruby_#{@answers += 1}"
-          "(#{start} = #{value_text(node.value)}; #{STEPS}.start_name(#{start}) { |start| #{made_variable_text(name, 'start')} })"
+          "(#{start} = #{value_text(node.value)}; #{WRITES}.start_name(#{start}) { |start| #{made_variable_text(name, 'start')} })"
         end
 
         def kept_value_text(value, write = nil)
@@ -392,10 +422,15 @@ module VBlank
         # `x ||= value`. On a game variable it is `x = x || value`, so a yes or no is set as the
         # game plays. A plain name is left to Ruby.
         def logic_write_text(node, step)
+          joined = "#{STEPS}.#{step}(#{node.name}) { #{rewritten_text(node.value)} }"
+          return "#{node.name} = #{second_name_write(node.name, joined)}" if promoted?(node)
           return copied_text(node) unless @names.action_for(node)
 
-          "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{rewritten_text(node.value)} })"
+          "#{node.name} = #{assign_text(node.name, joined)}"
         end
+
+        # A name #promote gave a variable of its own, if a test the game makes turned out to be open.
+        def second_name_write(name, value) = write_call(name, value, name, options: ", second_name: true")
 
         # `a, b = b, a`. Every right side is held in a name of its own, then each target is given
         # its own, one write at a time, so each goes the way the same line alone would. A right
@@ -456,63 +491,83 @@ module VBlank
         def target_write_text(target, value)
           case target
           when Prism::LocalVariableTargetNode then local_target_text(target, value)
-          when Prism::InstanceVariableTargetNode then "#{target.name} = #{STEPS}.reassign(#{target.name}, #{value})"
+          when Prism::InstanceVariableTargetNode
+            "#{target.name} = #{write_call(target.name, value, target.name, options: ", moves: true")}"
           when Prism::IndexTargetNode
             keys = target.arguments&.arguments.to_a.map { |key| argument(key) }
-            "#{STEPS}.assign_index(#{[argument(target.receiver), *keys, value].join(', ')})"
+            slot_write_text(argument(target.receiver), keys, value, target.slice)
           when Prism::CallTargetNode
-            "#{STEPS}.assign_attribute(#{argument(target.receiver)}, :#{target.name.to_s.delete_suffix('=')}, #{value})"
+            attribute_write(argument(target.receiver), target.name.to_s.delete_suffix("="), value, target.slice)
           else "#{target.slice} = #{value}"
           end
         end
 
         def local_target_text(target, value)
           name = target.name
-          return "#{name} = #{STEPS}.write_under(#{open_tests_text}, :#{name}, #{name}, #{value})" if promoted?(target)
+          return "#{name} = #{second_name_write(name, value)}" if promoted?(target)
 
           case @names.action_for(target)
           when :declare, :start
-            "#{name} = #{STEPS}.start_name(#{value}) { |start| #{made_variable_text(@names.variable_name_of(target), 'start')} }"
+            "#{name} = #{WRITES}.start_name(#{value}) { |start| #{made_variable_text(@names.variable_name_of(target), 'start')} }"
           when :assign then "#{name} = #{assign_text(name, value)}"
           else "#{name} = #{value}"
           end
         end
 
-        def made_variable_text(name, start) = "#{STEPS}.variable_with_no_var_line(self, :#{name}, #{start})"
+        def made_variable_text(name, start) = "#{WRITES}.variable_with_no_var_line(self, :#{name}, #{start})"
 
-        # A name that turns out to hold an object cannot follow a test the game makes, so under an
-        # open test the step looks.
-        def assign_text(name, value)
-          return "#{STEPS}.assign(#{name}, #{value})" if @open_tests.empty?
-
-          "#{STEPS}.assign_under(#{open_tests_text}, :#{name}, #{name}, #{value})"
-        end
+        def assign_text(name, value) = write_call(name, value, name)
 
         def promoted?(node) = @names.promoted?(node) && !@open_tests.empty?
 
         def open_tests_text = "[#{@open_tests.join(', ')}]"
-
-        def promoted_name_text(node) = ":#{node.name}, #{node.name}"
 
         # What stands before a side's code: each name it changes given a variable, if the test
         # turns out to be the game's. There it goes before the branch, where the name's number
         # still holds whichever way the test goes. +outer+ are tests already open around this one.
         def promotions_text(node, sides, answer, outer: @open_tests)
           given = [answer, *outer].join(", ")
-          @names.names_to_promote(node, sides).map do |name|
+          names = @names.names_to_promote(node, sides).map do |name|
             stays = @names.written_on_every_side?(name, sides) ? "" : ", may_stay_nil: true"
-            "#{name} = #{STEPS}.promote(#{name}, #{given}#{stays}); "
-          end.join
+            "#{name} = #{WRITES}.promote(#{name}, #{given}#{stays}); "
+          end
+          (names + @names.places_changed_in(sides).filter_map { |place| place_promotion_text(place, given) }).uniq.join
         end
 
-        def change_text(node)
-          if promoted?(node)
-            return "#{node.name} = #{STEPS}.change_under(#{open_tests_text}, #{node.name}, " \
-                   ":#{node.binary_operator}, #{argument(node.value)})"
+        # The same for an instance variable, a slot or an attribute, which any method can read, so
+        # nothing can say it is not read afterwards. A place written some other way than by a plain name
+        # and plain keys is left: if it turns out to need following, Writes.write stops the build.
+        def place_promotion_text(place, given)
+          case place
+          when Prism::InstanceVariableWriteNode, Prism::InstanceVariableOperatorWriteNode
+            "#{place.name} = #{WRITES}.promote_place(#{place.name}, #{given}, may_stay_nil: true); "
+          when Prism::IndexOperatorWriteNode then slot_promotion_text(place, place.arguments.arguments, given)
+          when Prism::CallOperatorWriteNode then attribute_promotion_text(place, place.read_name, given)
+          else
+            return slot_promotion_text(place, place.arguments.arguments[0...-1], given) if place.name == :[]=
+
+            attribute_promotion_text(place, place.name.to_s.delete_suffix("="), given)
           end
+        end
+
+        def slot_promotion_text(place, keys, given)
+          return unless keys.all? { |key| LocalNames.plain_key?(key) }
+
+          "#{WRITES}.promote_slot(#{place.receiver.slice}, [#{keys.map(&:slice).join(', ')}], #{given}); "
+        end
+
+        def attribute_promotion_text(place, name, given) = "#{WRITES}.promote_attribute(#{place.receiver.slice}, :#{name}, #{given}); "
+
+        def change_text(node)
+          return "#{node.name} = #{change_call(node, ', second_name: true')}" if promoted?(node)
           return copied_text(node) if @names.plain_name_write?(node)
 
-          "#{node.name} = #{STEPS}.change(#{node.name}, :#{node.binary_operator}, #{argument(node.value)})"
+          "#{node.name} = #{change_call(node)}"
+        end
+
+        def change_call(node, options = "")
+          "#{WRITES}.change(#{node.name}, :#{node.binary_operator}, #{argument(node.value)}, #{open_tests_text}, " \
+            "#{node.name.to_sym.inspect}#{options}) { |#{NEW_VALUE}| #{NEW_VALUE} }"
         end
 
         # The right side is a block so plain values keep Ruby's skipping of it.
@@ -522,7 +577,7 @@ module VBlank
 
           given = @lone_joins.key?(node) ? ", used: false" : ""
           given = ", into: #{into}" if into
-          return join_under_test_text(node, step, given) unless @names.names_to_promote(node, [node.right]).empty?
+          return join_under_test_text(node, step, given) if @names.changes_under?(node, [node.right])
 
           "#{STEPS}.#{step}(#{argument(node.left)}#{given}) { #{rewritten_text(node.right)} }"
         end
@@ -531,7 +586,7 @@ module VBlank
         # variable first, as on a side of an `if`.
         def join_under_test_text(node, step, given)
           left = "__plain_ruby_#{@answers += 1}"
-          promotions = promotions_text(node, [node.right], left).gsub(", may_stay_nil: true", "")
+          promotions = promotions_text(node, [node.right], left)
           right = under_open_test(left) { rewritten_text(node.right) }
           "(#{left} = #{STEPS}.side_of_join(#{argument(node.left)}); #{promotions}" \
             "#{STEPS}.#{step}(#{left}.value#{given}) { #{right} })"
@@ -567,7 +622,7 @@ module VBlank
           shut_at = node.closing_loc&.start_offset || node.location.end_offset
           promotions = promotions_text(node, [node.statements], test)
           names = @names.names_to_promote(node, [node.statements])
-          promotions = "#{STEPS}.refuse_begin_while!(:#{names.first})" if node.begin_modifier? && !names.empty?
+          promotions = "#{WRITES}.refuse_begin_while!(:#{names.first})" if node.begin_modifier? && !names.empty?
           body = under_open_test(test) { side_body_text(node, shut_at) }
           first = node.begin_modifier? ? "#{body}; " : ""
           "(#{test} = #{STEPS}.#{step} { #{rewritten_text(node.predicate)} }; #{first}" \
@@ -736,7 +791,7 @@ module VBlank
         def joined_into_text(write, prefix)
           name = write.name
           step = write.value.is_a?(Prism::AndNode) ? "join_both" : "join_either"
-          "#{prefix}#{STEPS}.assign(#{name}, #{joined_text(write.value, step, into: name)})"
+          "#{prefix}#{assign_text(name, joined_text(write.value, step, into: name))}"
         end
 
         def picked_into_text(write)

@@ -26,7 +26,8 @@ module VBlank
         Write = Struct.new(:node, :in_game_code)
 
         CHANGES = [Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode,
-                   Prism::LocalVariableTargetNode].freeze
+                   Prism::LocalVariableTargetNode, Prism::LocalVariableOrWriteNode,
+                   Prism::LocalVariableAndWriteNode].freeze
 
         NAMES = [Prism::LocalVariableReadNode, Prism::InstanceVariableReadNode].freeze
 
@@ -202,6 +203,17 @@ module VBlank
           !@first_writes_in_game_code[write] && local.reads.any? { |read| @reads_in_game_code[read] }
         end
 
+        # The instance variables, slots and attributes +sides+ change, each written on a plain name.
+        def places_changed_in(sides) = sides.compact.flat_map { |side| places_in(side) }
+
+        # Does a test the game makes around +sides+ have anything to do first?
+        def changes_under?(node, sides) = !names_to_promote(node, sides).empty? || !places_changed_in(sides).empty?
+
+        # A key Ruby can read a second time with nothing changing.
+        def self.plain_key?(key)
+          [Prism::SymbolNode, Prism::IntegerNode, Prism::StringNode, Prism::LocalVariableReadNode].any? { |kind| key.is_a?(kind) }
+        end
+
         # Does each of +sides+ write +name+, so that it holds something whichever way the test goes?
         def written_on_every_side?(name, sides)
           sides.none?(&:nil?) && sides.length > 1 &&
@@ -274,6 +286,25 @@ module VBlank
             "#{receiver}[#{node.arguments.arguments[0...-1].map(&:slice).join(', ')}]"
           end
         end
+
+        def places_in(node)
+          return [] if OWN_SCOPES.any? { |kind| node.is_a?(kind) }
+
+          own = changed_place?(node) ? [node] : []
+          own + node.compact_child_nodes.flat_map { |child| places_in(child) }
+        end
+
+        def changed_place?(node)
+          case node
+          when Prism::InstanceVariableWriteNode then !LocalNames.makes_variable?(node.value)
+          when Prism::InstanceVariableOperatorWriteNode then true
+          when Prism::IndexOperatorWriteNode, Prism::CallOperatorWriteNode then plain_receiver?(node.receiver)
+          when Prism::CallNode then (node.name == :[]= || node.attribute_write?) && plain_receiver?(node.receiver)
+          else false
+          end
+        end
+
+        def plain_receiver?(receiver) = (NAMES + [Prism::SelfNode]).any? { |kind| receiver.is_a?(kind) }
 
         def plain_writes_in(node)
           return [] if OWN_SCOPES.any? { |kind| node.is_a?(kind) }

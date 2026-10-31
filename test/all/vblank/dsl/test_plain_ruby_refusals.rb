@@ -88,6 +88,32 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_a_number_name_given_nil_from_a_method_is_refused
+    assert_refused("start it with `n = nil`") do
+      def nothing = nil
+      n = 1
+      game_loop { n = nothing }
+    end
+  end
+
+  def test_an_object_kept_in_a_slot_and_changed_under_a_game_test_is_refused
+    assert_refused("holds a Thing") do
+      hp = var :hp, 5
+      slots = { marker: Thing.new(1) }
+      slots[:marker] = Thing.new(2) if hp > 3
+      game_loop { wait_vblank }
+    end
+  end
+
+  def test_a_new_slot_given_a_number_under_a_game_test_is_refused
+    assert_refused("give it a number before the test") do
+      hp = var :hp, 5
+      slots = {}
+      slots[:speed] = 2 if hp > 3
+      game_loop { wait_vblank }
+    end
+  end
+
   def test_a_yes_or_no_given_a_number_from_another_name_is_refused
     assert_refused("started as `true` or `false`") do
       ok = true
