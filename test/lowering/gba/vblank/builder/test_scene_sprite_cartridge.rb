@@ -30,7 +30,7 @@ class TestSceneSpriteCartridge < Minitest::Test
 
   # `show` paints a sprite on the spot, and the tiled scene is up when this one is shown.
   def test_a_sprite_shown_while_a_tiled_scene_is_up_waits_for_a_painted_one
-    prog = shared_sprite_program(shown: false) { |shared, step| (step == 5).then { shared.show } }
+    prog = shared_sprite_program(shown: false) { |shared, step| shared.show if step == 5 }
 
     refute_equal [RED_PIXEL] * SIDE, top_left_of_video_memory(prog, 9), "shown, it was painted into the tiles"
   end

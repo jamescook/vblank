@@ -25,8 +25,9 @@ class TestSubroutinesCartridge < Minitest::Test
 
   def test_func_emits_push_pop
     rom = build do
+      x = 0
       func :noop do
-        set! :x, 0
+        x = 0
       end
       call :noop
       halt
@@ -44,8 +45,9 @@ class TestSubroutinesCartridge < Minitest::Test
 
   def test_call_emits_bl
     rom = build do
+      x = 0
       func :my_func do
-        set! :x, 42
+        x = 42
       end
       call :my_func
       halt

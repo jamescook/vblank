@@ -31,9 +31,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_eq_builds
     rom = build do
-      set! :state, 0
+      x = var :x, 0
+      state = var :state, 0
       if_eq :state, 0 do
-        set! :x, 1
+        x = 1
       end
       halt
     end
@@ -42,9 +43,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_ne_builds
     rom = build do
-      set! :state, 1
+      x = var :x, 0
+      state = var :state, 1
       if_ne :state, 0 do
-        set! :x, 1
+        x = 1
       end
       halt
     end
@@ -57,9 +59,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_gt_builds
     rom = build do
-      set! :score, 5
+      winner = var :winner, 0
+      score = var :score, 5
       if_gt :score, 3 do
-        set! :winner, 1
+        winner = 1
       end
       halt
     end
@@ -68,9 +71,9 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_lt_builds
     rom = build do
-      set! :y, 0
+      y = var :y, 0
       if_lt :y, 10 do
-        set! :y, 10
+        y = 10
       end
       halt
     end
@@ -79,9 +82,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_ge_builds
     rom = build do
-      set! :score, 5
+      state = var :state, 0
+      score = var :score, 5
       if_ge :score, 5 do
-        set! :state, 2
+        state = 2
       end
       halt
     end
@@ -90,9 +94,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_le_builds
     rom = build do
-      set! :y, 0
+      dy = var :dy, 0
+      y = var :y, 0
       if_le :y, 0 do
-        set! :dy, 1
+        dy = 1
       end
       halt
     end
@@ -105,9 +110,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_gte_is_alias_for_if_ge
     rom = build do
-      set! :score, 5
+      state = var :state, 0
+      score = var :score, 5
       if_gte :score, 5 do
-        set! :state, 2
+        state = 2
       end
       halt
     end
@@ -116,9 +122,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_lte_is_alias_for_if_le
     rom = build do
-      set! :y, 0
+      dy = var :dy, 0
+      y = var :y, 0
       if_lte :y, 0 do
-        set! :dy, 1
+        dy = 1
       end
       halt
     end
@@ -131,10 +138,11 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_gt_variable_vs_variable
     rom = build do
-      set! :ball_y, 100
-      set! :cpu_center, 80
+      cpu_y = var :cpu_y, 0
+      ball_y = var :ball_y, 100
+      cpu_center = var :cpu_center, 80
       if_gt :ball_y, :cpu_center do
-        add_var! :cpu_y, 1
+        cpu_y += 1
       end
       halt
     end
@@ -143,10 +151,11 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_lt_variable_vs_variable
     rom = build do
-      set! :ball_y, 50
-      set! :cpu_center, 80
+      cpu_y = var :cpu_y, 0
+      ball_y = var :ball_y, 50
+      cpu_center = var :cpu_center, 80
       if_lt :ball_y, :cpu_center do
-        sub_var! :cpu_y, 1
+        cpu_y -= 1
       end
       halt
     end
@@ -159,9 +168,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_eq_emits_bne_to_skip
     rom = build do
-      set! :state, 0
+      x = var :x, 0
+      state = var :state, 0
       if_eq :state, 0 do
-        set! :x, 1
+        x = 1
       end
       halt
     end
@@ -174,9 +184,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_gt_emits_ble_to_skip
     rom = build do
-      set! :score, 5
+      winner = var :winner, 0
+      score = var :score, 5
       if_gt :score, 3 do
-        set! :winner, 1
+        winner = 1
       end
       halt
     end
@@ -189,9 +200,9 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_lt_emits_bge_to_skip
     rom = build do
-      set! :y, 0
+      y = var :y, 0
       if_lt :y, 10 do
-        set! :y, 10
+        y = 10
       end
       halt
     end
@@ -208,9 +219,10 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_if_ge_large_immediate
     rom = build do
-      set! :ball_y, 156
+      ball_dy = var :ball_dy, 0
+      ball_y = var :ball_y, 156
       if_ge :ball_y, 156 do
-        set! :ball_dy, 0
+        ball_dy = 0
       end
       halt
     end
@@ -223,11 +235,11 @@ class TestConditionalsCartridge < Minitest::Test
 
   def test_nested_conditionals
     rom = build do
-      set! :score, 5
-      set! :state, 1
+      score = var :score, 5
+      state = var :state, 1
       if_ge :score, 5 do
         if_eq :state, 1 do
-          set! :state, 2
+          state = 2
         end
       end
       halt
@@ -242,17 +254,17 @@ class TestConditionalsCartridge < Minitest::Test
   def test_conditionals_run_in_mgba
     rom = build do
       screen :bitmap
-      set! :state, 0
-      set! :ball_x, 120
-      set! :ball_y, 80
+      state = var :state, 0
+      ball_x = 120
+      ball_y = 80
       game_loop do
         clear_screen :black
-        add_var! :ball_x, 1
+        ball_x += 1
         if_ge :ball_x, 240 do
-          set! :ball_x, 0
+          ball_x = 0
         end
         if_le :ball_y, 0 do
-          set! :ball_y, 0
+          ball_y = 0
         end
       end
     end

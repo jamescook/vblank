@@ -18,7 +18,7 @@ class TestSpriteCartridge < Minitest::Test
   end
 
   def test_the_sprite_renders_and_moves_on_the_console
-    prog = sprite_program(frames: 30) { |hero| held(:right).then { hero.x.add! 2 } }
+    prog = sprite_program(frames: 30) { |hero| hero.x += 2 if held(:right) }
     rom = ROM.assemble(GBA.new.lower(prog), title: "SPRITETS", code: "BSPT", maker: "01")
     v = assert_emulator_loads_rom(rom, frames: 12, keys: KEY_RIGHT)
     # it moved off its start (that cell is field again) and shows red further right

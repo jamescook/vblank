@@ -43,10 +43,10 @@ class TestSongPanCartridge < Minitest::Test
         voice(:drums, plays: :noise) { |v| v.pan :right; v.note :C4, :whole, decay: :none }
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
-        (count == 40).then do
+        if count == 40
           beep 880, decay: :none
           noise :kick, decay: :none
           wave :sawtooth, :A3, volume: :half

@@ -30,10 +30,10 @@ class TestInputCartridge < Minitest::Test
   def test_if_held_builds_without_error
     rom = build do
       screen :bitmap
-      set! :player_y, 80
+      player_y = 80
       game_loop do
         if_held :up do
-          sub_var! :player_y, 2
+          player_y -= 2
         end
       end
     end
@@ -45,8 +45,9 @@ class TestInputCartridge < Minitest::Test
     # Every button should be accepted without error
     %i[a b select start right left up down r l].each do |btn|
       rom = build do
+        x = var :x, 0
         if_held btn do
-          set! :x, 1
+          x = 1
         end
         halt
       end
@@ -56,8 +57,9 @@ class TestInputCartridge < Minitest::Test
 
   def test_if_held_emits_conditional_branch
     rom = build do
+      y = var :y, 0
       if_held :up do
-        set! :y, 1
+        y = 1
       end
       halt
     end
@@ -70,8 +72,9 @@ class TestInputCartridge < Minitest::Test
 
   def test_if_held_branch_skips_correct_distance
     rom = build do
+      x = var :x, 0
       if_held :a do
-        set! :x, 42
+        x = 42
       end
       halt
     end
@@ -97,10 +100,11 @@ class TestInputCartridge < Minitest::Test
 
   def test_if_pressed_builds_without_error
     rom = build do
+      state = 0
       screen :bitmap
       game_loop do
         if_pressed :start do
-          set! :state, 1
+          state = 1
         end
       end
     end
@@ -110,8 +114,9 @@ class TestInputCartridge < Minitest::Test
 
   def test_if_pressed_emits_beq
     rom = build do
+      state = var :state, 0
       if_pressed :start do
-        set! :state, 1
+        state = 1
       end
       halt
     end
@@ -162,7 +167,7 @@ class TestInputCartridge < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       screen :bitmap
-      presses = var :presses, 0
+      presses = 0
       repeat(20) { clear_screen :blue }
       game_loop { presses += 1 if pressed(:a) }
     end
@@ -188,16 +193,16 @@ class TestInputCartridge < Minitest::Test
   def test_input_rom_runs_in_mgba
     rom = build do
       screen :bitmap
-      set! :player_y, 80
+      player_y = 80
       game_loop do
         if_held :up do
-          sub_var! :player_y, 2
+          player_y -= 2
         end
         if_held :down do
-          add_var! :player_y, 2
+          player_y += 2
         end
         if_pressed :start do
-          set! :player_y, 80
+          player_y = 80
         end
       end
     end

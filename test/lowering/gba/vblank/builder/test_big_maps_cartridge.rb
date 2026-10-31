@@ -20,7 +20,7 @@ class TestBigMapsCartridge < Minitest::Test
       image(:floor, "#" => :green) { (["#" * 8] * 8).join("\n") }
       tiles :ground, "#" => :floor
       ground = background :ground, tiles: :ground, map: ["#" * 126] * 30
-      pass = var :pass, 0
+      pass = 0
       x = var :view_x, 0
       game_loop do
         pass += 1
@@ -50,8 +50,8 @@ class TestBigMapsCartridge < Minitest::Test
       screen :tiled
       image(:floor, "#" => :green) { (["#" * 8] * 8).join("\n") }
       tiles :ground, "#" => :floor
-      pass = var :pass, 0
-      var :mode, 0
+      pass = 0
+      mode = 0
       scene(:waiting) { nil }
       scene(:playing) do
         ground = background :ground, tiles: :ground, map: { first: big, second: big }
@@ -59,8 +59,8 @@ class TestBigMapsCartridge < Minitest::Test
       end
       game_loop do
         pass += 1
-        set! :mode, 0
-        set! :mode, 1 if (pass & 3) == 0
+        mode = 0
+        mode = 1 if (pass & 3) == 0
         case_var(:mode) do
           when_val 0, :waiting
           when_val 1, :playing

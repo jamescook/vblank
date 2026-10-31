@@ -114,9 +114,9 @@ class TestGameLoopCartridge < Minitest::Test
   def test_game_loop_with_setup_before_it_still_loops
     rom = build do
       screen :bitmap
-      set! :counter, 0
+      counter = 0
       game_loop do
-        add_var! :counter, 1
+        counter += 1
       end
     end
     insts = instructions(rom)
@@ -139,9 +139,9 @@ class TestGameLoopCartridge < Minitest::Test
   def test_game_loop_runs_in_mgba
     rom = build do
       screen :bitmap
-      set! :counter, 0
+      counter = 0
       game_loop do
-        add_var! :counter, 1
+        counter += 1
       end
     end
     assert_emulator_loads_rom(rom, frames: 10)

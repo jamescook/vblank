@@ -24,13 +24,13 @@ class TestCallOneOfCartridge < Minitest::Test
   def test_a_routine_in_the_quick_memory_and_one_in_the_cartridge_are_both_reached
     rom = VBlank.build("PICKFAST", console: :gba, code: "BPK2", maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      moved = var :moved, 0
-      left = var :left, 0
+      moved = 0
+      left = 0
       here = var :here, 0
       there = var :there, 1
       b = self
-      b.func(:in_quick_memory, fast: true) { moved.add! 1 }
-      b.func(:in_cartridge, fast: false) { left.add! 1 }
+      b.func(:in_quick_memory, fast: true) { moved += 1 }
+      b.func(:in_cartridge, fast: false) { left += 1 }
       game_loop do
         b.call %i[in_quick_memory in_cartridge], number: here
         b.call %i[in_quick_memory in_cartridge], number: there
@@ -49,10 +49,10 @@ class TestCallOneOfCartridge < Minitest::Test
     names = (0...257).map { |i| :"op#{i}" }
     rom = VBlank.build("PICKLONG", console: :gba, code: "BPK4", maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       last = var :last, 256
       past = var :past, 257
-      names.each_with_index { |name, i| func(name) { n.set! i } }
+      names.each_with_index { |name, i| func(name) { n = i } }
       b = self
       game_loop do
         b.call names, number: last
@@ -72,10 +72,10 @@ class TestCallOneOfCartridge < Minitest::Test
   def test_a_routine_picked_by_number_runs_where_it_was_put
     rom = VBlank.build("PICKWHERE", console: :gba, code: "BPK5", maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       which = var :which, 0
       b = self
-      b.func(:busy, fast: true) { b.repeat(200) { n.add! 1 } }
+      b.func(:busy, fast: true) { b.repeat(200) { n += 1 } }
       game_loop { b.call [:busy], number: which }
     end
     busy = VBlank::Diagnostics::Profiler.run(rom, frames: 30, picture: false).lines.find { |line| line.name == :busy }
@@ -90,11 +90,11 @@ class TestCallOneOfCartridge < Minitest::Test
   def test_a_loop_around_it_counts_right_on_the_console
     rom = VBlank.build("PICKLOOP", console: :gba, code: "BPK3", maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      passes = var :passes, 0
-      hits = var :hits, 0
+      passes = 0
+      hits = 0
       b = self
-      b.func(:one) { hits.add! 1 }
-      b.func(:two) { hits.add! 10 }
+      b.func(:one) { hits += 1 }
+      b.func(:two) { hits += 10 }
       game_loop do
         passes = 0
         hits = 0
@@ -151,9 +151,9 @@ class TestCallOneOfCartridge < Minitest::Test
     names = (0...MANY).map { |i| :"op#{i}" }
     program_with do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       which = var :which, 0
-      names.each { |name| func(name) { n.add! 1 } }
+      names.each { |name| func(name) { n += 1 } }
       b = self
       game_loop { sites.times { b.call names, number: which } }
     end
@@ -165,9 +165,9 @@ class TestCallOneOfCartridge < Minitest::Test
     names = (0...count).map { |i| :"op#{i}" }
     VBlank.build("PICKCOST", console: :gba, code: code, maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       steps = table :steps, (0...dispatches).map { |i| (i * 37) % count }
-      names.each { |name| func(name) { n.add! 1 } }
+      names.each { |name| func(name) { n += 1 } }
       b = self
       game_loop { b.repeat(dispatches) { |i| b.call names, number: steps[i] } }
     end
@@ -179,15 +179,15 @@ class TestCallOneOfCartridge < Minitest::Test
     names = (0...count).map { |i| :"op#{i}" }
     VBlank.build("PICKCHAIN", console: :gba, code: code, maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      n = var :n, 0
-      op = var :op, 0
+      n = 0
+      op = 0
       steps = table :steps, (0...DISPATCHES).map { |i| (i * 37) % count }
-      names.each { |name| func(name) { n.add! 1 } }
+      names.each { |name| func(name) { n += 1 } }
       b = self
       game_loop do
         b.repeat(DISPATCHES) do |i|
           op = steps[i]
-          names.each_with_index { |name, k| (op == k).then { b.call name } }
+          names.each_with_index { |name, k| b.call name if op == k }
         end
       end
     end

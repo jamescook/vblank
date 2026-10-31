@@ -62,7 +62,7 @@ class TestMusicVolumeCartridge < Minitest::Test
 
   # ...and the console agrees about the volume the voice was set to.
   def test_the_console_sets_the_voice_to_the_same_volume
-    program = held_note_game { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game { |pass| music_volume 50 if pass == 5 }
     console = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOL"), frames: 20)
 
     assert_equal 6, console.mem16(VBlank::Console::Hardware::REG_SOUND1CNT_H) >> 12
@@ -73,7 +73,7 @@ class TestMusicVolumeCartridge < Minitest::Test
   # again. The emulator takes a new volume without that, so this cannot see the start itself —
   # see Audio#emit_scaled_note.)
   def test_no_music_volume_silences_a_note_the_console_is_already_holding
-    program = held_note_game { |pass| (pass == 20).then { music_volume 0 } }
+    program = held_note_game { |pass| music_volume 0 if pass == 20 }
     energy = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOL0"), frames: 40).audio_energy_by_frame
     loud = energy.max / 4
 
@@ -84,14 +84,14 @@ class TestMusicVolumeCartridge < Minitest::Test
   # --- a part that plays a recording ---
 
   def test_the_console_sets_the_recorded_notes_voice_to_the_same_loudness
-    program = held_note_game(plays: :piano) { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game(plays: :piano) { |pass| music_volume 50 if pass == 5 }
     console = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLR"), frames: 20)
 
     assert_equal [205], console.voices.map(&:volume)
   end
 
   def test_no_music_volume_silences_a_recorded_note_already_sounding
-    program = held_note_game(plays: :piano) { |pass| (pass == 20).then { music_volume 0 } }
+    program = held_note_game(plays: :piano) { |pass| music_volume 0 if pass == 20 }
     energy = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLR0"), frames: 40).audio_energy_by_frame
     loud = energy.max / 4
 
@@ -100,7 +100,7 @@ class TestMusicVolumeCartridge < Minitest::Test
   end
 
   def test_the_console_silences_a_recorded_note_without_a_shape_in_a_game_that_shapes
-    program = held_note_game(plays: :piano, shaped_elsewhere: true) { |pass| (pass == 20).then { music_volume 0 } }
+    program = held_note_game(plays: :piano, shaped_elsewhere: true) { |pass| music_volume 0 if pass == 20 }
     energy = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLRS"), frames: 40).audio_energy_by_frame
     loud = energy.max / 4
 
@@ -111,7 +111,7 @@ class TestMusicVolumeCartridge < Minitest::Test
   # --- a part on the noise voice ---
 
   def test_the_console_strikes_the_next_drum_hit_at_the_new_volume
-    program = drum_game { |pass| (pass == 5).then { music_volume 50 } }
+    program = drum_game { |pass| music_volume 50 if pass == 5 }
     console = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLN"), frames: 80)
 
     assert_equal 6, console.mem16(VBlank::Console::Hardware::REG_SOUND4CNT_L) >> 12
@@ -121,7 +121,7 @@ class TestMusicVolumeCartridge < Minitest::Test
 
   # The wave voice has five volumes rather than sixteen, so the console sets the one nearest.
   def test_the_console_sets_the_wave_voice_to_the_nearest_of_its_volumes
-    program = held_note_game(plays: :triangle) { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game(plays: :triangle) { |pass| music_volume 50 if pass == 5 }
     console = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLW"), frames: 20)
     nearest = VBlank::Audio::Sound::Registers::WAVE_VOLUMES.fetch(VBlank::Audio::Sound.wave_level(6))
 
@@ -129,7 +129,7 @@ class TestMusicVolumeCartridge < Minitest::Test
   end
 
   def test_no_music_volume_silences_a_note_the_wave_voice_is_holding
-    program = held_note_game(plays: :triangle) { |pass| (pass == 20).then { music_volume 0 } }
+    program = held_note_game(plays: :triangle) { |pass| music_volume 0 if pass == 20 }
     energy = assert_emulator_loads_rom(assemble_rom(program, name: "MUSVOLW0"), frames: 40).audio_energy_by_frame
     loud = energy.max / 4
 

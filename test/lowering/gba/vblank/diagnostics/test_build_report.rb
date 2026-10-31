@@ -16,9 +16,9 @@ class TestBuildReport < Minitest::Test
     VBlank.build("BRPT", console: :gba, code: "BRPT", maker: "01", out: nil, err: nil) do
       screen :bitmap, tear_free: true
       clear_screen :black
-      var :x, 0
-      func(:the_big_one) { 1000.times { add! :x, 1 } }
-      func(:the_other_big_one) { 1000.times { add! :x, 2 } }
+      x = var :x, 0
+      func(:the_big_one) { 1000.times { x += 1 } }
+      func(:the_other_big_one) { 1000.times { x += 2 } }
       game_loop do
         call :the_big_one
         call :the_other_big_one
@@ -63,13 +63,13 @@ class TestBuildReport < Minitest::Test
   def test_it_says_what_each_scene_keeps_while_it_is_up
     rom = VBlank.build("BRSETS", console: :gba, out: StringIO.new, err: StringIO.new, profile: false) do
       x = var :x, 0
-      var :where, 0
-      func(:title_work) { 1200.times { x.add! 1 } }
-      func(:play_work) { 1200.times { x.add! 2 } }
+      where = 0
+      func(:title_work) { 1200.times { x += 1 } }
+      func(:play_work) { 1200.times { x += 2 } }
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        set! :where, 1 if pressed(:a)
+        where = 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -89,17 +89,17 @@ class TestBuildReport < Minitest::Test
   def test_it_says_which_scenes_share_a_routine_did_not_fit_in
     rom = VBlank.build("BRMISS", console: :gba, out: StringIO.new, err: StringIO.new, profile: false) do
       x = var :x, 0
-      var :where, 0
-      func(:title_work) { 1200.times { x.add! 1 } }
-      func(:play_work) { 1200.times { x.add! 2 } }
-      func(:play_more) { 1200.times { x.add! 3 } }
+      where = 0
+      func(:title_work) { 1200.times { x += 1 } }
+      func(:play_work) { 1200.times { x += 2 } }
+      func(:play_more) { 1200.times { x += 3 } }
       scene(:title) { call :title_work }
       scene(:play) do
         call :play_work
         call :play_more
       end
       game_loop do
-        set! :where, 1 if pressed(:a)
+        where = 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -132,7 +132,7 @@ class TestBuildReport < Minitest::Test
       x = var :x, 0
       scene(:play) do
         1200.times { |n| image(:"pic#{n}", "#" => :red) { "########\n" * 8 } }
-        900.times { |n| x.set!((x * (n + 3)) + (x / 7)) }
+        900.times { |n| x = (x * (n + 3)) + (x / 7) }
         sprite :pic0, at: [0, 0]
       end
       mode = var :mode, :play
@@ -155,9 +155,9 @@ class TestBuildReport < Minitest::Test
       heavy = (x * 37) + (x / 7) + (x * x)
       scene(:play) do
         sprite :dot, at: [0, 0]
-        1200.times { |n| var(:"y#{n % 8}", 0).set! heavy }
+        1200.times { |n| slot = var(:"y#{n % 8}", 0); slot = heavy }
       end
-      func(:elsewhere) { var(:z, 0).set! heavy }
+      func(:elsewhere) { z = var(:z, 0); z = heavy }
       mode = var :mode, :play
       game_loop do
         call mode
@@ -191,8 +191,8 @@ class TestBuildReport < Minitest::Test
   def test_a_single_buffered_game_is_told_it_can_tear
     rom = VBlank.build("BRTR", console: :gba, code: "BRTR", maker: "01", out: nil, err: nil) do
       screen :bitmap
-      var :x, 0
-      game_loop { clear_screen :black; add! :x, 1 }
+      x = 0
+      game_loop { clear_screen :black; x += 1 }
     end
 
     assert_match(/it can tear/, report_for(rom))

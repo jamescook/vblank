@@ -35,10 +35,10 @@ class TestAnalyzerInput < Minitest::Test
   private def expensive_while_held(passes = OVER_A_FRAME, button: :left)
     build do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
         if held(button)
-          repeat(passes) { add! :x, 1 }
+          repeat(passes) { x += 1 }
         end
       end
     end
@@ -78,9 +78,9 @@ class TestAnalyzerInput < Minitest::Test
   def test_a_game_input_does_not_make_dearer_reports_no_buttons
     program = build do
       screen :bitmap
-      x = var :x, 0
+      x = 0
       game_loop do
-        repeat(A_VISIBLE_SLICE) { x.add! 1 }
+        repeat(A_VISIBLE_SLICE) { x += 1 }
         x += 1 if held(:left)
       end
     end
@@ -97,10 +97,10 @@ class TestAnalyzerInput < Minitest::Test
   def test_the_buttons_tried_are_the_ones_the_program_reads
     program = build do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
-        add! :x, 1 if held(:left)
-        add! :x, 1 if pressed(:start)
+        x += 1 if held(:left)
+        x += 1 if pressed(:start)
       end
     end
     assert_equal [%i[], [:left], [:start], %i[left start]], Analyzer.key_combinations(program)
@@ -111,8 +111,8 @@ class TestAnalyzerInput < Minitest::Test
   def test_a_game_that_reads_one_button_gets_no_combined_attempt
     program = build do
       screen :bitmap
-      var :x, 0
-      game_loop { add! :x, 1 if held(:left) }
+      x = 0
+      game_loop { x += 1 if held(:left) }
     end
     assert_equal [[], [:left]], Analyzer.key_combinations(program)
   end
@@ -146,13 +146,13 @@ class TestAnalyzerInput < Minitest::Test
   def test_the_worst_frame_holds_every_button_the_game_reads
     program = build do
       screen :bitmap
-      x = var :x, 0
+      x = 0
       game_loop do
         if held(:left)
-          repeat(A_VISIBLE_SLICE) { x.add! 1 }
+          repeat(A_VISIBLE_SLICE) { x += 1 }
         end
         if held(:up)
-          repeat(A_VISIBLE_SLICE) { x.add! 1 }
+          repeat(A_VISIBLE_SLICE) { x += 1 }
         end
       end
     end
@@ -171,8 +171,8 @@ class TestAnalyzerInput < Minitest::Test
   def test_a_button_is_found_even_when_the_whole_frame_is_a_fraction_of_a_scanline
     program = build do
       screen :bitmap
-      x = var :x, 0
-      game_loop { repeat(20) { x.add! 1 } if held(:left) }
+      x = 0
+      game_loop { repeat(20) { x += 1 } if held(:left) }
     end
     at_rest = Analyzer.measure_program(program, keys: [])
     found = Analyzer.measure_program(program)
@@ -190,16 +190,16 @@ class TestAnalyzerInput < Minitest::Test
   def test_a_frame_that_costs_more_once_in_a_while_is_the_one_reported
     every_tenth = build do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
-        every(10) { repeat(A_VISIBLE_SLICE) { add! :x, 1 } }
+        every(10) { repeat(A_VISIBLE_SLICE) { x += 1 } }
       end
     end
     every_frame = build do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
-        repeat(A_VISIBLE_SLICE) { add! :x, 1 }
+        repeat(A_VISIBLE_SLICE) { x += 1 }
       end
     end
     occasional = Analyzer.measure_program(every_tenth)
@@ -229,12 +229,12 @@ class TestAnalyzerInput < Minitest::Test
   def test_a_button_that_leaves_the_scene_is_not_reported_for_that_scene
     program = build do
       screen :bitmap
-      var :state, 0
-      var :x, 0
+      state = 0
+      x = 0
       scene(:over) do
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
-      scene(:playing) { repeat(OVER_A_FRAME) { add! :x, 1 } }
+      scene(:playing) { repeat(OVER_A_FRAME) { x += 1 } }
       game_loop do
         case_var(:state) do
           when_val 0, :over
@@ -254,10 +254,10 @@ class TestAnalyzerInput < Minitest::Test
     program = build do
       screen :bitmap
       var :state, 0
-      var :x, 0
+      x = 0
       scene(:playing) do
         if held(:left)
-          repeat(A_VISIBLE_SLICE) { add! :x, 1 }
+          repeat(A_VISIBLE_SLICE) { x += 1 }
         end
       end
       game_loop do

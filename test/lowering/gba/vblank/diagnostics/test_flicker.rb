@@ -164,11 +164,11 @@ class TestFlickerOnTheInterpreter < Minitest::Test
     b.instance_eval do
       screen :bitmap, tear_free: true
       clear_screen :black
-      n = var :n, 0
+      n = 0
       game_loop do
         n += 1
         draw_rect_at n * step, 40, 6, 6, :red if n <= marks
-        ((n >= 2) & (n <= marks + 1)).then { draw_rect_at (n - 1) * step, 40, 6, 6, :red } if kept
+        draw_rect_at (n - 1) * step, 40, 6, 6, :red if kept && n >= 2 && n <= marks + 1
       end
     end
     b.finalize_program

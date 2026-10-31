@@ -32,11 +32,12 @@ class TestScenesCartridge < Minitest::Test
 
   def test_scene_does_not_clash_with_func
     rom = build do
+      x = 0
       func :title do
-        set! :x, 1
+        x = 1
       end
       scene :title do
-        set! :x, 2
+        x = 2
       end
       call :title
       call :_scene_title
@@ -59,7 +60,7 @@ class TestScenesCartridge < Minitest::Test
         clear_screen :blue
       end
 
-      set! :state, 0
+      state = var :state, 0
       case_var :state do
         when_val 0, :title
         when_val 1, :playing
@@ -82,7 +83,7 @@ class TestScenesCartridge < Minitest::Test
         clear_screen :black
       end
 
-      set! :state, 0
+      state = var :state, 0
       game_loop do
         case_var :state do
           when_val 0, :title
@@ -95,13 +96,14 @@ class TestScenesCartridge < Minitest::Test
 
   def test_case_var_with_input_transition
     rom = build do
+      state = 0
       screen :bitmap
 
       scene :title do
         clear_screen :black
         draw_text "PRESS START", 64, 100, :white
         if_pressed :start do
-          set! :state, 1
+          state = 1
         end
       end
 
@@ -109,7 +111,7 @@ class TestScenesCartridge < Minitest::Test
         clear_screen :blue
       end
 
-      set! :state, 0
+      state = 0
       game_loop do
         case_var :state do
           when_val 0, :title
@@ -133,7 +135,7 @@ class TestScenesCartridge < Minitest::Test
       scene :blue_scene  do clear_screen :blue end
       scene :green_scene do clear_screen :green end
 
-      set! :state, 1
+      state = var :state, 1
       case_var :state do
         when_val 0, :red_scene
         when_val 1, :blue_scene   # the match — runs, then clobbers scratch
@@ -148,7 +150,8 @@ class TestScenesCartridge < Minitest::Test
   end
 
   def test_a_scene_that_hands_on_does_not_run_the_scene_it_hands_to_on_hardware
-    rom = build { HANDING_ON.call(self) }
+    handing_on = method(:handing_on_game)
+    rom = build { handing_on.call(self) }
     v = assert_emulator_loads_rom(rom, frames: 5, vars: rom.var_addresses)
 
     assert_equal [1, 0, 0], [v.var(:ran_first), v.var(:ran_second), v.var(:ran_third)],
@@ -180,7 +183,8 @@ class TestScenesCartridge < Minitest::Test
   # ========================================================================
 
   def test_a_func_declared_inside_another_func_body_is_built_on_hardware
-    rom = build { DECLARED_INSIDE.call(self) }
+    declared_inside = method(:declared_inside_game)
+    rom = build { declared_inside.call(self) }
     v = assert_emulator_loads_rom(rom, frames: 5, vars: rom.var_addresses)
 
     assert_equal [1, 1, 1], [v.var(:ran_outer), v.var(:ran_middle), v.var(:ran_inner)]
@@ -203,7 +207,7 @@ class TestScenesCartridge < Minitest::Test
         clear_screen :red
       end
 
-      set! :state, 0
+      state = var :state, 0
       game_loop do
         case_var :state do
           when_val 0, :title

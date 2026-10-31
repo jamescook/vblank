@@ -68,7 +68,7 @@ class TestTintCartridge < Minitest::Test
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: true
-      level = var :level, 100
+      level = 100
       game_loop do
         clear_screen :green
         tint :red, level
@@ -127,13 +127,13 @@ class TestTintCartridge < Minitest::Test
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: tear_free
-      level = var :level, 100
+      level = 100
       colors.times { |i| pixel i, 0, i + 1 } # one pixel per color, painted once at boot
       game_loop do
         # The same two statements either way, so the loop itself cancels. One walks the
         # level to 0 and back on alternate frames; the other puts it straight back.
         level.flip!
-        moving ? level.add!(100) : level.flip!
+        moving ? level += 100 : level.flip!
         tint :red, level if tinting
       end
     end

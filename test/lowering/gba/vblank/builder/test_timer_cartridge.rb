@@ -38,10 +38,10 @@ class TestTimerCartridge < Minitest::Test
       screen :bitmap
       clear_screen :black
       beat = timer :beat, per_second: 60
-      var :seen, 0
+      seen = 0
       game_loop do
         wait_vblank
-        set! :seen, beat.ticks
+        seen = beat.ticks
       end
     end
     b.finalize_program
@@ -62,8 +62,8 @@ class TestTimerCartridge < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      var :hits, 0
-      timer(:beat, per_second: 60).on_tick { add! :hits, 1 }
+      hits = 0
+      timer(:beat, per_second: 60).on_tick { hits += 1 }
       game_loop { wait_vblank }
     end
     b.finalize_program
@@ -99,8 +99,8 @@ class TestTimerCartridge < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      var :hits, 0
-      timer(:beat, per_second: 1200).on_tick { add! :hits, 1 }
+      hits = 0
+      timer(:beat, per_second: 1200).on_tick { hits += 1 }
       game_loop { wait_vblank }
     end
     b.finalize_program
