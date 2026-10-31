@@ -281,20 +281,13 @@ module VBlank
         Value.new(@builder, Build.bit_not(@node))
       end
 
-      # `.then` ON A NUMBER, which Ruby will happily answer and this DSL must not.
-      #
-      # Every Ruby object has `then` — it hands the object to the block and gives back
-      # whatever the block returned — so `(flags & DOOR).then { open_it }` runs the block
-      # while the program is being BUILT, and records `open_it` with no test around it.
-      # The door then opens every frame, and nothing said a word. That is the same slip
-      # the orphaned-Condition guardrail exists for, arriving by another route: a flag
-      # test in C is written `if (flags & MASK)`, so this is the first thing a person
-      # reaching for these operators writes.
+      # `.then` ON A NUMBER, which Ruby will happily answer and a game must not. Every Ruby
+      # object has `then`, so `(flags & DOOR).then { open_it }` would run the block while the
+      # game is BUILT and record `open_it` with no test around it: the door opens every frame.
       def then(*)
         raise ArgumentError,
-              "`.then` branches on a test, and this is a number. A number is not a yes " \
-              "or a no, so there is nothing here to branch on. Compare it first: " \
-              "`((flags & 4) != 0).then { ... }`.#{at_dsl_line}"
+              "`.then` does not branch on a number. A number is not a yes or a no. To fix this, " \
+              "compare it and write `if`: `if (flags & 4) != 0 ... end`.#{at_dsl_line}"
       end
 
       # RUBY ASKED FOR A PLAIN NUMBER, and this is one the game works out.

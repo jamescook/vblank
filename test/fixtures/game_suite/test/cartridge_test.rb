@@ -18,7 +18,7 @@ class CartridgeTest < Minitest::Test
       screen :bitmap
       x = var :x, 10
       game_loop do
-        held(:right).then { x.add! 1 }
+        x += 1 if held(:right)
         clear_screen :black
         draw_rect_at x, 10, 4, 4, :red
       end

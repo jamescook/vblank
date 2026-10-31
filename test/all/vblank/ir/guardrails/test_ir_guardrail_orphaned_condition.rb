@@ -35,7 +35,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
   def test_a_comparison_used_with_then_is_not_orphaned
     orphans = orphans_for do
       x = var :x, 5
-      (x > 3).then { set! :y, 1 }
+      set! :y, 1 if x > 3
     end
 
     assert_empty orphans
@@ -44,7 +44,11 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
   def test_a_then_else_chain_is_not_orphaned
     orphans = orphans_for do
       x = var :x, 5
-      (x > 3).then { set! :y, 1 }.else { set! :y, 0 }
+      if x > 3
+        set! :y, 1
+      else
+        set! :y, 0
+      end
     end
 
     assert_empty orphans
@@ -54,7 +58,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     orphans = orphans_for do
       x = var :x, 5
       y = var :y, 2
-      ((x > 3) & (y < 10)).then { set! :z, 1 }
+      set! :z, 1 if x > 3 && y < 10
     end
 
     assert_empty orphans, "both operands are folded in by `&`, and the result is `.then`-ed"
@@ -71,13 +75,13 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
   end
 
   def test_a_bare_held_is_orphaned
-    orphans = orphans_for { held(:a) } # held(:a) with no `.then` does nothing
+    orphans = orphans_for { held(:a) } # held(:a) that nothing tests does nothing
 
     assert_equal 1, orphans.size
   end
 
-  def test_held_used_with_then_is_not_orphaned
-    orphans = orphans_for { held(:a).then { set! :y, 1 } }
+  def test_held_used_with_if_is_not_orphaned
+    orphans = orphans_for { pixel 1, 1, :red if held(:a) }
 
     assert_empty orphans
   end
@@ -117,7 +121,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
   # Code the rewrite does not reach, which is the one place a native `if` can still go wrong.
   def native_if_outside_the_block(build, x)
     if x > 3 # the footgun: a native `if` on a Condition
-      build.set! :y, 1
+      build = :y, 1
     end
   end
 
@@ -141,7 +145,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     VBlank.build("GUARD", console: :gba, code: "BGRD", maker: "01", out: StringIO.new, err: err) do
       screen :bitmap
       x = var :x, 5
-      (x > 3).then { set! :y, 1 }
+      set! :y, 1 if x > 3
       halt
     end
 

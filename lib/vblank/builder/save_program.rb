@@ -31,7 +31,7 @@ module VBlank
       def sd_or(lhs, rhs) = sd_op(:|, lhs, rhs)
       def sd_read(at, width = :word) = IR::Build.save_read(at, width: width)
       # A branch a game's own code could have written, built through the Builder.
-      def sd_when(test, &block) = DSL::Condition.new(handle, test).then(&block)
+      def sd_when(test, &block) = DSL::Condition.new(handle, test).when_true(&block)
     end
   end
 end

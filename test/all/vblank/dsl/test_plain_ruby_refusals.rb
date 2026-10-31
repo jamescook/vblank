@@ -253,6 +253,11 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_an_old_way_of_changing_a_variable_is_refused
+    assert_refused("A game does not need `set!`") { game_loop { hp = var(:hp, 0); hp.set! 1 } }
+    assert_refused("A game does not need `add!`") { game_loop { add! :hp, 1 } }
+  end
+
   def test_a_game_with_no_file_is_refused
     block = eval("proc { game_loop { wait_vblank } }", binding, "-", 1) # rubocop:disable Security/Eval
     error = assert_raises(Refused) { VBlank::DSL::PlainRuby.game_block(block) }

@@ -18,7 +18,7 @@ module VBlank
         @builder = builder
         @node = node
         @source = self.class.author_source
-        # Enter the builder's "pending" set on birth; #then / & / | take us back out
+        # Enter the builder's "pending" set on birth; a branch or & / | take us back out
         # once we're used. Whatever never leaves was built and never branched on —
         # the fingerprint of a comparison dropped into a native `if`.
         builder.track_condition(self)
@@ -42,20 +42,17 @@ module VBlank
         compose(:or, other)
       end
 
-      # Run the block's statements only when the condition holds. Records an `if`
-      # node carrying the block, the same shape the low-level if_* verbs build, and
-      # returns a {Branch} so an `.else { ... }` can chain onto it.
-      #
-      # `estimate:` does nothing but earn a warning (see Builder#record_estimate_line).
-      def then(estimate: nil, &block)
-        unless block
-          raise ArgumentError, "(cond).then needs a block: (x > 0).then { ... }"
-        end
+      # Every Ruby object has `then`, which would run the block while the game is built and
+      # record its body with no test around it. A test is branched on with `if`.
+      def then(*)
+        raise ArgumentError, "`.then` does not branch on a test. To fix this, write `if`: `if x > 5 ... end`."
+      end
 
+      # The library's own branch on a test, for code recording statements by hand. Records an
+      # `if` node carrying the block and returns a {Branch} for the other side.
+      def when_true(&block)
         @builder.consume_condition(self)
-        @builder.record_estimate_line(estimate)
-        if_node = @builder.record_conditional(@node, &block)
-        Branch.new(@builder, if_node)
+        Branch.new(@builder, @builder.record_conditional(@node, &block))
       end
 
       # The same branch taken a step at a time, for normal Ruby's `if` (see PlainRuby), whose

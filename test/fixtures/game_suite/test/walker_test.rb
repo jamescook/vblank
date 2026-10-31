@@ -13,7 +13,7 @@ class WalkerTest < Minitest::Test
     game = VBlank.game "WALKER", consoles: %i[gba] do
       x = var :x, 0
       game_loop do
-        held(:right).then { x.add! 1 }
+        x += 1 if held(:right)
         pixel 10, 10, :red
       end
     end

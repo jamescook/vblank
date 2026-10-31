@@ -15,10 +15,8 @@ class TestIRGuardrailEstimateDoesNothing < Minitest::Test
       body = list :body, capacity: 8, estimate: { usually: 2 }
       pool :spark, x: 0, capacity: 4, estimate: { usually: 1 }
       n = var :n, 3
-      seen = var :seen, 0
       game_loop do
         repeat(n, estimate: { most: 4 }) { body.push 1 }
-        (n > 0).then(estimate: { usually: 1, in: 60 }) { seen = 1 }
         draw_rect_at 0, 0, 2, n, :white, estimate: { usually: 3 }
         draw_column_at :wall, slice: 0, x: 4, top: 0, height: n, estimate: { usually: 1, in: 60 }
       end
@@ -37,7 +35,7 @@ class TestIRGuardrailEstimateDoesNothing < Minitest::Test
     assert_match(/`estimate:`/, said)
     assert_equal 1, said.scan(/has no effect/).size, "once, however many hints there are"
     lines = said.scan(/test_ir_guardrail_estimate_does_nothing\.rb:(\d+)/).flatten.uniq
-    assert_equal 6, lines.size, "and it names every line that gives one: #{said}"
+    assert_equal 5, lines.size, "and it names every line that gives one: #{said}"
   end
 
   def test_a_game_with_no_hints_is_not_warned

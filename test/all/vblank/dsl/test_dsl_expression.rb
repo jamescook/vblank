@@ -53,8 +53,8 @@ class TestDSLExpression < Minitest::Test
   def test_a_true_comparison_draws_and_a_false_one_does_not
     i = interpret do
       x = var :x, 5
-      (x > 3).then { pixel 10, 10, :red }  # 5 > 3 — draws
-      (x < 3).then { pixel 20, 20, :blue } # 5 < 3 is false — skipped
+      pixel 10, 10, :red if x > 3  # 5 > 3 — draws
+      pixel 20, 20, :blue if x < 3 # 5 < 3 is false — skipped
     end
     assert_equal Color.resolve(:red), pixel_at(i, 10, 10)
     assert_equal UNDRAWN, pixel_at(i, 20, 20)
@@ -73,7 +73,7 @@ class TestDSLExpression < Minitest::Test
     ].each do |op, a, b, holds|
       i = interpret do
         x = var :x, a
-        x.public_send(op, b).then { pixel 1, 1, :red }
+        pixel 1, 1, :red if x.public_send(op, b)
       end
       expected = holds ? Color.resolve(:red) : UNDRAWN
       assert_equal expected, pixel_at(i, 1, 1), "#{a} #{op} #{b} should be #{holds}"
@@ -85,7 +85,7 @@ class TestDSLExpression < Minitest::Test
       interpret do
         c = var :c, 5
         y = var :y, y_start
-        (y > c + 10).then { pixel 2, 2, :red } # threshold is c + 10 = 15
+        pixel 2, 2, :red if y > c + 10 # threshold is c + 10 = 15
       end
     end
     assert_equal Color.resolve(:red), pixel_at(draw.call(20), 2, 2), "20 > 15 draws"
@@ -98,9 +98,9 @@ class TestDSLExpression < Minitest::Test
     # v walks 0 -> 5 -> 8 -> 7, then clamps down to 5; the marker's x reveals it.
     i = interpret do
       v = var :v, 0
-      v.set! 5
-      v.add! 3
-      v.sub! 1
+      v = 5
+      v += 3
+      v -= 1
       v.clamp! 0, 5
       draw_rect_at :v, 20, 2, 2, :green # a variable position: x comes from v
     end
@@ -112,9 +112,9 @@ class TestDSLExpression < Minitest::Test
   def test_the_words_that_change_a_variable_end_in_bang
     i = interpret do
       v = var :v, 0
-      v.set! 5
-      v.add! 3
-      v.sub! 1
+      v = 5
+      v += 3
+      v -= 1
       copy! :w, :v
       add! :w, 10
       sub! :w, 2
@@ -237,7 +237,7 @@ class TestDSLExpression < Minitest::Test
     i = interpret do
       d = var :d, -3
       d.abs!
-      d.add! 20
+      d += 20
       draw_rect_at :d, 30, 2, 2, :white
     end
     assert_equal Color.resolve(:white), pixel_at(i, 23, 30)
@@ -248,8 +248,8 @@ class TestDSLExpression < Minitest::Test
   def test_abs_inside_a_comparison_leaves_the_variable_alone
     i = interpret do
       d = var :d, -3
-      (d.abs <= 5).then { pixel 1, 1, :red }
-      (d < 0).then { pixel 2, 2, :blue }
+      pixel 1, 1, :red if d.abs <= 5
+      pixel 2, 2, :blue if d < 0
     end
     assert_equal Color.resolve(:red), pixel_at(i, 1, 1), "3 is within 5"
     assert_equal Color.resolve(:blue), pixel_at(i, 2, 2), "d is still -3"
@@ -282,7 +282,7 @@ class TestDSLExpression < Minitest::Test
       s = var :s, -2
       out = var :out, 0
       NEW_NUMBERS.each_with_index do |(_, number), row|
-        out.set! number.call(d, t, s)
+        out = number.call(d, t, s)
         draw_rect_at out + 40, row * 4, 2, 2, :white
       end
       halt
@@ -305,9 +305,9 @@ class TestDSLExpression < Minitest::Test
   def test_a_new_number_keeps_the_fraction
     i = interpret do
       d = var :d, -1.5
-      (d.abs > 1.25).then { pixel 1, 1, :red }
-      (d.abs < 1.75).then { pixel 2, 2, :red }
-      (d.clamp(-1.0, 1.0) == -1.0).then { pixel 3, 3, :red }
+      pixel 1, 1, :red if d.abs > 1.25
+      pixel 2, 2, :red if d.abs < 1.75
+      pixel 3, 3, :red if d.clamp(-1.0, 1.0) == -1.0
     end
 
     [1, 2, 3].each { |at| assert_equal Color.resolve(:red), pixel_at(i, at, at) }
@@ -318,7 +318,7 @@ class TestDSLExpression < Minitest::Test
     i = interpret do
       d = var :d, 5
       d.flip!
-      d.add! 25
+      d += 25
       draw_rect_at :d, 40, 2, 2, :white
     end
     assert_equal Color.resolve(:white), pixel_at(i, 20, 40)
@@ -333,7 +333,7 @@ class TestDSLExpression < Minitest::Test
     i = interpret do
       d = var :d, 5
       m = var :m, 0
-      m.set!(25 + -d)
+      m = 25 + -d
       draw_rect_at :m, 40, 2, 2, :white
       draw_rect_at :d, 60, 2, 2, :green
     end
@@ -346,7 +346,7 @@ class TestDSLExpression < Minitest::Test
     i = interpret do
       x = var :x, 20
       q = var :q, 0
-      q.set!(x / 3)
+      q = x / 3
       draw_rect_at :q, 10, 2, 2, :green
     end
     # The marker's left edge sits at x = q. green at 6 and blank at 5 pins q = 6
@@ -361,8 +361,8 @@ class TestDSLExpression < Minitest::Test
     i = interpret do
       n = var :n, -7
       q = var :q, 0
-      q.set!(n / 2)
-      q.add! 30
+      q = n / 2
+      q += 30
       draw_rect_at :q, 20, 2, 2, :white
     end
     assert_equal Color.resolve(:white), pixel_at(i, 27, 20)
@@ -380,9 +380,9 @@ class TestDSLExpression < Minitest::Test
       over = var :over, 0
       under = var :under, 0
       left = var :left, 0
-      over.set!(var(:up, 30) / nought + 50)
-      under.set!(var(:down, -30) / nought + 50)
-      left.set!(var(:step, 80) % nought)
+      over = var(:up, 30) / nought + 50
+      under = var(:down, -30) / nought + 50
+      left = var(:step, 80) % nought
       draw_rect_at over, 10, 2, 2, :green
       draw_rect_at under, 20, 2, 2, :red
       draw_rect_at left, 30, 2, 2, :white
@@ -413,7 +413,11 @@ class TestDSLExpression < Minitest::Test
   def test_then_draws_when_true
     i = interpret do
       x = var :x, 9
-      (x > 5).then { pixel 10, 10, :red }.else { pixel 20, 20, :blue }
+      if x > 5
+        pixel 10, 10, :red
+      else
+        pixel 20, 20, :blue
+      end
     end
     assert_equal Color.resolve(:red), pixel_at(i, 10, 10)
     assert_equal UNDRAWN, pixel_at(i, 20, 20)
@@ -422,7 +426,11 @@ class TestDSLExpression < Minitest::Test
   def test_else_draws_when_false
     i = interpret do
       x = var :x, 1
-      (x > 5).then { pixel 10, 10, :red }.else { pixel 20, 20, :blue }
+      if x > 5
+        pixel 10, 10, :red
+      else
+        pixel 20, 20, :blue
+      end
     end
     assert_equal Color.resolve(:blue), pixel_at(i, 20, 20)
     assert_equal UNDRAWN, pixel_at(i, 10, 10)
@@ -433,8 +441,8 @@ class TestDSLExpression < Minitest::Test
   def test_and_needs_both_conditions
     i = interpret do
       x = var :x, 5
-      ((x > 1) & (x < 9)).then { pixel 10, 10, :red }  # 5 is in range
-      ((x > 1) & (x > 9)).then { pixel 20, 20, :blue } # 5 is not > 9
+      pixel 10, 10, :red if x > 1 && x < 9  # 5 is in range
+      pixel 20, 20, :blue if x > 1 && x > 9 # 5 is not > 9
     end
     assert_equal Color.resolve(:red), pixel_at(i, 10, 10)
     assert_equal UNDRAWN, pixel_at(i, 20, 20)
@@ -443,8 +451,8 @@ class TestDSLExpression < Minitest::Test
   def test_or_needs_either_condition
     i = interpret do
       x = var :x, 5
-      ((x > 9) | (x < 9)).then { pixel 10, 10, :red }  # 5 < 9
-      ((x > 9) | (x < 0)).then { pixel 20, 20, :blue } # 5 is neither
+      pixel 10, 10, :red if x > 9 || x < 9  # 5 < 9
+      pixel 20, 20, :blue if x > 9 || x < 0 # 5 is neither
     end
     assert_equal Color.resolve(:red), pixel_at(i, 10, 10)
     assert_equal UNDRAWN, pixel_at(i, 20, 20)
@@ -454,12 +462,12 @@ class TestDSLExpression < Minitest::Test
 
   def test_held_draws_only_while_the_button_is_down
     down = interpret(held: :up) do
-      held(:up).then { pixel 10, 10, :red }
+      pixel 10, 10, :red if held(:up)
     end
     assert_equal Color.resolve(:red), pixel_at(down, 10, 10)
 
     up = interpret do
-      held(:up).then { pixel 10, 10, :red }
+      pixel 10, 10, :red if held(:up)
     end
     assert_equal UNDRAWN, pixel_at(up, 10, 10)
   end
@@ -473,11 +481,11 @@ class TestDSLExpression < Minitest::Test
       f = var :f, 0
       game_loop do
         wait_vblank
-        pressed(:start).then { n.add! 1 }
-        (n == 1).then { pixel 10, 10, :red }
-        (n >= 2).then { pixel 20, 20, :blue }
-        f.add! 1
-        (f >= 4).then { halt }
+        n += 1 if pressed(:start)
+        pixel 10, 10, :red if n == 1
+        pixel 20, 20, :blue if n >= 2
+        f += 1
+        halt if f >= 4
       end
     end
     assert_equal Color.resolve(:red), pixel_at(i, 10, 10), "one down-edge => n == 1"
@@ -487,13 +495,13 @@ class TestDSLExpression < Minitest::Test
   # ---- guardrails: misuse is a plain error, not a silent drop ----
 
   def test_held_and_pressed_reject_a_block
-    # Forgetting .then and writing held(:up) { ... } drops the block silently
+    # Writing held(:up) { ... } drops the block silently
     # (it attaches to `held`, not to an if). Catch it at the call site.
     %i[held pressed].each do |verb|
       err = assert_raises(ArgumentError) do
         tree { send(verb, :up) { halt } }
       end
-      assert_match(/\.then/, err.message, "#{verb} should point the dev at .then")
+      assert_match(/if/, err.message, "#{verb} should point the dev at if")
     end
   end
 
@@ -501,25 +509,18 @@ class TestDSLExpression < Minitest::Test
     assert_raises(ArgumentError) { tree { held(:turbo).then { halt } } }
   end
 
-  def test_then_requires_a_block
+  def test_then_on_a_test_is_a_friendly_error
     err = assert_raises(ArgumentError) do
-      tree { (var(:x, 0) > 0).then }
+      tree { (var(:x, 0) > 0).then { halt } }
     end
-    assert_match(/block/, err.message)
-  end
-
-  def test_else_requires_a_block
-    err = assert_raises(ArgumentError) do
-      tree { (var(:x, 0) > 5).then { halt }.else }
-    end
-    assert_match(/block/, err.message)
+    assert_match(/write `if`/, err.message)
   end
 
   def test_composing_with_a_non_condition_is_a_friendly_error
     err = assert_raises(ArgumentError) do
       tree do
         x = var :x, 0
-        ((x > 1) & x).then { halt } # x is a Value, not a Condition
+        halt if (x > 1) & x # x is a Value, not a Condition
       end
     end
     assert_match(/condition/i, err.message)

@@ -785,9 +785,9 @@ module VBlank
     # The Value / Condition / Branch / List classes call these back into the
     # builder to record their statements at the current build point.
 
-    # The hook behind the expression DSL's `(cond).then { ... }`: record an `if`
+    # The hook behind Condition#when_true: record an `if`
     # node from an already-built condition node and gather the block's statements
-    # into it, returning the node so an `.else` can attach to it. A {Condition}
+    # into it, returning the node so an `else` can attach to it. A {Condition}
     # calls this; user code writes `.then`, not this.
     def record_conditional(cond_node, &block)
       if_node = Build.if_(cond_node)
@@ -873,8 +873,8 @@ module VBlank
       @pending_conditions
     end
 
-    # The hook behind `.then { }.else { }`: gather the else block's statements
-    # into an `else` node and attach it to the if node the `.then` produced.
+    # The hook behind Branch#else: gather the else block's statements
+    # into an `else` node and attach it to the if node Condition#when_true produced.
     def record_else(if_node, &block)
       else_node = Build.else_
       @container_stack.push(else_node)

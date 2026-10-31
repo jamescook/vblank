@@ -2,21 +2,16 @@
 
 module VBlank
   module DSL
-    # The open `if` a `.then` just recorded, waiting for an optional `.else`. On its
-    # own it does nothing; calling `.else { ... }` fills in the branch that runs
-    # when the condition was false.
+    # The open `if` Condition#when_true just recorded, waiting for an optional other side. On
+    # its own it does nothing; #else fills in the branch that runs when the test was false.
     class Branch
       def initialize(builder, if_node)
         @builder = builder
         @if_node = if_node
       end
 
-      # Statements to run when the condition was false.
+      # Statements to run when the test was false.
       def else(&block)
-        unless block
-          raise ArgumentError, "(cond).then { }.else needs a block: .else { ... }"
-        end
-
         @builder.record_else(@if_node, &block)
         nil
       end
