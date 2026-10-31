@@ -92,7 +92,7 @@ class TestPlainRubyWrites < Minitest::Test
       builder.finalize_program
       Reference.new.run(builder.program, frames: 1)[:shown]
     end
-  rescue VBlank::BuildError => e
+  rescue VBlank::BuildError, ArgumentError => e
     :"refused: #{e.message[0, 60]}"
   end
 
@@ -109,6 +109,50 @@ class TestPlainRubyWrites < Minitest::Test
       ruby = ruby_answer(source)
       game = game_answer(source)
       "#{write} under #{form}, hp #{start}: Ruby #{ruby.inspect}, game #{game.inspect}" unless ruby == game
+    end
+
+    assert_empty wrong, wrong.join("\n")
+  end
+
+  # Each kind of value a method can hand back, given to each kind of write under a game test.
+  # A game cannot keep every one, so a plain error is a right answer here. A wrong number is not.
+  GIVEN = %w[2 0 nil true false 1.5 :fast].freeze
+
+  # The same places, given a value from a method, which reading the source cannot see.
+  GIVEN_WRITES = {
+    "=" => ["x = 1", "x = given", "x"],
+    "@x =" => ["@x = 1", "@x = given", "@x"],
+    "h[] =" => ["h = { x: 1 }", "h[:x] = given", "h[:x]"],
+    "o.x =" => ["o = TestPlainRubyWrites::Box.new(1)", "o.x = given", "o.x"],
+    "a, b =" => ["a = 1\n  b = 1", "a, b = given, 3", "a"]
+  }.freeze
+
+  private def given_source(write, value, start)
+    before, written, read = GIVEN_WRITES.fetch(write)
+    <<~RUBY
+      proc do
+        def given = #{value}
+        hp = var :hp, #{start}
+        #{before}
+        #{written} if hp > 3
+        shown = 0
+        game_loop do
+          shown = #{read} ? 1 : 0
+          halt
+        end
+        #{read} ? 1 : 0
+      end
+    RUBY
+  end
+
+  def test_every_value_given_to_every_place_matches_ruby_or_is_refused
+    wrong = GIVEN_WRITES.keys.product(GIVEN, [1, 5]).filter_map do |write, value, start|
+      source = given_source(write, value, start)
+      ruby = ruby_answer(source)
+      game = game_answer(source)
+      next if game.is_a?(Symbol) || ruby == game
+
+      "#{write} given #{value}, hp #{start}: Ruby #{ruby.inspect}, game #{game.inspect}"
     end
 
     assert_empty wrong, wrong.join("\n")

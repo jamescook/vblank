@@ -1242,6 +1242,30 @@ class TestPlainRuby < Minitest::Test
     assert_equal [2, 1], [player[:seen_high], player[:seen_low]]
   end
 
+  def test_a_swap_of_a_fraction_keeps_the_fraction
+    player = played do
+      a = 1.5
+      b = 2.5
+      seen = 0
+      game_loop do
+        a, b = b, a
+        seen = (b * 2).to_i
+      end
+    end
+
+    assert_equal 3, player[:seen]
+  end
+
+  def test_a_swap_of_a_name_that_may_hold_nil_is_listed_as_a_swap
+    notes = hidden_notes_of do
+      a = nil
+      b = 2
+      game_loop { a, b = b, a }
+    end
+
+    assert_includes notes.map(&:why), :swap
+  end
+
   def test_a_method_ending_in_a_ternary_of_verbs_still_runs_one_side
     player = played do
       def nudge(hp, tally) = hp > 3 ? tally[:high] += 1 : tally[:low] += 1

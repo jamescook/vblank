@@ -308,8 +308,7 @@ module VBlank
           # A ternary ending a method, which may be there for what its sides do. A side a game can
           # keep a value of keeps one. A verb's nil or a handle of its own leaves nothing to answer with.
           def keep_tail_value(value)
-            keepable = [true, false].include?(value) || value.is_a?(Condition) || value.is_a?(Integer) || value.is_a?(Value)
-            keepable ? keep_side_value(value) : close_side(value)
+            value.nil? || !Writes.number_kept?(value) ? close_side(value) : keep_side_value(value)
           end
 
           def tail_value = @kept

@@ -28,7 +28,7 @@ module VBlank
 
         # What only game code calls, so a file holding one is game code. These need a block, since
         # `scene` or `func` alone could be a method of the file's own. `var` needs a name instead.
-        GAME_BLOCK_VERBS = %i[game_loop scene func each_pass once_a_frame on_tick].freeze
+        GAME_BLOCK_VERBS = (LocalNames::GAME_VERBS - %i[every after repeat item]).freeze
 
         def self.refuse_outside_constant!(constants, nesting:, folder:, allow:, file:)
           library = library_folder

@@ -137,8 +137,8 @@ module VBlank
       end
 
       # The number and what it counts as, as they are now, on a hidden pair.
-      def hidden_copy_with_truth
-        kept = @builder.hidden_variable(:copy)
+      def hidden_copy_with_truth(why)
+        kept = @builder.hidden_variable(why, like: self)
         kept.keep_truth!
         kept.store!(self)
         kept.truth.store!(truth)
@@ -160,14 +160,14 @@ module VBlank
       end
 
       # This variable's number kept as it is now, for `old = hp` in normal Ruby (see
-      # PlainRuby::Steps.copy). In setting up there is nothing to keep yet, so a second name will do.
+      # PlainRuby::Steps.copy_of_variable). In setting up there is nothing to keep yet, so a second name will do.
       def kept_copy
         @builder.recording_game_code? ? hidden_copy : self
       end
 
       # A hidden variable holding this number as it is now, whatever changes it later.
       def hidden_copy(why = :copy)
-        return hidden_copy_with_truth if truth
+        return hidden_copy_with_truth(why) if truth
 
         kept = @builder.hidden_variable(why, like: self)
         kept.store!(self)
@@ -175,7 +175,7 @@ module VBlank
         kept
       end
 
-      # This number is used for nothing: Ruby took it as truthy (see PlainRuby::Steps.test).
+      # This number is used for nothing: Ruby took it as truthy (see PlainRuby::Steps.branch_test).
       def discard! = @builder.forget_expression(self)
 
       # Is this a variable the game keeps as a yes or no? See Builder#var.

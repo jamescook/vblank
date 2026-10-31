@@ -35,7 +35,7 @@ class TestPlainRubyRewrite < Minitest::Test
       game_loop { pixel count, 0, :red }
     end
 
-    refute_includes source, "var("
+    refute_includes source, "variable_with_no_var_line"
   end
 
   def test_the_same_name_in_two_routines_gets_two_variable_names

@@ -192,7 +192,7 @@ module VBlank
         # Tests already open around this one have seen to it, in +outer+.
         def promote(value, test, *outer, may_stay_nil: false)
           return value unless test.game? && outer.none?(&:game?)
-          return value unless value.nil? || Steps.game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
+          return value unless number_kept?(value)
 
           own = test.hidden_variable(:promoted, like: value.is_a?(Value) ? value : nil)
           own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
@@ -257,6 +257,8 @@ module VBlank
           builder.var(builder.free_variable_name(name), start)
         end
 
+        # Is this something a game can keep, as opposed to an object only Ruby can hold? The one
+        # answer to that, asked of the value as the line runs.
         def number_kept?(value) = value.nil? || Steps.game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
 
         # The first line of a name the game changes later. A number starts a variable. A variable or

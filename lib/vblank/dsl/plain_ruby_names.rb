@@ -392,7 +392,7 @@ module VBlank
         end
 
         # A test inside it can still be one the game makes, so what is under a conditional there
-        # stays game code. See the IfNode line in #read.
+        # stays game code. See the IfNode line in #read_names.
         def read_ruby_iteration(block, scopes, in_game_code)
           outer = @iterating_in_game_code
           @iterating_in_game_code = outer || in_game_code
