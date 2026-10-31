@@ -66,12 +66,12 @@ module SceneSpritePictures
         end
       end
       state = var :state, 0
-      tick = var :tick, 0
-      seen = clock ? var(:seen, 0) : nil
+      tick = 0
+      seen = var :seen, 0 if clock
       game_loop do
-        tick.add! 1
-        seen&.set! frames_since_power_on
-        state.set!((tick / PASSES_A_SCENE) % scenes.length)
+        tick += 1
+        seen = frames_since_power_on if seen
+        state = (tick / PASSES_A_SCENE) % scenes.length
         case_var(:state) do
           scenes.each_with_index { |scene, s| when_val s, scene }
         end

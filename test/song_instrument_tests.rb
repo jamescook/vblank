@@ -35,8 +35,8 @@ module SongInstrumentsSharing
       pass = var :pass, 0
       play_song :tune
       game_loop do
-        pass.add! 1
-        (pass == at).then { clips.each_with_index { |clip, n| clip.play(loop: loop_first && n.zero?) } }
+        pass += 1
+        clips.each_with_index { |clip, n| clip.play(loop: loop_first && n.zero?) } if pass == at
       end
     end
     b.finalize_program
@@ -153,8 +153,12 @@ module SongInstrumentsTests
       song(:beeps) { note :C5, :whole }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass < 10).then { play_song :tune }.else { play_song :beeps }
+        pass += 1
+        if pass < 10
+          play_song :tune
+        else
+          play_song :beeps
+        end
       end
     end
     b.finalize_program

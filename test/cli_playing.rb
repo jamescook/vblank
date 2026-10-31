@@ -28,10 +28,14 @@ module CLIPlaying
       x = var :x, 20
       best = save_var :best, 0
       game_loop do
-        ticks.add! 1
-        held(:right).then { x.add! speed }
-        (x > best).then { best.set! x }
-        (ticks >= red_at).then { clear_screen :red }.else { clear_screen :blue }
+        ticks += 1
+        x += speed if held(:right)
+        best = x if x > best
+        if ticks >= red_at
+          clear_screen :red
+        else
+          clear_screen :blue
+        end
         draw_rect_at x, 60, 8, 8, :white
       end
     end

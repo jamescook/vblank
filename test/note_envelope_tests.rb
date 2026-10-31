@@ -40,10 +40,10 @@ module NoteEnvelopeVoiceGames
       clips = (0...VOICES).map { |n| sample :"s#{n}", pcm: [25 + n, -25 - n] * 1000, rate: 2000 }
       music = songs :music, [tune]
       music.play 0
-      pass = var :pass, 0
+      pass = 0
       game_loop do
-        pass.add! 1
-        (pass == burst).then { clips.each(&:play) } if burst
+        pass += 1
+        clips.each(&:play) if burst && pass == burst
       end
     end
     b.finalize_program

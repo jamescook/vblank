@@ -27,7 +27,7 @@ module TintedHandover
       image(:ground, "#" => ground) { tile }
       tiles :grass, "#" => :ground
       state = var :state, 0
-      ticks = var :ticks, 0
+      ticks = 0
       level = var :level, 0
       screens.each_with_index do |kind, i|
         scene :"screen#{i}" do
@@ -39,12 +39,12 @@ module TintedHandover
           end
         end
       end
-      level.set! 50
+      level = 50
       tint toward, amount == :worked_out ? level : amount
       instance_eval(&before_loop) if before_loop
       game_loop do
-        ticks.add! 1
-        (ticks == 4).then { state.set! 1 }
+        ticks += 1
+        state = 1 if ticks == 4
         case_var(:state) do
           when_val 0, :screen0
           when_val 1, :screen1

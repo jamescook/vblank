@@ -27,8 +27,8 @@ module RuntimeSounds
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { beep 440, duty: :quarter, decay: :medium, volume: 15 }
+        count += 1
+        beep 440, duty: :quarter, decay: :medium, volume: 15 if count == 4
       end
     end
 
@@ -48,11 +48,11 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 20).then { beep 990, duty: :eighth, decay: :slow }
-        (count == 30).then { music_volume 50 }
-        (count == 60).then { fade_music_out frames: 20 }
-        (count == 100).then { fade_music_in frames: 20 }
+        count += 1
+        beep 990, duty: :eighth, decay: :slow if count == 20
+        music_volume 50 if count == 30
+        fade_music_out frames: 20 if count == 60
+        fade_music_in frames: 20 if count == 100
       end
     end
 
@@ -74,8 +74,8 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 30).then { music_volume 50 }
+        count += 1
+        music_volume 50 if count == 30
       end
     end
 
@@ -102,8 +102,8 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 40).then { music_volume 50 }
+        count += 1
+        music_volume 50 if count == 40
       end
     end
 
@@ -128,8 +128,8 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 40).then { music_volume 50 }
+        count += 1
+        music_volume 50 if count == 40
       end
     end
 
@@ -149,9 +149,9 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 40).then { music_volume 50 }
-        (count == 90).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        music_volume 50 if count == 40
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 90
       end
     end
 
@@ -173,8 +173,8 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 90).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 90
       end
     end
 
@@ -189,14 +189,14 @@ module RuntimeSounds
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { wave :triangle, :A4 }
-        (count == 20).then { wave :triangle, :A4, volume: :half }
-        (count == 36).then { wave THIN_PULSE, :C4, volume: :three_quarter }
-        (count == 52).then { stop_wave }
-        (count == 10).then { noise :explosion }
-        (count == 50).then { noise pitch: :mid, decay: :medium, volume: 13, metallic: true }
-        (count == 90).then { noise :zap }
+        count += 1
+        wave :triangle, :A4 if count == 4
+        wave :triangle, :A4, volume: :half if count == 20
+        wave THIN_PULSE, :C4, volume: :three_quarter if count == 36
+        stop_wave if count == 52
+        noise :explosion if count == 10
+        noise pitch: :mid, decay: :medium, volume: 13, metallic: true if count == 50
+        noise :zap if count == 90
       end
     end
 
@@ -219,12 +219,12 @@ module RuntimeSounds
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 20).then { music_volume 50 }
-        (count == 70).then { fade_music_out frames: 30 }
-        (count == 130).then { fade_music_in frames: 30 }
-        (count == 170).then { stop_wave }
-        (count == 200).then { wave THIN_PULSE, :A3, volume: :half }
+        count += 1
+        music_volume 50 if count == 20
+        fade_music_out frames: 30 if count == 70
+        fade_music_in frames: 30 if count == 130
+        stop_wave if count == 170
+        wave THIN_PULSE, :A3, volume: :half if count == 200
       end
     end
 
@@ -246,10 +246,10 @@ module RuntimeSounds
       sfx = sound_effects :sfx, { hit: hit }
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         music.play 0
-        (count == 25).then { sfx.play :hit }
-        (count == 70).then { wave :sawtooth, :A3, volume: :half }
+        sfx.play :hit if count == 25
+        wave :sawtooth, :A3, volume: :half if count == 70
       end
     end
 
@@ -265,10 +265,10 @@ module RuntimeSounds
       hum = sample :hum, pcm: ([0, 30, 50, 30, 0, -30, -50, -30] * 50), rate: 16_000
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 3).then { boom.play }
-        (count == 8).then { hum.play(loop: true) }
-        (count == 12).then { beep 440, duty: :half, decay: :medium, volume: 12 }
+        count += 1
+        boom.play if count == 3
+        hum.play(loop: true) if count == 8
+        beep 440, duty: :half, decay: :medium, volume: 12 if count == 12
       end
     end
 

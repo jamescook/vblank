@@ -21,13 +21,13 @@ module ClockTests
     b = Builder.new
     b.instance_eval do
       now = clock
-      present = var :present, 0
+      present = 0
       set = var :set, 0
       hour = var :hour, -1
       game_loop do
-        now.present?.then { present.set! 1 }
-        now.set?.then { set.set! 1 }
-        hour.set! now.hour
+        present = 1 if now.present?
+        set = 1 if now.set?
+        hour = now.hour
       end
     end
     b.finalize_program
@@ -70,16 +70,16 @@ module ClockSetToTests
       now = clock
       var :hour_at_power_on, now.hour
       before_the_loop = var :hour_before_the_loop, -1
-      before_the_loop.set! now.hour
-      passes = var :passes, 0
+      before_the_loop = now.hour
+      passes = 0
       set = var :set, 0
       readings = TIME.to_h { |name| [name, var(name, -1)] }
       game_loop do
-        (passes == set_on_pass).then { now.set_to(**to) }
-        readings.each { |name, reading| reading.set! now.public_send(name) }
-        set.set! 0
-        now.set?.then { set.set! 1 }
-        passes.add! 1
+        now.set_to(**to) if passes == set_on_pass
+        readings.each_key { |name| readings[name] = now.public_send(name) }
+        set = 0
+        set = 1 if now.set?
+        passes += 1
       end
     end
     b.finalize_program

@@ -42,23 +42,29 @@ module ComparisonGames
       x = var :x, 20
       paces = var :paces, 0
       play = lambda do
-        ticks.add! 1
-        held(:right).then do
-          x.add! speed
-          paces.add! counts_by
+        ticks += 1
+        if held(:right)
+          x += speed
+          paces += counts_by
         end
-        ((ticks >= turns_red_at) & (ticks < turns_red_at + red_for)).then { clear_screen :red }.else { clear_screen :blue }
+        if ticks >= turns_red_at && ticks < turns_red_at + red_for
+          clear_screen :red
+        else
+          clear_screen :blue
+        end
         draw_rect_at x, 60, 8, 8, :white
-        (ticks >= SPECKS_FROM).then { specks.times { |speck| pixel SPECK_X + speck, SPECK_Y, :white } }
+        specks.times { |speck| pixel SPECK_X + speck, SPECK_Y, :white } if ticks >= SPECKS_FROM
       end
       next game_loop(&play) if logo_for.zero?
 
-      logo = var :logo, 0
+      logo = 0
       game_loop do
-        (logo < logo_for).then do
-          logo.add! 1
+        if logo < logo_for
+          logo += 1
           clear_screen :black
-        end.else(&play)
+        else
+          play.call
+        end
       end
     end
   end

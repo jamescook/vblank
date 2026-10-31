@@ -25,15 +25,15 @@ module ScreenBackdropGames
       screen :tiled
       ScreenBackdropGames.declare_corner_tile(self)
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       scene(:title) do
         screen(:tiled, **title_screen) if title_screen
         background :title, tiles: :corner_set, map: ["c"]
       end
       scene(:board) { background :board, tiles: :corner_set, map: ["c"] }
       game_loop do
-        tick.add! 1
-        (tick == 6).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick == 6
         case_var(:state) do
           when_val 0, :title
           when_val 1, :board

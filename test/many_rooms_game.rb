@@ -72,18 +72,6 @@ module ManyRoomsGame
     STATUES.times { |n| statues.spawn(x: 0, y: 0, room: room, n: n) }
   end
 
-  # Stand +thing+ where its room is on the screen: its own place in the room, less how far the
-  # screen has slid, and a screen further on for a thing of the room being slid to.
-  def self.stand(thing, here, across, down, home_x, home_y)
-    coming = thing.room != here
-    thing.x.set! home_x - across
-    thing.y.set! home_y - down
-    coming.then do
-      thing.x.add!(across.clamp(0, 1) * 240)
-      thing.y.add!(down.clamp(0, 1) * 160)
-    end
-  end
-
   # The game's own lines, for a block handed to Builder or VBlank.build.
   def self.declare(builder)
     builder.instance_eval do
@@ -95,7 +83,7 @@ module ManyRoomsGame
       image :heart, width: 16, height: 16, data: ManyRoomsGame.art(2002, 16)
       path = table :path, PATH + [PATH.last]
       var :state, 0
-      tick = var :tick, 0
+      tick = 0
       scene(:play) do
         step = var :step, 0
         phase = var :phase, 0
@@ -113,39 +101,55 @@ module ManyRoomsGame
         hero = sprite :hero, frames: %i[hero_a hero_b], rate: 4, at: [104, 120]
         sprite :heart, facing: { full: :heart }, at: [4, 4]
 
-        step.set!((tick / PASSES_A_ROOM).clamp(0, PATH.length - 1))
-        phase.set!(tick % PASSES_A_ROOM)
-        here.set! path[step]
-        beside.set! here
-        across.set! 0
-        down.set! 0
+        # Stand +thing+ where its room is on the screen: its own place in the room, less how far the
+        # screen has slid, and a screen further on for a thing of the room being slid to.
+        stand = lambda do |thing, home_x, home_y|
+          coming = thing.room != here
+          thing.x = home_x - across
+          thing.y = home_y - down
+          if coming
+            thing.x += across.clamp(0, 1) * 240
+            thing.y += down.clamp(0, 1) * 160
+          end
+        end
+
+        step = (tick / PASSES_A_ROOM).clamp(0, PATH.length - 1)
+        phase = tick % PASSES_A_ROOM
+        here = path[step]
+        beside = here
+        across = 0
+        down = 0
         # The slide: the room ahead is up as well, and the screen moves a step towards it a pass.
-        sliding = (phase >= SLIDE_STARTS) & (step < PATH.length - 1)
-        sliding.then do
-          beside.set! path[step + 1]
+        sliding = phase >= SLIDE_STARTS && step < PATH.length - 1
+        if sliding
+          beside = path[step + 1]
           slid = phase - SLIDE_STARTS + 1
-          (beside == here + 1).then { across.set!(slid * SLIDE_ACROSS) }.else { down.set!(slid * SLIDE_DOWN) }
+          if beside == here + 1
+            across = slid * SLIDE_ACROSS
+          else
+            down = slid * SLIDE_DOWN
+          end
         end
         rooms.show here, beside
 
-        (pots.count == 0).then { ManyRoomsGame.spawn_things(pots, statues, here) }
-        (sliding & (phase == SLIDE_STARTS)).then { ManyRoomsGame.spawn_things(pots, statues, beside) }
+        ManyRoomsGame.spawn_things(pots, statues, here) if pots.count == 0
+        ManyRoomsGame.spawn_things(pots, statues, beside) if sliding && phase == SLIDE_STARTS
         # The slide has ended: the room left behind's things go.
-        pots.each { |pot| ((pot.room != here) & (pot.room != beside)).then { pot.remove } }
-        statues.each { |statue| ((statue.room != here) & (statue.room != beside)).then { statue.remove } }
+        pots.each { |pot| pot.remove if pot.room != here && pot.room != beside }
+        statues.each { |statue| statue.remove if statue.room != here && statue.room != beside }
 
         pots.each do |pot|
-          ManyRoomsGame.stand(pot, here, across, down, 8 + (pot.n * 72), 24)
+          stand.call(pot, 8 + (pot.n * 72), 24)
           pot.face POT_PICTURES, showing: (pot.room * POTS) + pot.n
         end
         statues.each do |statue|
-          ManyRoomsGame.stand(statue, here, across, down, 16 + (statue.n * 120), 64)
+          stand.call(statue, 16 + (statue.n * 120), 64)
           statue.face STATUE_PICTURES, showing: (statue.room * STATUES) + statue.n
         end
-        hero.x.set!(20 + (phase * 20))
+        hero.x = 20 + (phase * 20)
       end
       game_loop do
-        tick.add! 1
+        tick += 1
         case_var(:state) { when_val 0, :play }
       end
     end

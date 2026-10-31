@@ -41,9 +41,9 @@ module SoundEffectRecordingGames
       @piano = instrument :piano, pcm: [60, -60] * 16_000, rate: 8000, note: :C4
       music = songs :music, Array(tune) if tune
       sfx = sound_effects :sfx, effects
-      pass = var :pass, 0
+      pass = 0
       game_loop do
-        pass.add! 1
+        pass += 1
         music&.play 0
         instance_exec(sfx, pass, music, &body)
       end
@@ -83,7 +83,7 @@ module SoundEffectRecordingGames
 
   # An effect that plays a recording, two notes ten ticks apart, asked for on pass 3.
   private def recorded_effect_asked_for_once
-    game([every_ten_ticks(:C4, :E4, plays: :piano)]) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    game([every_ten_ticks(:C4, :E4, plays: :piano)]) { |sfx, pass| sfx.play 0 if pass == 3 }
   end
 
   # RECORDED EFFECTS IN A GROUP: cut off, not played for a lower one, on a tie, and asked for
@@ -95,8 +95,8 @@ module SoundEffectRecordingGames
 
   private def recorded_pair(first:, second:, asks: [0, 1])
     game([long_recorded(:C4, first), long_recorded(:E4, second)]) do |sfx, pass|
-      (pass == 3).then { sfx.play asks.first }
-      (pass == 14).then { sfx.play asks.last }
+      sfx.play asks.first if pass == 3
+      sfx.play asks.last if pass == 14
     end
   end
 
@@ -117,22 +117,22 @@ module SoundEffectRecordingGames
     tune = Score.new(tempo: 150, parts: [Part.new(plays: :piano, notes: [
       Note.new(at: 0, key: :C4), Note.new(at: 20, key: :E4), Note.new(at: 40, key: :G4),
     ])])
-    game([recorded_hit(68, parts: VOICES)], tune: tune) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    game([recorded_hit(68, parts: VOICES)], tune: tune) { |sfx, pass| sfx.play 0 if pass == 3 }
   end
 
   # The effect's voice through a restart, its own restart, its end, and a shaped end: each game,
   # whose each mixer voice is, and how many frames in.
   private def effect_voices_kept_and_let_go
     two_notes = every_ten_ticks(:C4, :E4, plays: :piano)
-    restarted = game([two_notes]) { |sfx, pass| ((pass == 3) | (pass == 8)).then { sfx.play 0 } }
+    restarted = game([two_notes]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 8 }
     song_restarts = game([recorded_hit(68)], tune: chord(1)) do |sfx, pass|
-      (pass == 10).then { sfx.play 0 }
-      (pass == 15).then { stop_music }
+      sfx.play 0 if pass == 10
+      stop_music if pass == 15
     end
-    ended = game([two_notes]) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    ended = game([two_notes]) { |sfx, pass| sfx.play 0 if pass == 3 }
     shaped = game([Score.new(tempo: 150, parts: [Part.new(plays: :piano, envelope: { release: 0.25 },
                                                           notes: [Note.new(at: 0, key: :C4, length: 20)])])]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
+      sfx.play 0 if pass == 3
     end
 
     sounding = [[:"sfx.0", 0]]
@@ -160,7 +160,7 @@ module SoundEffectRecordingTests
   # Asked for again, its first note takes over the voice its last note was on, rather than a
   # second one.
   def test_an_effect_asked_for_again_keeps_its_one_voice
-    program = game([every_ten_ticks(:C4, :E4, plays: :piano)]) { |sfx, pass| ((pass == 3) | (pass == 8)).then { sfx.play 0 } }
+    program = game([every_ten_ticks(:C4, :E4, plays: :piano)]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 8 }
 
     assert_equal [[[:"sfx.0", 0], :piano]], voices_after(program, 12)
   end
@@ -178,7 +178,7 @@ module SoundEffectRecordingTests
   def test_a_shaped_effect_note_falls_away_at_its_end
     shaped = Score.new(tempo: 150, parts: [Part.new(plays: :piano, envelope: { release: 0.25 },
                                                     notes: [Note.new(at: 0, key: :C4, length: 20)])])
-    program = game([shaped]) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    program = game([shaped]) { |sfx, pass| sfx.play 0 if pass == 3 }
 
     assert_equal [[[:"sfx.0", 0], :piano]], voices_after(program, 26), "still falling away just after its end"
     assert_empty voices_after(program, 60), "and gone once it has"
@@ -188,7 +188,7 @@ module SoundEffectRecordingTests
   # up, the four seconds last one.
   def test_an_effect_note_plays_its_recording_at_the_notes_pitch
     long_note = ->(key) { Score.new(tempo: 150, length: 200, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: key)])]) }
-    at = ->(key) { game([long_note.call(key)]) { |sfx, pass| (pass == 3).then { sfx.play 0 } } }
+    at = ->(key) { game([long_note.call(key)]) { |sfx, pass| sfx.play 0 if pass == 3 } }
 
     assert_equal 1, voices_after(at.call(:C4), 80).size
     assert_empty voices_after(at.call(:C6), 80)
@@ -199,7 +199,7 @@ module SoundEffectRecordingTests
   # Every voice holds the song, and the effect outranks it: the effect's note takes a voice from
   # the song — the first of them, since they all rank the same.
   def test_an_effect_note_takes_a_voice_from_a_song_it_outranks
-    program = game([recorded_hit(68)], tune: chord(VOICES)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    program = game([recorded_hit(68)], tune: chord(VOICES)) { |sfx, pass| sfx.play 0 if pass == 10 }
 
     assert_equal [[:"sfx.0", 0]] + SONG_PARTS.drop(1), game_player.run(program, frames: 20).sound_owners
   end
@@ -207,7 +207,7 @@ module SoundEffectRecordingTests
   # The song outranks the effect: the effect's note is not played, and nothing of the song's is
   # touched.
   def test_an_effect_note_below_the_song_with_every_voice_busy_is_not_played
-    program = game([recorded_hit(68)], tune: chord(VOICES, priority: 80)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    program = game([recorded_hit(68)], tune: chord(VOICES, priority: 80)) { |sfx, pass| sfx.play 0 if pass == 10 }
     i = game_player.run(program, frames: 20)
 
     assert_equal SONG_PARTS, i.sound_owners
@@ -229,8 +229,8 @@ module SoundEffectRecordingTests
   # The game's own sounds rank below every song and effect, so they give way first.
   def test_an_effect_note_takes_the_games_own_sound_before_the_songs
     program = game([recorded_hit(68)], tune: chord(VOICES - 1)) do |sfx, pass|
-      (pass == 1).then { @piano.play(:G4) }
-      (pass == 10).then { sfx.play 0 }
+      @piano.play(:G4) if pass == 1
+      sfx.play 0 if pass == 10
     end
     i = game_player.run(program, frames: 20)
 
@@ -241,7 +241,7 @@ module SoundEffectRecordingTests
   # quietest of those, whoever's it is, rather than one ranked below it.
   def test_an_effect_note_takes_a_fading_note_first
     fading = chord(VOICES, length: 8, envelope: { release: 1.0 })
-    program = game([recorded_hit(68)], tune: fading) { |sfx, pass| (pass == 12).then { sfx.play 0 } }
+    program = game([recorded_hit(68)], tune: fading) { |sfx, pass| sfx.play 0 if pass == 12 }
     i = game_player.run(program, frames: 16)
 
     assert_equal [[:"sfx.0", 0]] + SONG_PARTS.drop(1), i.sound_owners
@@ -250,7 +250,7 @@ module SoundEffectRecordingTests
 
   # A song part that loses its voice to an effect is heard again from its next note.
   def test_a_song_part_that_loses_its_voice_has_one_again_at_its_next_note
-    program = game([recorded_hit(68)], tune: chord(VOICES, at: [0, 60])) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    program = game([recorded_hit(68)], tune: chord(VOICES, at: [0, 60])) { |sfx, pass| sfx.play 0 if pass == 10 }
 
     assert_equal [[:"sfx.0", 0]] + SONG_PARTS.drop(1), game_player.run(program, frames: 30).sound_owners
     assert_equal SONG_PARTS, game_player.run(program, frames: 70).sound_owners
@@ -262,7 +262,7 @@ module SoundEffectRecordingTests
     quiet = Score.new(tempo: 150, priority: 68, length: 60, parts: [Part.new(plays: :piano, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 10, key: :D5, volume: 0),
     ])])
-    program = game([quiet], tune: chord(VOICES)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    program = game([quiet], tune: chord(VOICES)) { |sfx, pass| sfx.play 0 if pass == 10 }
 
     assert_equal [[:"sfx.0", 0]] + SONG_PARTS.drop(1), game_player.run(program, frames: 15).sound_owners
     assert_equal SONG_PARTS.drop(1), game_player.run(program, frames: 25).sound_owners
@@ -271,8 +271,8 @@ module SoundEffectRecordingTests
   # The song starting over lets go of its own voices and not the effect's.
   def test_starting_the_song_over_leaves_an_effects_recorded_note_alone
     program = game([recorded_hit(68)], tune: chord(1)) do |sfx, pass|
-      (pass == 10).then { sfx.play 0 }
-      (pass == 15).then { stop_music }
+      sfx.play 0 if pass == 10
+      stop_music if pass == 15
     end
 
     assert_includes game_player.run(program, frames: 18).sound_owners, [:"sfx.0", 0]

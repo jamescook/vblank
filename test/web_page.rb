@@ -16,7 +16,7 @@ module WebPage
       screen :bitmap
       x = var :x, 0
       game_loop do
-        held(:right).then { x.add! 1 }
+        x += 1 if held(:right)
         clear_screen :black
         draw_rect_at x, 20, 4, 4, :green
       end
@@ -29,7 +29,7 @@ module WebPage
       screen :bitmap
       x = var :x, 0
       game_loop do
-        x.add! 1
+        x += 1
         clear_screen :black
         draw_rect_at x, 20, 4, 4, :green
       end
@@ -77,7 +77,7 @@ module WebPage
       screen :bitmap
       game_loop do
         clear_screen :black
-        buttons.each_with_index { |button, i| held(button).then { fill_rect i * 10, 0, 8, 8, :white } }
+        buttons.each_with_index { |button, i| fill_rect i * 10, 0, 8, 8, :white if held(button) }
       end
     end
   end

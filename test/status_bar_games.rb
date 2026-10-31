@@ -39,11 +39,11 @@ module StatusBarGames
       field = background :field, tiles: :field_tiles,
                                  map: Array.new(32) { |r| ((r % 4).zero? ? "o" : "#") * 32 }
       bar = status_bar :score, tiles: :bar_tiles, map: ["#" * 32, "#" * 32], top: screen_height - from_bottom
-      step = var :step, 0
+      step = 0
       game_loop do
         field.scroll_by 0, 1
         instance_exec(bar, step, &body) if body
-        step.add! 1
+        step += 1
       end
     end
   end
