@@ -135,9 +135,21 @@ module VBlank
       def assign_index(collection, *keys, value)
         current = collection.fetch(keys.first, nil) if collection.is_a?(Hash)
         current = collection[*keys] if collection.is_a?(Array)
+        refuse_new_slot!(collection, keys.first, value) if current.nil?
         return collection[*keys] = value unless variable?(current)
 
         store(current, value)
+      end
+
+      # A number given to a key that a Hash of game variables does not hold is a misspelt key: it
+      # would go in as a plain Ruby number, and the game's variable would stay as it was.
+      def refuse_new_slot!(collection, key, value)
+        return unless collection.is_a?(Hash) && !collection.empty? && !value.is_a?(Value)
+        return unless collection.each_value.all? { |each_value| variable?(each_value) }
+
+        refuse!("This Hash holds game variables and has no key #{key.inspect}, so the game would never " \
+                "see this number. The keys are #{collection.keys.map(&:inspect).join(', ')}. To fix " \
+                "this, use one of those keys.")
       end
 
       # `hero.x = value`.

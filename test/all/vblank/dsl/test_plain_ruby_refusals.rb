@@ -228,6 +228,21 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_includes err.string, "never waits for the next frame"
   end
 
+  def test_a_misspelt_key_on_a_hash_of_game_variables_is_refused
+    assert_refused("no key :hq") do
+      ball = { hp: var(:hp, 5) }
+      game_loop { ball[:hq] = 2 }
+    end
+  end
+
+  def test_a_new_key_on_a_plain_hash_is_plain_ruby
+    built do
+      ball = { hp: 5 }
+      ball[:mp] = 2
+      game_loop { wait_vblank }
+    end
+  end
+
   def test_a_number_tested_alone_builds_with_every_check_on
     rom = VBlank.build("TRUTHY", console: :gba, out: StringIO.new, err: StringIO.new) do
       flags = 3
