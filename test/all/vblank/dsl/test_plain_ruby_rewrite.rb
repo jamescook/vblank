@@ -48,6 +48,22 @@ class TestPlainRubyRewrite < Minitest::Test
     assert_includes source, "var(:x_2, 2)"
   end
 
+  def test_two_blocks_on_one_line_are_told_apart
+    first, second = proc { one = 1 }, proc { two = 2 }
+
+    assert_includes VBlank::DSL::PlainRuby.rewritten_source(first), "one = 1"
+    assert_includes VBlank::DSL::PlainRuby.rewritten_source(second), "two = 2"
+  end
+
+  def test_a_number_changed_by_a_menu_row_is_declared_with_var
+    source = rewritten do
+      picked = 0
+      game_loop { menu(:main, at: [40, 40]) { |rows| rows.item("GO") { picked = 1 } } }
+    end
+
+    assert_includes source, "picked = var(:picked, 0)"
+  end
+
   def test_every_line_keeps_its_number
     source = rewritten do
       hp = 5

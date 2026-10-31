@@ -260,12 +260,12 @@ module PongGame
       # here is a number counted by eye.
       menu_x = (SCREEN_W - [MUSIC_OFF, DIFFICULTY].map { |row| text_width(row) }.max) / 2
       menu :title, at: [menu_x, 90], spacing: 16, color: :gray, picked: :white do |m|
-        m.item("START") { zoom_timer.set! 1 }
+        m.item("START") { zoom_timer = 1 }
         # A row whose words follow the setting. `1 - music_on` is the toggle: 1 becomes 0
         # and 0 becomes 1.
-        m.item([MUSIC_OFF, MUSIC_ON], showing: music_on) { music_on.set! 1 - music_on }
+        m.item([MUSIC_OFF, MUSIC_ON], showing: music_on) { music_on = 1 - music_on }
         # ...and a row that opens a screen of its own, below.
-        m.item(DIFFICULTY) { state.set! 4 }
+        m.item(DIFFICULTY) { state = 4 }
       end
 
       # Zoom the backdrop in once START is chosen, then hand off to :playing when the zoom
@@ -327,8 +327,8 @@ module PongGame
       diff_x = (SCREEN_W - text_width(NORMAL)) / 2
       menu :difficulty, at: [diff_x, 80], spacing: 16, color: :gray, picked: :white,
                         starts_on: 1 do |m|
-        m.item(NORMAL) { cpu_speed.set! CPU_NORMAL; state.set! 0 }
-        m.item(HARD)   { cpu_speed.set! CPU_HARD;   state.set! 0 }
+        m.item(NORMAL) { cpu_speed = CPU_NORMAL; state = 0 }
+        m.item(HARD)   { cpu_speed = CPU_HARD;   state = 0 }
       end
     end
 

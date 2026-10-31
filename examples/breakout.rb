@@ -43,7 +43,7 @@
 # preserve — and worse, a sprite repaints itself just before the scene runs, so our
 # clear_screen would wipe it. Reach for a sprite when you DON'T clear each frame
 # (see examples/pacman.rb); when you do, steer the variable directly, as below with
-# held(:left).then { paddle_x.sub! PADDLE_SPEED }. (README → "Choosing how to draw a
+# paddle_x -= PADDLE_SPEED if held(:left). (README → "Choosing how to draw a
 # moving thing" lays out the whole choice.)
 #
 # Run it to build examples/breakout.gba:

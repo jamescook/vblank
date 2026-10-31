@@ -278,9 +278,9 @@ module PongGBC
         m.item("START") { call :reset_game }
         # A row whose words follow the setting. `1 - music_on` is the toggle: 1 becomes 0
         # and 0 becomes 1.
-        m.item([MUSIC_OFF, MUSIC_ON], showing: music_on) { music_on.set! 1 - music_on }
+        m.item([MUSIC_OFF, MUSIC_ON], showing: music_on) { music_on = 1 - music_on }
         # ...and a row that opens a screen of its own, below.
-        m.item(difficulty_row) { state.set! 4 }
+        m.item(difficulty_row) { state = 4 }
       end
     end
 
@@ -333,8 +333,8 @@ module PongGBC
       diff_x = (width - text_width(NORMAL)) / 2
       menu :difficulty, at: [diff_x, 80], spacing: 16, color: :gray, picked: :white,
                         starts_on: 1 do |m|
-        m.item(NORMAL) { cpu_speed.set! CPU_NORMAL; state.set! 0 }
-        m.item(HARD)   { cpu_speed.set! CPU_HARD;   state.set! 0 }
+        m.item(NORMAL) { cpu_speed = CPU_NORMAL; state = 0 }
+        m.item(HARD)   { cpu_speed = CPU_HARD;   state = 0 }
       end
     end
 

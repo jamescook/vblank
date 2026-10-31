@@ -62,7 +62,7 @@
 # letter, a number — that shows what you drew on the next frame:
 #
 #     box = canvas :box, width: 192, height: 16, colors: [...]
-#     pen.add! box.draw_letter(note[typed], pen, 5, :white)
+#     pen += box.draw_letter(note[typed], pen, 5, :white)
 #     trail.pixel (px & 255) >> 3, (py & 255) >> 3, :white
 #
 # What you never touch: object memory, tile numbers, palettes, the sprite table, save
@@ -286,7 +286,7 @@ module Hero
     # pixel, a rectangle, a letter, a number), and what you draw shows on the next frame.
     #
     #     box = canvas :box, width: 192, height: 16, colors: [...]
-    #     pen.add! box.draw_letter(note[typed], pen, 5, :white)   # one letter, then the next
+    #     pen += box.draw_letter(note[typed], pen, 5, :white)   # one letter, then the next
     #
     # A SUPER NINTENDO SHOWS TWO BACKGROUNDS AT ONCE, and the world and the mist are both of
     # them, so there the box is a picture sprites show instead (`as: :sprite`): the same words,
@@ -392,7 +392,7 @@ module Hero
               files[slot].erase
               next_choosing = 0
             end
-            m.item("BACK") { next_choosing.set! 0 }
+            m.item("BACK") { next_choosing = 0 }
           end
         end
 

@@ -331,6 +331,20 @@ class TestPlainRuby < Minitest::Test
     assert_equal 2, player[:count]
   end
 
+  def test_a_number_changed_by_a_menu_row_is_a_variable
+    builder = Builder.new
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(proc do
+      picked = 0
+      game_loop { menu(:main, at: [40, 40], press: :a) { |rows| rows.item("GO") { picked = 7 } } }
+    end))
+    builder.finalize_program
+    player = game_player
+    player.hold(:a)
+    player.run(builder.program, frames: 3)
+
+    assert_equal 7, player[:picked]
+  end
+
   def test_a_number_added_up_over_a_list_written_out_in_ruby_stays_a_number
     player = played(frames: 2) do
       shown = 0

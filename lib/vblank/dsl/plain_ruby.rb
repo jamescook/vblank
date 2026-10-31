@@ -64,24 +64,30 @@ module VBlank
       # What the block's source is rewritten into, for reading and for a test.
       def rewritten_source(block) = Rewriter.new(*source_and_block_of(block)).rewritten_block
 
-      # The block's file and its node. Ruby says where a block starts to the column, so two on one
-      # line are told apart. A file is read and parsed once, per Ractor since a tree is not shared.
+      # The block's file and its node. A file is read and parsed once, per Ractor since a tree is
+      # not shared.
       def source_and_block_of(block)
-        line, column = block_start(block)
-        source, blocks = parsed_file(block.source_location.first)
-        found = blocks[[line, column]]
-        raise ArgumentError, "No block starts at line #{line}, so this game cannot be read." unless found
+        path, line = block.source_location
+        source, blocks = parsed_file(path)
+        starting = blocks.fetch(line, [])
+        found = starting.one? ? starting.first : node_at_column(starting, block)
+        raise ArgumentError, "No block starts at line #{line}, so this game cannot be read." unless found.is_a?(Prism::BlockNode)
 
         [source, found]
       end
 
-      # The line and column +block+ starts at. Two Ractors asking about one block for the first time
-      # crash Ruby or hang it, since the answer writes to the block's code, which they share. A held
-      # file lock is the only lock Ractors can share, and a block's own file holds all its Ractors.
-      def block_start(block)
-        File.open(block.source_location.first) do |file|
+      def node_at_column(nodes, block)
+        column = block_start_column(block)
+        nodes.find { |node| node.location.start_column == column }
+      end
+
+      # Which column +block+ starts at, which only matters when two start on one line. Ruby can
+      # say, but asking from several Ractors at once crashes or hangs it, since they share the
+      # block's code. A held file lock is the only lock Ractors can share.
+      def block_start_column(block)
+        File.open(__FILE__) do |file|
           file.flock(File::LOCK_EX)
-          RubyVM::InstructionSequence.of(block).to_a[4][:code_location].first(2)
+          RubyVM::InstructionSequence.of(block).to_a[4][:code_location][1]
         end
       end
 
@@ -89,13 +95,17 @@ module VBlank
         files = (Ractor.current[:plain_ruby_parsed_files] ||= {})
         files[path] ||= begin
           source = File.binread(path)
-          [source, blocks_by_start(Prism.parse(source).value, {})]
+          [source, code_by_line(Prism.parse(source).value, Hash.new { |all, line| all[line] = [] })]
         end
       end
 
-      def blocks_by_start(node, found)
-        found[[node.location.start_line, node.location.start_column]] = node if node.is_a?(Prism::BlockNode)
-        node.compact_child_nodes.each { |child| blocks_by_start(child, found) }
+      # Lambdas and methods are listed too, since a proc made from one is not a block to rewrite,
+      # and must not be taken for a block beside it on the line.
+      def code_by_line(node, found)
+        case node
+        when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then found[node.location.start_line] << node
+        end
+        node.compact_child_nodes.each { |child| code_by_line(child, found) }
         found
       end
 

@@ -12,7 +12,7 @@ module VBlank
       class LocalNames
         # The verbs whose blocks hold code the game runs as it plays. A plain Ruby block, like
         # the one given to `8.times`, runs while building however it is nested.
-        GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick then else].freeze
+        GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick then else item].freeze
 
         # How Ruby goes over a list or a count. Called on something written out in the source, a
         # constant or a literal or a range, it runs here and now however deep in game code it
