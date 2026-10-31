@@ -21,14 +21,31 @@ module VBlank
       # Does this name a place that keeps a number, rather than a working-out of one?
       def variable?(value) = value.is_a?(Value) && value.handle?
 
-      # A game variable on its own is a test that it is not zero.
-      def as_condition(value) = value.is_a?(Value) ? value != 0 : value
+      # A yes or no the game keeps, as a test. In Ruby a number is truthy whatever it holds, so one
+      # made here on its own would be a test with one answer, and that is never what was meant.
+      def as_condition(value)
+        return value unless value.is_a?(Value)
+        return value != 0 if value.yes_no?
+
+        written = value.name ? "`#{value.name}`" : "This number"
+        refuse!("#{written} is a number, and in Ruby a number is always true. So this test has one " \
+                "answer. To fix this, compare it, like `hp > 0`. To keep a yes or no, start it with " \
+                "`true` or `false`.")
+      end
 
       # A conditional's test, as an object the rewritten `if` asks which sides to run.
       def test(value) = game_test?(value) ? GameTest.new(as_condition(value)) : BuildTest.new(value)
 
       # The other answer to a test, for `!` and `unless`.
-      def opposite(value) = value.is_a?(Value) ? value == 0 : !value
+      def opposite(value)
+        return !value unless game_test?(value)
+
+        value.is_a?(Value) ? as_condition(value).then { value == 0 } : !value
+      end
+
+      # A value that came from somewhere else: an argument, or a field of an object. Ruby's answer
+      # holds, that a number is truthy, and a yes or no is still the game's to answer.
+      def truthy(value) = value.is_a?(Value) && !value.yes_no? ? true : value
 
       # `&&`. Ruby skips the right side once the left has decided. A game test cannot: both
       # sides are worked out as the game plays, whichever way the left turns out.
@@ -58,11 +75,32 @@ module VBlank
       def loop_while(&test) = LoopTest.new(test, stops_when: false)
       def loop_until(&test) = LoopTest.new(test, stops_when: true)
 
+      # Put +value+ in a game variable. A yes or no is kept as 1 or 0, and a test's answer is
+      # worked out as the game plays.
+      def store(target, value)
+        case value
+        when true then target.set!(1)
+        when false then target.set!(0)
+        when Condition then store_answer(target, value)
+        else target.set!(value)
+        end
+      end
+
+      def store_answer(target, condition)
+        answer = GameTest.new(condition)
+        answer.run_yes_side?
+        target.set!(1)
+        answer.finish(nil)
+        answer.run_no_side?
+        target.set!(0)
+        answer.finish(nil)
+      end
+
       # `x = value` where x is a game variable.
       def assign(target, value)
         return value unless variable?(target)
 
-        target.set!(value)
+        store(target, value)
         target
       end
 
@@ -72,7 +110,7 @@ module VBlank
       def reassign(target, value)
         return value if !variable?(target) || variable?(value)
 
-        target.set!(value)
+        store(target, value)
         target
       end
 
@@ -99,7 +137,7 @@ module VBlank
         current = collection[*keys] if collection.is_a?(Hash) || collection.is_a?(Array)
         return collection[*keys] = value unless variable?(current)
 
-        current.set!(value)
+        store(current, value)
       end
 
       # `hero.x = value`.
@@ -107,7 +145,7 @@ module VBlank
         current = receiver.public_send(name) if receiver.respond_to?(name)
         return receiver.public_send(:"#{name}=", value) unless variable?(current)
 
-        current.set!(value)
+        store(current, value)
       end
 
       # A plain number changed by code the game runs would change once, while building, and the
@@ -121,7 +159,7 @@ module VBlank
 
       # The line that makes a variable in game code runs on every pass, as a Ruby line would.
       def start(variable, value)
-        variable.set!(value)
+        store(variable, value)
         variable
       end
 
@@ -197,12 +235,15 @@ module VBlank
         # A side's value, for `x = test ? a : b`. There is no way to pick one of two numbers in
         # the game, so each side stores its number in one hidden variable.
         def keep(value)
-          unless value.is_a?(Integer) || value.is_a?(Value)
-            PlainRubySteps.refuse!("A test made as the game plays can only choose between numbers. " \
-                                   "This side is #{value.inspect}. A game variable cannot hold that.")
+          yes_no = [true, false].include?(value) || value.is_a?(Condition)
+          unless yes_no || value.is_a?(Integer) || value.is_a?(Value)
+            PlainRubySteps.refuse!("A test made as the game plays can only choose between numbers, " \
+                                   "or between `true` and `false`. This side is #{value.inspect}. A " \
+                                   "game variable cannot hold that.")
           end
           @kept ||= @condition.hidden_variable
-          @kept.set!(value)
+          @kept.yes_no! if yes_no || (value.is_a?(Value) && value.yes_no?)
+          PlainRubySteps.store(@kept, value)
           @condition.close_branch
         end
 

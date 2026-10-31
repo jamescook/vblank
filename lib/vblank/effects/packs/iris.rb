@@ -77,7 +77,7 @@ module VBlank
           light.dark = 100
           state[:shut] = 0
           state[:active] = 1
-          if !by.nil?
+          if by
             state[:size] = (from || light.radius).to_f
             first_step_in_pixels(light, state, -by, Builder::Spotlights::LARGEST.to_f) do
               state[:active] = 0
@@ -126,8 +126,8 @@ module VBlank
             light.radius = 0
             light.dark = 100
           end
-          state[:radius] = radius unless radius.nil?
-          state[:dark] = dark unless dark.nil?
+          state[:radius] = radius if radius
+          state[:dark] = dark if dark
           if to && by
             # The first size a step at a time PAST +to+, which is where the walk lets go: a size
             # the steps land on exactly is still shown, as the game being copied shows it.
@@ -143,7 +143,7 @@ module VBlank
           end
           state[:shut] = 0
           state[:active] = 1
-          if !by.nil?
+          if by
             first_step_in_pixels(light, state, by, state[:target]) { let_light_go(light, state) }
           else
             state[:step] = (state[:target] - state[:size]).abs / WalkLength.steps(frames, duration, DEFAULT_FRAMES, "an iris")

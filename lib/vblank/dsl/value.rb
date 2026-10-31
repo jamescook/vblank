@@ -123,8 +123,15 @@ module VBlank
 
         kept = @builder.hidden_variable
         kept.set!(self)
+        kept.yes_no! if yes_no?
         kept
       end
+
+      # Is this a variable the game keeps as a yes or no? See Builder#var.
+      def yes_no? = handle? && @builder.yes_no_variable?(@name)
+
+      # This variable holds a yes or no from now on.
+      def yes_no! = @builder.remember_yes_no_variable(@name)
 
       # How many fraction bits this value carries, or nil if it is a plain whole number.
       def fraction_bits

@@ -338,7 +338,19 @@ module VBlank
         end
 
         def test_text(node)
-          node.is_a?(Prism::UnlessNode) ? "#{STEPS}.opposite(#{argument(node.predicate)})" : argument(node.predicate)
+          test = predicate_text(node.predicate)
+          node.is_a?(Prism::UnlessNode) ? "#{STEPS}.opposite(#{test})" : test
+        end
+
+        # What is handed in or kept in an object is truthy as in Ruby. See PlainRubySteps.truthy.
+        def predicate_text(predicate)
+          handed_in = predicate.is_a?(Prism::LocalVariableReadNode) && @names.parameter_read?(predicate)
+          handed_in || field_read?(predicate) ? "#{STEPS}.truthy(#{argument(predicate)})" : argument(predicate)
+        end
+
+        def field_read?(node)
+          node.is_a?(Prism::CallNode) && node.receiver && node.arguments.nil? && node.block.nil? &&
+            node.name.to_s.match?(/\A[a-z_]\w*\z/)
         end
 
         def other_side(node) = node.is_a?(Prism::UnlessNode) ? node.else_clause : node.subsequent

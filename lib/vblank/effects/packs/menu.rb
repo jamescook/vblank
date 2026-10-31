@@ -121,7 +121,7 @@ module VBlank
                     "A menu row needs its words as a String. A row that changes needs two or " \
                     "more Strings in a list. Got #{label.inspect}."
             end
-            return label unless showing.nil?
+            return label if showing
 
             raise ArgumentError,
                   "This menu row can say #{label.length} things, so it needs `showing:` to " \
@@ -495,7 +495,7 @@ module VBlank
           end
 
           items.each_with_index.map do |item, i|
-            item = item.with(showing: menu_showing_value!(item)) unless item.showing.nil?
+            item = item.with(showing: menu_showing_value!(item)) if item.showing
             item.with(enabled: menu_enabled_value(name, i, item.enabled))
           end
         end

@@ -42,12 +42,24 @@ module VBlank
       # @param value [Integer, Symbol, Value] the starting value, or the first of its names
       # @return [Value] a handle to the variable
       def var(name, value)
+        if [true, false].include?(value)
+          remember_yes_no_variable(name)
+          value = value ? 1 : 0
+        end
         refuse_conflicting_declaration!(name, value)
         ensure_var(name)
         @name_vars[name] ||= DSL::NameSet.new("the variable :#{name}") if value.is_a?(Symbol)
         at_boot(Build.set(name, stored_node(name, value)))
         value_handle_for(name)
       end
+
+      # A variable started with `true` or `false` holds a yes or no, kept as 1 or 0. It is the one
+      # kind a game can test on its own, `if alive`, as a Ruby value can be.
+      def remember_yes_no_variable(name)
+        (@yes_no_variables ||= {})[name] = true
+      end
+
+      def yes_no_variable?(name) = (@yes_no_variables || {}).key?(name)
 
       # Declare a variable whose value survives the console being turned off — a high
       # score, an unlock, a setting. It works exactly like {#var}: you get the same

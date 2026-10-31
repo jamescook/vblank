@@ -228,6 +228,35 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_includes err.string, "never waits for the next frame"
   end
 
+  def test_a_number_the_game_made_cannot_be_a_test_alone
+    assert_refused("always true") do
+      hp = 3
+      game_loop do
+        wait_vblank if hp
+        hp -= 1
+      end
+    end
+  end
+
+  def test_a_number_worked_out_cannot_be_a_test_alone
+    assert_refused("always true") do
+      flags = 3
+      game_loop do
+        wait_vblank if flags & 4
+        flags += 1
+      end
+    end
+  end
+
+  def test_a_flag_on_a_vblank_handle_is_a_test
+    built do
+      game_loop do
+        rows = menu(:main, at: [40, 40]) { |row| row.item("GO") { wait_vblank } }
+        wait_vblank if rows.moved
+      end
+    end
+  end
+
   def test_a_file_of_game_code_brought_in_with_require_relative_is_refused
     error = assert_raises(Refused) { VBlank::DSL::PlainRuby.rewrite(GameWithPlainHelper.block) }
 

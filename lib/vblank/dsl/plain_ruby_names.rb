@@ -58,7 +58,7 @@ module VBlank
 
         def self.number?(write)
           write.is_a?(Prism::LocalVariableWriteNode) &&
-            (write.value.is_a?(Prism::IntegerNode) || write.value.is_a?(Prism::FloatNode))
+            [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode].include?(write.value.class)
         end
 
         def initialize(block_node)
@@ -99,6 +99,9 @@ module VBlank
 
         # Is this read of a local a read of a game variable?
         def variable_read?(read) = @locals_by_node[read]&.variable? || false
+
+        # Is this read of a name handed in, a method's or a block's argument?
+        def parameter_read?(read) = @locals_by_node[read]&.parameter? || false
 
         private
 

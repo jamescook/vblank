@@ -152,7 +152,7 @@ module VBlank
         def shake_screen_frames(frames, duration)
           raise ArgumentError, "shake_screen takes frames: or duration:, not both." if frames && duration
 
-          if !duration.nil?
+          if duration
             in_frames = (duration * Builder::ControlFlow::FRAMES_PER_SECOND).round if duration.is_a?(Numeric)
             unless in_frames&.positive?
               raise ArgumentError,

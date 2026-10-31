@@ -385,7 +385,7 @@ module VBlank
         def fade_step_count(frames, duration, default)
           raise ArgumentError, "a fade takes frames: or duration:, not both." if frames && duration
 
-          count = if !duration.nil?
+          count = if duration
                     fade_seconds_in_frames(duration)
                   else
                     frames || default

@@ -94,20 +94,114 @@ class TestPlainRuby < Minitest::Test
     assert_equal [5, 7], [player[:a], player[:b]]
   end
 
-  def test_a_game_variable_alone_is_a_test_of_not_zero
-    player = played(frames: 2) do
-      on = 0
-      off = 3
-      seen = 0
+  def test_true_and_false_are_a_yes_or_no_the_game_keeps
+    player = played(frames: 3) do
+      alive = true
+      hit = false
+      drawn = 0
+      skipped = 0
       game_loop do
-        seen += 1 if on
-        seen = 40 if off
-        on = 0
-        off = 3
+        if alive
+          drawn += 1
+        else
+          skipped += 1
+        end
+        alive = false if hit
+        hit = true
       end
     end
 
-    assert_equal 40, player[:seen]
+    assert_operator player[:drawn], :>=, 1
+    assert_operator player[:skipped], :>=, 1
+  end
+
+  def test_not_and_unless_and_joined_tests_read_a_yes_or_no
+    player = played(frames: 1) do
+      open = false
+      lit = true
+      a = 0
+      b = 0
+      c = 0
+      game_loop do
+        a = 1 unless open
+        b = 1 if !open && lit
+        c = 1 if open || lit
+        open = false
+      end
+    end
+
+    assert_equal [1, 1, 1], [player[:a], player[:b], player[:c]]
+  end
+
+  def test_a_yes_or_no_can_take_the_answer_of_a_test
+    player = played(frames: 2) do
+      hp = 3
+      low = false
+      seen = 0
+      game_loop do
+        low = hp < 5
+        seen = 1 if low
+        hp += 0
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_a_picked_yes_or_no_is_a_yes_or_no
+    player = played(frames: 2) do
+      hp = 3
+      seen = 0
+      game_loop do
+        low = hp < 5 ? true : false
+        seen = 1 if low
+        hp += 0
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_a_copy_of_a_yes_or_no_is_a_yes_or_no
+    player = played(frames: 2) do
+      lit = true
+      seen = 0
+      game_loop do
+        old = lit
+        lit = false
+        seen = 1 if old
+        lit = true
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  # In Ruby a number is truthy whatever it holds, so a number handed in, or kept in an object, is
+  # truthy here too: the test asks only that it is there.
+  def test_a_number_handed_in_is_truthy_even_at_zero
+    player = played(frames: 2) do
+      def count_if_there(count, by)
+        count += 1 if by
+      end
+      zero = var :zero, 0
+      seen = var :seen, 0
+      game_loop { count_if_there(seen, zero) }
+    end
+
+    assert_operator player[:seen], :>=, 1
+  end
+
+  Held = Data.define(:number)
+
+  def test_a_number_kept_in_an_object_is_truthy_even_at_zero
+    player = played(frames: 2) do
+      held = Held.new(number: var(:zero, 0))
+      seen = 0
+      game_loop { seen = 1 if held.number }
+    end
+
+    assert_equal 1, player[:seen]
   end
 
   def test_and_or_not_combine_tests_anywhere_a_test_is_made
@@ -393,6 +487,26 @@ class TestPlainRuby < Minitest::Test
     end
 
     assert_equal 2, player[:hp]
+  end
+
+  # `if by` on an option asks what Ruby asks, whether it was given, even when what was given is a
+  # game variable holding 0.
+  def test_an_option_in_an_if_asks_whether_it_was_given
+    player = played(frames: 2) do
+      def count_if_given(count, by: nil)
+        count += 1 if by
+      end
+      zero = var :zero, 0
+      given = var :given, 0
+      left_out = var :left_out, 0
+      game_loop do
+        count_if_given(given, by: zero)
+        count_if_given(left_out)
+      end
+    end
+
+    assert_operator player[:given], :>=, 1
+    assert_equal 0, player[:left_out]
   end
 
   def test_a_number_added_up_over_a_list_written_out_in_ruby_stays_a_number
