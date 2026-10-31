@@ -523,7 +523,7 @@ class TestDSLExpression < Minitest::Test
         halt if (x > 1) & x # x is a Value, not a Condition
       end
     end
-    assert_match(/condition/i, err.message)
+    assert_match(/join tests/, err.message)
   end
 
   def test_mutating_an_expression_is_a_friendly_error

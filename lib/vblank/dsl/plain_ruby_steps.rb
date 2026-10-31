@@ -51,7 +51,9 @@ module VBlank
         return left && yield unless game_test?(left)
 
         condition = as_condition(left)
-        right = yield
+        right, acted = side_under(condition) { yield }
+        return if acted
+
         refuse_list_read!(condition, right, "&&")
         return condition & as_condition(right) if game_test?(right)
 
@@ -63,7 +65,9 @@ module VBlank
         return left || yield unless game_test?(left)
 
         condition = as_condition(left)
-        right = yield
+        right, acted = side_under(!condition) { yield }
+        return if acted
+
         refuse_list_read!(condition, right, "||")
         return condition | as_condition(right) if game_test?(right)
 
@@ -76,6 +80,29 @@ module VBlank
         refuse_jump!(word) if game_test?(value)
 
         !!value
+      end
+
+      # The right side of `&&` or `||`, worked out under +condition+. If it did something the
+      # game does, a sound or a change, that stays in a branch of its own, as Ruby would skip it.
+      # If it only made a test, nothing is left of the branch and the two tests join.
+      def side_under(condition)
+        if_node = condition.open_branch
+        right = yield
+        condition.close_branch
+        return [right, true] unless if_node.children.empty?
+
+        condition.take_back_branch(if_node)
+        [right, false]
+      end
+
+      # `a & b` and `a | b`, bits on numbers and Ruby's own on anything else. Between tests a
+      # game writes `&&` and `||`, which the rest of these steps read.
+      def bits(left, operator, right)
+        if left.is_a?(Condition)
+          refuse!("`#{operator}` does not join tests. To fix this, write `#{operator}#{operator}`.")
+        end
+
+        left.public_send(operator, right)
       end
 
       def loop_while(&test) = LoopTest.new(test, stops_when: false)
@@ -105,6 +132,7 @@ module VBlank
       # `x = value` where x is a game variable.
       def assign(target, value)
         return value unless variable?(target)
+        return target if value.equal?(target)
 
         store(target, value)
         target

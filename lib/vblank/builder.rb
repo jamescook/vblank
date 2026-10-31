@@ -911,6 +911,10 @@ module VBlank
       @container_stack.pop
     end
 
+    def take_back_branch(if_node)
+      @container_stack.last.children.delete_at(-1) if @container_stack.last.children.last.equal?(if_node)
+    end
+
     # A `repeat` with a stop test, likewise opened and closed rather than given a block.
     def open_repeat(most_passes, stop_node)
       @repeat_seq += 1

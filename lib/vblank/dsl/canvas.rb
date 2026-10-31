@@ -86,7 +86,7 @@ module VBlank
         row_y = var(:row_y, 0)
         left = value(x).clamp(0, @width)
         right = plus(x, w).clamp(0, @width)
-        @place = place
+        @place.set! place
         @builder.repeat(h) do |row|
           row_y = plus(y, row)
           @builder.call(fill_row_routine) if row_y >= 0 && row_y < @height && left < right
@@ -239,9 +239,9 @@ module VBlank
       # Paint one pixel through the canvas's own routine: three variables set and a call,
       # where the arithmetic would otherwise be written out again at every place it is used.
       def paint_at(x, y, place)
-        @x = x
-        @y = y
-        @place = place
+        @x.set! x
+        @y.set! y
+        @place.set! place
         @builder.call(pixel_routine)
       end
 

@@ -14,7 +14,7 @@ module VBlank
         # the one given to `8.times`, runs while building however it is nested.
         GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick then else item].freeze
 
-        ARITHMETIC = %i[+ - * / % << >>].freeze
+        ARITHMETIC = %i[+ - * / % << >> -@ abs].freeze
 
         # How Ruby goes over a list or a count. Called on something written out in the source, a
         # constant or a literal or a range, it runs here and now however deep in game code it
@@ -60,7 +60,7 @@ module VBlank
 
         def self.number?(write)
           write.is_a?(Prism::LocalVariableWriteNode) &&
-            [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode].include?(write.value.class)
+            [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode, Prism::SymbolNode].include?(write.value.class)
         end
 
         # A number written out, or something only running the line can say is one: `state = PLAYING`,
@@ -75,7 +75,7 @@ module VBlank
           when Prism::ParenthesesNode then made_of_constants?(node.body.body.first)
           when Prism::CallNode
             ARITHMETIC.include?(node.name) && made_of_constants?(node.receiver) &&
-              node.arguments.arguments.all? { |each_argument| made_of_constants?(each_argument) }
+              node.arguments&.arguments.to_a.all? { |each_argument| made_of_constants?(each_argument) }
           else false
           end
         end
@@ -139,7 +139,8 @@ module VBlank
           when Prism::CallNode then read_call(node, scopes, in_game_code)
           when Prism::IfNode, Prism::UnlessNode, Prism::WhileNode, Prism::UntilNode
             read_children(node, scopes, in_game_code || @iterating_in_game_code)
-          when Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode then
+          when Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode,
+               Prism::LocalVariableOrWriteNode, Prism::LocalVariableAndWriteNode then
             record_write(node, scopes, in_game_code)
             read_children(node, scopes, in_game_code)
           when Prism::LocalVariableReadNode then

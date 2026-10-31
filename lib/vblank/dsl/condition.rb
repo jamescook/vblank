@@ -67,6 +67,9 @@ module VBlank
 
       def close_branch = @builder.close_branch
 
+      # Forget a branch that turned out to hold nothing.
+      def take_back_branch(if_node) = @builder.take_back_branch(if_node)
+
       # A loop on this test, stopping once it holds, taken a step at a time as a branch is.
       def open_repeat(most_passes)
         @builder.consume_condition(self)

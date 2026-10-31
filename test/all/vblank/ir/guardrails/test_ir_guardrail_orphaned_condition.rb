@@ -68,7 +68,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     orphans = orphans_for do
       x = var :x, 5
       y = var :y, 2
-      (x > 3) & (y < 10) # the two operands are consumed by `&`; the result is not
+      (x > 3) && (y < 10) # the two operands are consumed by `&&`; the result is not
     end
 
     assert_equal 1, orphans.size, "only the un-branched combined Condition is orphaned"

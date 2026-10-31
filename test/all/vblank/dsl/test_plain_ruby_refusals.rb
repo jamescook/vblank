@@ -4,6 +4,7 @@ require "stringio"
 require "test_helper"
 require "fixtures/game_with_plain_helper/game"
 require "fixtures/game_with_plain_data/game"
+require "fixtures/game_behind_a_part/game"
 
 # What a game block in normal Ruby cannot do, and the plain words an author gets instead.
 class TestPlainRubyRefusals < Minitest::Test
@@ -256,6 +257,40 @@ class TestPlainRubyRefusals < Minitest::Test
   def test_an_old_way_of_changing_a_variable_is_refused
     assert_refused("A game does not need `set!`") { game_loop { hp = var(:hp, 0); hp.set! 1 } }
     assert_refused("A game does not need `add!`") { game_loop { add! :hp, 1 } }
+  end
+
+  def test_tests_joined_by_a_bit_operator_are_refused
+    assert_refused("write `&&`") do
+      hp = 3
+      game_loop do
+        wait_vblank if (hp > 1) & (hp < 9)
+        hp -= 1
+      end
+    end
+    assert_refused("write `||`") do
+      hp = 3
+      game_loop do
+        wait_vblank if (hp > 1) | (hp < 9)
+        hp -= 1
+      end
+    end
+  end
+
+  def test_the_librarys_own_branch_is_refused_in_a_game
+    assert_refused("A game does not need `when_true`") { game_loop { held(:a).when_true { wait_vblank } } }
+  end
+
+  def test_a_game_made_by_eval_with_no_file_is_refused
+    block = eval("proc { game_loop { wait_vblank } }") # rubocop:disable Security/Eval
+    error = assert_raises(Refused) { VBlank::DSL::PlainRuby.game_block(block) }
+
+    assert_includes error.message, "no file"
+  end
+
+  def test_game_code_behind_a_game_part_is_refused
+    error = assert_raises(Refused) { VBlank::DSL::PlainRuby.rewrite(GameBehindAPart.block) }
+
+    assert_includes error.message, "`walker.rb` holds game code"
   end
 
   def test_a_game_with_no_file_is_refused

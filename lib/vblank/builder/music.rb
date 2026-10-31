@@ -111,7 +111,7 @@ module VBlank
           wanted = value_handle_for(:__music_level_wanted)
           wanted = amount * full / 100
           wanted.clamp! 0, full
-          @music_level = wanted
+          @music_level.set! wanted # one variable taking the other's number, where `=` would move the name
         end
         nil
       end

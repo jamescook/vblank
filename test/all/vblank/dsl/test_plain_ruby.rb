@@ -354,6 +354,165 @@ class TestPlainRuby < Minitest::Test
     assert_equal 9, player[:total]
   end
 
+  def test_the_right_of_and_runs_only_when_the_left_holds
+    player = played(frames: 3) do
+      n = 0
+      seen = 0
+      game_loop do
+        (n == 99) && (seen += 1)
+        n += 1
+      end
+    end
+
+    assert_equal 0, player[:seen]
+  end
+
+  def test_the_right_of_or_runs_only_when_the_left_fails
+    player = played(frames: 3) do
+      n = 0
+      seen = 0
+      game_loop do
+        (n == 0) || (seen += 1)
+        n += 1
+      end
+    end
+
+    assert_operator player[:seen], :>=, 1
+    assert_operator player[:seen], :<, player[:n]
+  end
+
+  def test_two_tests_joined_still_make_one_test
+    player = played(frames: 2) do
+      hp = 3
+      both = 0
+      either = 0
+      game_loop do
+        both = 1 if hp > 1 && hp < 9
+        either = 1 if hp > 9 || hp < 9
+        hp += 0
+      end
+    end
+
+    assert_equal [1, 1], [player[:both], player[:either]]
+  end
+
+  def test_an_ivar_given_another_variable_moves_to_it
+    player = played(frames: 2) do
+      a = var :a, 1
+      b = var :b, 2
+      @focus = a
+      seen = 0
+      game_loop do
+        @focus = b
+        seen = @focus
+        a += 0
+        b += 0
+      end
+    end
+
+    assert_equal [1, 2], [player[:a], player[:seen]]
+  end
+
+  def test_a_light_moved_to_two_variables_takes_their_numbers
+    player = played(frames: 2) do
+      screen :tiled
+      light = spotlight at: [0, 0], radius: 8, dark: 50
+      x = 30
+      y = 40
+      seen_x = 0
+      seen_y = 0
+      game_loop do
+        light.move_to x, y
+        seen_x = light.x
+        seen_y = light.y
+        x += 0
+        y += 0
+      end
+    end
+
+    assert_equal [30, 40], [player[:seen_x], player[:seen_y]]
+  end
+
+  def test_a_picked_value_in_parentheses_is_kept
+    player = played(frames: 2) do
+      hp = 3
+      y = 0
+      game_loop do
+        y = (hp > 3 ? 2 : 7)
+        hp += 0
+      end
+    end
+
+    assert_equal 7, player[:y]
+  end
+
+  def test_begin_end_while_runs_its_body_first
+    player = played(frames: 1) do
+      count = 0
+      begin
+        count += 1
+      end while count > 5
+      total = var :total, count
+      game_loop { total += 0 }
+    end
+
+    assert_equal 1, player[:total]
+  end
+
+  def test_or_equals_sets_a_yes_or_no_that_is_false
+    player = played(frames: 3) do
+      n = 0
+      latched = false
+      game_loop do
+        latched ||= n == 0
+        n += 1
+      end
+    end
+
+    assert_equal 1, player[:latched]
+  end
+
+  def test_or_equals_leaves_a_number_alone_as_it_is_truthy
+    player = played(frames: 2) do
+      n = 5
+      game_loop do
+        n ||= 9
+        n += 0
+      end
+    end
+
+    assert_equal 5, player[:n]
+  end
+
+  def test_a_name_started_from_a_symbol_is_a_variable
+    player = played(frames: 2) do
+      mode = :title
+      seen = 0
+      game_loop do
+        seen = 1 if mode == :playing
+        mode = :playing
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  NEGATIVE = -4
+
+  def test_a_name_started_from_a_constant_turned_round_is_a_variable
+    player = played(frames: 2) do
+      x = -NEGATIVE
+      y = NEGATIVE.abs
+      game_loop do
+        x += 1
+        y += 1
+      end
+    end
+
+    assert_operator player[:x], :>, 4
+    assert_operator player[:y], :>, 4
+  end
+
   def test_a_number_handed_in_is_truthy_even_at_zero
     player = played(frames: 2) do
       def count_if_there(count, by)

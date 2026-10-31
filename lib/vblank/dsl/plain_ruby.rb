@@ -50,10 +50,11 @@ module VBlank
         rewritable?(block) ? rewrite(block, allow: allow) : block
       end
 
-      # A game read from standard input, or given with `ruby -e`, has no file to read back, so
-      # none of it could be read as normal Ruby. Run as it stands, `x += 1` would do nothing.
+      # A game read from standard input, given with `ruby -e` or made by `eval` has no file to read
+      # back, so none of it could be read as normal Ruby. Run as it stands, `x += 1` would do nothing.
       def refuse_block_with_no_file!(block)
-        return unless ["-", "-e"].include?(block.source_location&.first)
+        path = block.source_location&.first
+        return unless ["-", "-e"].include?(path) || path&.start_with?("(eval")
 
         raise Refused, "This game has no file, so VBlank cannot read it. To fix this, save it in a " \
                        "`.rb` file and run that file."
@@ -152,6 +153,7 @@ module VBlank
       class Rewriter
         STEPS = "::VBlank::DSL::PlainRubySteps"
         JUMPS = [Prism::ReturnNode, Prism::BreakNode, Prism::NextNode].freeze
+        BIT_JOINS = %i[& |].freeze
 
         attr_reader :block_node
 
@@ -190,6 +192,8 @@ module VBlank
           when Prism::CallNode then call_text(node)
           when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
           when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
+          when Prism::LocalVariableOrWriteNode then logic_write_text(node, "either")
+          when Prism::LocalVariableAndWriteNode then logic_write_text(node, "both")
           when Prism::InstanceVariableWriteNode then instance_variable_write_text(node)
           when Prism::InstanceVariableOperatorWriteNode then change_text(node)
           when Prism::IndexOperatorWriteNode then place_change_text(node, index_text(node))
@@ -246,9 +250,14 @@ module VBlank
           return "#{STEPS}.opposite(#{argument(node.receiver)})" if node.name == :! && node.receiver
           return index_write_text(node) if node.name == :[]= && node.receiver
           return attribute_write_text(node) if node.attribute_write? && node.receiver
+          return bits_text(node) if BIT_JOINS.include?(node.name) && node.receiver && node.arguments
           return "self.#{copied_text(node)}" if node.receiver.nil? && @outer_locals.include?(node.name)
 
           copied_text(node)
+        end
+
+        def bits_text(node)
+          "#{STEPS}.bits(#{argument(node.receiver)}, :#{node.name}, #{argument(node.arguments.arguments.first)})"
         end
 
         def index_write_text(node)
@@ -283,11 +292,11 @@ module VBlank
         # A part of a game keeps its variables in these, so one holding a game variable is changed.
         def instance_variable_write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
-          "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
+          "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value_text(node.value)}))"
         end
 
         def write_text(node)
-          prefix =between(node.location.start_offset, node.value.location.start_offset)
+          prefix = between(node.location.start_offset, node.value.location.start_offset)
           case @names.action_for(node)
           when :declare then "#{prefix}#{declaration(node)}"
           when :start then "#{prefix}#{STEPS}.start(#{declaration(node)}, #{text(node.value)})"
@@ -312,8 +321,18 @@ module VBlank
         end
 
         def value_text(value)
+          return "(#{value_text(lone_statement(value))})" if lone_statement(value)
+
           conditional = value.is_a?(Prism::IfNode) || value.is_a?(Prism::UnlessNode)
           conditional ? conditional_text(value, kept: true) : text(value)
+        end
+
+        # `x ||= value`. On a game variable it is `x = x || value`, so a yes or no is set as the
+        # game plays. A plain name is left to Ruby.
+        def logic_write_text(node, step)
+          return copied_text(node) unless @names.action_for(node)
+
+          "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{text(node.value)} })"
         end
 
         def change_text(node)
@@ -365,7 +384,16 @@ module VBlank
             else line_ends_between(opened, shut_at)
             end
           end
-          "(#{test} = #{STEPS}.#{step} { #{text(node.predicate)} }; while #{test}.again?; #{body}; end)"
+          first = node.begin_modifier? ? "#{body}; " : ""
+          "(#{test} = #{STEPS}.#{step} { #{text(node.predicate)} }; #{first}while #{test}.again?; #{body}; end)"
+        end
+
+        # What a pair of parentheses holds, when that is one conditional.
+        def lone_statement(value)
+          return unless value.is_a?(Prism::ParenthesesNode) && value.body.is_a?(Prism::StatementsNode)
+
+          only = value.body.body
+          only.first if only.one? && (only.first.is_a?(Prism::IfNode) || only.first.is_a?(Prism::UnlessNode))
         end
 
         # A conditional as two real `if`s, one for each side. A plain test takes one; a game

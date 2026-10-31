@@ -37,8 +37,8 @@ module VBlank
 
       # Put the middle of the light at (+x+, +y+). Either may be worked out as the game runs.
       def move_to(x, y)
-        @x = x
-        @y = y
+        @x.set! x
+        @y.set! y
         self
       end
 

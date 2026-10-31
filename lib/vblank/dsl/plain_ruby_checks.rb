@@ -27,7 +27,7 @@ module VBlank
         INDIRECT_CALLS = %i[__send__ class_eval const_get instance_eval public_send send].freeze
 
         # What a variable used to be changed with, which plain Ruby says better.
-        OLD_CHANGING_VERBS = %i[set! add! sub! add_var! sub_var! copy!].freeze
+        OLD_CHANGING_VERBS = %i[set! add! sub! add_var! sub_var! copy! when_true].freeze
 
         # What only game code calls, so a file holding one is game code. These need a block, since
         # `scene` or `func` alone could be a method of the file's own. `var` needs a name instead.
@@ -72,7 +72,8 @@ module VBlank
         # plain `state = 1` there sets a Ruby name, and nothing ever says so. Looking only at
         # what a file calls keeps this a read of the few files a game names.
         def refuse_game_code_in_plain_files!(from = @file, seen = [])
-          required_files(from).each do |path, line|
+          files_loaded_by(from, :require_game_file).each { |path, _line| refuse_game_code_in_plain_files!(path, seen) }
+          files_loaded_by(from, :require_relative).each do |path, line|
             next if seen.include?(path) || path.start_with?("#{VBlank.root.join('lib')}/")
 
             seen << path
@@ -91,8 +92,8 @@ module VBlank
 
         private
 
-        def required_files(from)
-          required_calls(Prism.parse_file(from).value).filter_map do |call|
+        def files_loaded_by(from, verb)
+          loading_calls(Prism.parse_file(from).value, verb).filter_map do |call|
             argument = call.arguments&.arguments&.first
             next unless argument.is_a?(Prism::StringNode)
 
@@ -101,9 +102,9 @@ module VBlank
           end
         end
 
-        def required_calls(node)
-          own = node.is_a?(Prism::CallNode) && node.receiver.nil? && node.name == :require_relative ? [node] : []
-          own + node.compact_child_nodes.flat_map { |child| required_calls(child) }
+        def loading_calls(node, verb)
+          own = node.is_a?(Prism::CallNode) && node.name == verb ? [node] : []
+          own + node.compact_child_nodes.flat_map { |child| loading_calls(child, verb) }
         end
 
         def game_code?(node)
