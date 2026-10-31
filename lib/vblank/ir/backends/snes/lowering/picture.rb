@@ -92,11 +92,6 @@ module VBlank
                 refuse_unmade!("a background drawn from several sets of tiles") if bg.several_sets?
                 refuse_unmade!("a background whose maps are of different sizes or too big to hold") if bg.streams?
               end
-              @objects.each_value do |obj|
-                refuse_unmade!("a sprite put in another layer as the game runs (`put_in_layer`)") if obj.layer_pick
-              end
-              ordered = @reachable.any? { |node| node.kind == :present_objects && !Array(node.orders).empty? }
-              refuse_unmade!("sprites drawn in an order the game works out (`draw_in_order`)") if ordered
             end
 
             # Every picture a sprite can show, made into sprite pieces in the order SpriteNames numbers
@@ -265,23 +260,26 @@ module VBlank
             # background on its layer): each sprite's priority, by its name, from the backgrounds
             # in front of it on the screens it is on (IR::Stacking's depths, per screenful) — 3 for
             # none, 2 for BG1 alone, which is then drawn high (Art::CELL_IN_FRONT), 1 for BG2. Empty when
-            # every sprite is in front of every background, as in a game that names no layers.
+            # every sprite is in front of every background, as in a game that names no layers. A sprite
+            # that can be put in other layers has one by each name it has a depth by (#depth_names).
             def sprite_depths
               @sprite_depths ||= begin
                 found = {}
                 Stacking.screenfuls(@program).each do |screenful|
                   scenery = screenful.scenery.reject(&:bar?)
                   screenful.objects.each do |obj|
-                    level = screenful.depths[obj.name]
-                    front = scenery.select { |bg| screenful.depths.of_scenery(bg) > level }.map { |bg| layer_of(bg) }
-                    priority = if front.include?(1) then 1
-                               elsif front.include?(0) then 2
-                               else 3
-                               end
-                    if found.fetch(obj.name, priority) != priority
-                      refuse_unmade!("a sprite behind a background on one screen and in front of it on another")
+                    depth_names(obj).each do |name|
+                      level = screenful.depths[name]
+                      front = scenery.select { |bg| screenful.depths.of_scenery(bg) > level }.map { |bg| layer_of(bg) }
+                      priority = if front.include?(1) then 1
+                                 elsif front.include?(0) then 2
+                                 else 3
+                                 end
+                      if found.fetch(name, priority) != priority
+                        refuse_unmade!("a sprite behind a background on one screen and in front of it on another")
+                      end
+                      found[name] = priority
                     end
-                    found[obj.name] = priority
                   end
                 end
                 found.reject! { |_, priority| priority == 3 }
@@ -740,15 +738,113 @@ module VBlank
               store_number(place_of(hidden), 0)
               @asm.brl(done)
               @asm.label(placing)
-              node.names.each do |name|
-                obj = @objects.fetch(name) { raise LoweringError, "present of undeclared object #{name.inspect}" }
-                skip = fresh("sprite_off")
-                jump_unless(Build.binop(:==, obj.active, Build.int(1)), skip)
-                behind = sprite_depths.empty? ? [] : [Build.int((3 - sprite_depths.fetch(name, 3)) << SPRITE_PRIORITY_SHIFT)]
-                emit_sprite_place(obj, name, behind)
-                @asm.label(skip)
+              objects = node.names.map { |name| object_named(name) }
+              if objects.any?(&:layer_pick)
+                emit_layer_changing_sprites(node, objects)
+              else
+                present_items(node).each do |item|
+                  next emit_ordered_run(item) if item.is_a?(Build::DrawOrder)
+
+                  emit_sprite_placing(object_named(item), item)
+                end
               end
               @asm.label(done)
+            end
+
+            def object_named(name) = @objects.fetch(name) { raise LoweringError, "present of undeclared object #{name.inspect}" }
+
+            # One sprite placed, if it is showing, as deep as the name +at+ — its own, or one of the other
+            # layers it can be put in (Stacking.choice_name) — has it among the backgrounds.
+            def emit_sprite_placing(obj, at = obj.name)
+              skip = fresh("sprite_off")
+              jump_unless(Build.binop(:==, obj.active, Build.int(1)), skip)
+              behind = sprite_depths.empty? ? [] : [Build.int((3 - sprite_depths.fetch(at, 3)) << SPRITE_PRIORITY_SHIFT)]
+              emit_sprite_place(obj, obj.name, behind)
+              @asm.label(skip)
+            end
+
+            # The frame's sprites back to front, each a name — or, for a run the game orders
+            # (`draw_in_order`), the run, at the place of its first sprite.
+            def present_items(node)
+              Array(node.orders).reduce(node.names.dup) do |names, run|
+                first = names.index(run.objects.first)
+                names[0...first] + [run] + names[(first + run.objects.length)..]
+              end
+            end
+
+            # A RUN THE GAME PUTS IN ORDER AS IT RUNS (Reference#names_in_draw_order): its list holds the
+            # run's sprites back to front, each by its place in the run, so each entry in turn places
+            # the sprite it names — back-most first, as every sprite here is. A sprite's placing is a
+            # routine of its own (#sprite_placing_sections), so the entries share it.
+            def emit_ordered_run(run)
+              entry = keep_local(:ordered_entry)
+              run.objects.each_index do |k|
+                statement(Build.set(entry, Build.list_get(run.order, Build.int(k))))
+                past = fresh("past_the_ordered")
+                run.objects.each_with_index do |name, at|
+                  other = fresh("not_sprite")
+                  jump_unless(Build.binop(:==, Build.var_ref(entry), Build.int(at)), other)
+                  call_routine(sprite_placing_label(name))
+                  @asm.brl(past)
+                  @asm.label(other)
+                end
+                @asm.label(past)
+              end
+            end
+
+            def sprite_placing_label(name) = (@sprite_placings ||= {})[name] ||= "sprite placing #{@sprite_placings.length}"
+
+            # The routine each sprite of an ordered run is placed by (#emit_ordered_run), made once the
+            # game's routines are.
+            def sprite_placing_sections
+              (@sprite_placings || {}).map do |name, label|
+                routine_section(label, [], routine: "placing the sprite #{name.inspect}") { emit_sprite_placing(object_named(name)) }
+              end
+            end
+
+            # A FRAME WITH SPRITES THAT CHANGE LAYER as the game runs (`put_in_layer`,
+            # Reference#object_level): every depth any of them can be at, back-most first, and at each,
+            # every sprite that can be there, placed when the layer it is in now is that one — so a
+            # sprite is placed once, among the sprites of its layer now, behind the backgrounds as
+            # that layer is.
+            def emit_layer_changing_sprites(node, objects)
+              refuse_unmade!("sprites drawn in an order the game works out, beside a sprite put in another layer") unless Array(node.orders).empty?
+
+              depths = Stacking.picture(@program).depths
+              objects.flat_map { |obj| Stacking.levels_of(depths, obj) }.uniq.sort.each do |level|
+                objects.each do |obj|
+                  at = depth_names(obj).find { |name| depths[name] == level }
+                  next unless at
+
+                  there = at_level(obj, level, depths)
+                  next emit_sprite_placing(obj, at) if there == true
+
+                  elsewhere = fresh("sprite_elsewhere")
+                  jump_unless(there, elsewhere)
+                  emit_sprite_placing(obj, at)
+                  @asm.label(elsewhere)
+                end
+              end
+            end
+
+            # The names +obj+ has a depth by: its own, and one for each other layer it can be put in.
+            def depth_names(obj) = [obj.name, *Stacking.layer_choices(obj).map(&:name)]
+
+            # When a sprite is at depth +level+: always (true), or a test of the number that picks its
+            # layer — one naming a layer at that depth, or, for its own layer's depth, one naming none
+            # of them (Reference#object_level).
+            def at_level(obj, level, depths)
+              own = depths[obj.name] == level
+              layers = Array(obj.layers)
+              return true if layers.empty?
+
+              pick = Build.var_ref(obj.layer_pick)
+              tests = layers.each_index.select { |i| depths[Stacking.choice_name(obj, layers[i])] == level }
+                            .map { |i| Build.binop(:==, pick, Build.int(i)) }
+              if own
+                tests << Build.binop(:or, Build.binop(:<, pick, Build.int(0)), Build.binop(:>=, pick, Build.int(layers.length)))
+              end
+              tests.reduce { |either, test| Build.binop(:or, either, test) }
             end
 
             # The table of a sprite's pictures: how many, then each one's number.

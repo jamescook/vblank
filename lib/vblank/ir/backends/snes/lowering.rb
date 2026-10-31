@@ -177,7 +177,8 @@ module VBlank
             timers = timer_sections
             @lowering_scene = nil
             main = routines_fitting(MAIN, @program.children, routine: "the game loop")
-            [data_section, *table_sections, *routines, *timers, *main]
+            placings = sprite_placing_sections
+            [data_section, *table_sections, *routines, *timers, *main, *placings]
           end
 
           private

@@ -284,25 +284,6 @@ class TestSNESPicture < Minitest::Test
     assert_equal 12, run[:t]
   end
 
-  # A sprite the game puts in another layer as it runs is not made yet.
-  def test_a_sprite_moved_between_layers_as_the_game_runs_is_refused_in_plain_words
-    error = assert_raises(SNES::Lowering::NotMadeYet) do
-      SNES.new.build(program_of do
-        screen :tiled
-        image(:wall, "#" => :gray) { "########\n" * 8 }
-        image(:ball, "#" => :red) { "####\n" * 4 }
-        tiles :set, "#" => :wall
-        layers :back, :actors, :front
-        layer(:back) { background :floor, tiles: :set, map: ["##"] }
-        layer(:front) { background :roof, tiles: :set, map: ["##"] }
-        ball = layer(:actors) { sprite :ball, at: [0, 0] }
-        game_loop { ball.put_in_layer :front }
-      end)
-    end
-
-    assert_match(/another layer as the game runs/, error.message)
-  end
-
   # A scene's own background goes on the front layer, so one the layers put behind a background
   # every screen shows is not made yet.
   def test_a_scenes_background_behind_one_every_screen_shows_is_refused_in_plain_words
