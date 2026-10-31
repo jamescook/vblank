@@ -252,6 +252,8 @@ module VBlank
         VIBRATO_SLOT = 7
         PAN_SLOT = 8
         DUTY_SLOT = 9
+        # ...and a drum's own noise setting, [divider, halvings] (Score::Note#noise_clock).
+        NOISE_CLOCK_SLOT = 10
 
         # Does this part, or a note of it, say a slide?
         def slides? = Music.slides_said?(slide, events)

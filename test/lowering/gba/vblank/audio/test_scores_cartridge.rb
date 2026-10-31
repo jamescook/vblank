@@ -219,6 +219,15 @@ class TestScoresCartridge < Minitest::Test
 
   # The console is told the rung in the noise voice's register, and those bits read back: the
   # low three are the divider and the four above the metallic bit are the halvings.
+  # A drum that names its own setting is written with exactly that setting, not the first of the
+  # settings that step at the same rate.
+  def test_the_console_is_told_a_drums_own_noise_setting
+    rom = assemble_rom(game([drum_with_clock([1, 1])]) { |music, _| music.play 0 }, name: "DRMSET")
+    register = assert_emulator_loads_rom(rom, frames: 8).mem16(VBlank::Console::Hardware::REG_SOUND4CNT_H)
+
+    assert_equal 0x11, register & 0xF7
+  end
+
   def test_the_console_steps_a_noise_note_at_the_rate_it_names
     rom = assemble_rom(game([drums_at(131_072)]) { |music, _| music.play 0 }, name: "DRUMS")
     register = assert_emulator_loads_rom(rom, frames: 8).mem16(VBlank::Console::Hardware::REG_SOUND4CNT_H)

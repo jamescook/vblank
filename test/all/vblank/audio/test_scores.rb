@@ -50,6 +50,12 @@ module ScoresGames
     notes = rates.each_with_index.map { |rate, n| Note.new(at: n * 4, hz: rate) }
     Score.new(tempo: 150, parts: [Part.new(plays: plays, notes: notes)])
   end
+
+  # A drum that names the noise voice's own setting: its divider and how many times it is halved.
+  # [1, 1] and [0, 2] step at the same 131,072 a second, and another game's engine says one of them.
+  private def drum_with_clock(clock, plays: :noise, **part)
+    Score.new(tempo: 150, parts: [Part.new(plays: plays, **part, notes: [Note.new(at: 0, noise_clock: clock)])])
+  end
 end
 
 # MUSIC HANDED OVER AS DATA. A game whose music already exists as numbers — decoded out of
@@ -128,6 +134,33 @@ class TestScores < Minitest::Test
       drums = drums_at(rate)
       assert_match(/524,288/, build_error { songs :music, [drums] }, "hz: #{rate.inspect}")
     end
+  end
+
+  # A drum's own setting steps at the rate the setting makes, on every backend.
+  def test_a_drum_steps_at_the_rate_its_noise_setting_makes
+    played = game_player.run(game([drum_with_clock([1, 1])]) { |music, _| music.play 0 }, frames: 6).audio
+    pitches = played.filter_map { |kind, voice, _who, pitch| pitch if kind == :voice && voice == 4 && pitch.positive? }
+
+    assert_equal [131_072], pitches.map(&:round).uniq
+  end
+
+  def test_a_noise_setting_off_the_noise_voice_is_a_friendly_error
+    pad = drum_with_clock([1, 1], plays: :wave)
+
+    assert_match(/only a part on the noise voice/i, build_error { songs :music, [pad] })
+  end
+
+  def test_a_noise_setting_the_voice_does_not_have_is_a_friendly_error
+    [[8, 1], [1, 14], [1], "fast"].each do |clock|
+      drums = drum_with_clock(clock)
+      assert_match(/0 to 7.*0 to 13/m, build_error { songs :music, [drums] }, clock.inspect)
+    end
+  end
+
+  def test_a_noise_setting_in_a_transposed_part_is_a_friendly_error
+    drums = drum_with_clock([1, 1], transpose: 12)
+
+    assert_match(/transpose/, build_error { songs :music, [drums] })
   end
 
   def test_a_written_number_past_the_last_song_is_a_friendly_error

@@ -132,6 +132,10 @@ module VBlank
       # always did, and says nothing here.
       def said_duty(part, event) = event[Audio::Music::Part::DUTY_SLOT] || part.duties
 
+      # A DRUM'S OWN NOISE SETTING, [divider, halvings], when its note said one, or nil. Only a
+      # console told the setting itself reads it: the rate it makes is the note's pitch already.
+      def said_noise_clock(event) = event[Audio::Music::Part::NOISE_CLOCK_SLOT]
+
       # A NOTE SETTING ITS VOICE, as every backend's log says it: [:voice, channel, who, frequency,
       # volume], then the note's fade, its slide and its wobble when it said them (#said_fade,
       # #said_slide, #said_vibrato), its side when it is one speaker (#note_side), and its shape

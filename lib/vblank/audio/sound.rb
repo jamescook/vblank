@@ -482,10 +482,10 @@ module VBlank
         #
         # A frequency of 0 is a rest: the voice restarts at no volume at all, which stops a hit
         # that was still ringing.
-        def noise_note(frequency:, decay:, volume:, metallic:, fade: nil)
+        def noise_note(frequency:, decay:, volume:, metallic:, fade: nil, clock: nil)
           return [[REG_SOUND4CNT_L, 0x0000], [REG_SOUND4CNT_H, 0x8000]] if frequency.zero?
 
-          divisor, shift = noise_clock(frequency)
+          divisor, shift = clock || noise_clock(frequency)
           control = (volume << 12) | ((fade ? fade.bits : decay_step(decay)) << 8)
           [[REG_SOUND4CNT_L, control],
            [REG_SOUND4CNT_H, 0x8000 | (shift << 4) | (metallic ? 0x0008 : 0x0000) | divisor]]

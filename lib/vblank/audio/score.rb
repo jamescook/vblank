@@ -154,7 +154,7 @@ module VBlank
       # +slide_down+ how it slides its pitch, +vibrato+ how it wobbles, +pan+ the speaker it plays
       # from, and +duty+ its shape or the shapes it steps through (see Part).
       Note = Data.define(:at, :key, :length, :instrument, :volume, :envelope, :hz, :decay, :swell, :slide_up,
-                         :slide_down, :vibrato, :pan, :duty, :pitch_number)
+                         :slide_down, :vibrato, :pan, :duty, :pitch_number, :noise_clock)
 
       class Note
         # A NOTE ON A SQUARE VOICE OR THE WAVE VOICE CAN GIVE +pitch_number+ IN PLACE OF A KEY: the
@@ -162,15 +162,21 @@ module VBlank
         # the voice's clock shorter (the same steps a part's `pitch_offset` counts). Another Game Boy
         # game's music engine keeps a table of these, and its notes are often a step away from the
         # pitch a key comes to, so a song converted from it says the number to sound the same.
+        #
         # A NOTE ON THE NOISE VOICE CAN GIVE +hz+ IN PLACE OF A KEY: how many times a second its
         # hiss steps. A key cannot say most of them. The voice steps up to 524,288 times a second,
         # and the highest MIDI key is 12,543 Hz — so a drum that wants a thin, fast hiss, which is
         # most drums another game's sound engine plays, has no key to ask for it with. The voice
         # still plays the rung of its ladder nearest the rate (Sound.noise_rung), as it does for a
         # key.
+        #
+        # ...OR +noise_clock+, the voice's own setting: [divider, halvings], the divider 0 to 7 and
+        # how many times it is halved 0 to 13 (Sound.noise_rung_hz). Several settings step at one
+        # rate — [1, 1] and [0, 2] both 131,072 times a second — and sound the same; a console that
+        # is told the setting itself is told this one, as the game the song came from told it.
         def initialize(at:, key: nil, length: nil, instrument: nil, volume: nil, envelope: nil, hz: nil,
                        decay: nil, swell: nil, slide_up: nil, slide_down: nil, vibrato: nil, pan: nil, duty: nil,
-                       pitch_number: nil)
+                       pitch_number: nil, noise_clock: nil)
           super
         end
 
@@ -199,6 +205,7 @@ module VBlank
         def frequency(kind = :square)
           return hz if hz
           return PitchShift.frequency_of(pitch_number, kind) if pitch_number
+          return Sound.noise_rung_hz(*noise_clock) if noise_clock
 
           case key
           when nil then 0
@@ -249,7 +256,7 @@ module VBlank
           kind = Music.kind_played(Music.resolve_plays(part.plays))
           events = notes.each_with_index.flat_map do |note, n|
             said = Music.without_trailing_nils([note.fade(who), note.slide(who), note.wobble(who), note.side(who),
-                                                note.shape(who)])
+                                                note.shape(who), note.noise_clock])
             on = [frames.at(note.at), note.frequency(kind), note.instrument_name, note.volume,
                   Envelope.of(note.envelope, "a note"), *said]
             next [on] unless note.length
@@ -349,6 +356,11 @@ module VBlank
           voice = Music.resolve_plays(part.plays)
           volume!(part.volume, "Part #{number}", recording?(voice))
 
+          if part.transpose.to_i != 0 && part.notes.any? { |note| note.is_a?(Note) && note.noise_clock }
+            raise ArgumentError, "Part #{number} says `transpose` and has a note with a `noise_clock`. A noise clock " \
+                                 "is the voice's own setting, and a transpose cannot move it. To fix this, remove " \
+                                 "`transpose` from the part, or give those notes `hz:`."
+          end
           part.notes.each_with_index do |note, index|
             note!(note, "Note #{index} of part #{number}", voice)
             next unless note.instrument && !part.plays
@@ -372,6 +384,7 @@ module VBlank
           key!(note.key, where)
           noise_rate!(note, where, voice) if note.hz
           pitch_number!(note, where, voice) unless note.pitch_number.nil?
+          noise_clock!(note, where, voice) unless note.noise_clock.nil?
           volume!(note.volume, where, recording?(voice)) if note.volume
         end
 
@@ -418,6 +431,24 @@ module VBlank
 
           raise ArgumentError, "#{where} has `pitch_number: #{note.pitch_number.inspect}`. A pitch number is a whole " \
                                "number from 0 to #{Sound::SQUARE_LONGEST_WAVE - 1}. Give a number in that range."
+        end
+
+        # A note that gives +noise_clock+ is on the noise voice, gives no other pitch, and names a
+        # setting the voice has.
+        def noise_clock!(note, where, voice)
+          unless noise?(voice)
+            raise ArgumentError, "#{where} gives a `noise_clock`. Only a part on the noise voice (`plays: :noise`) " \
+                                 "can do that. Give the note a `key:` instead."
+          end
+          if note.key || note.hz
+            raise ArgumentError, "#{where} has both a `noise_clock` and a key or `hz:`. A note has one pitch. " \
+                                 "Remove one of them."
+          end
+          divider, halvings, *rest = note.noise_clock if note.noise_clock.is_a?(Array)
+          return if rest&.empty? && Sound::NOISE_DIVIDERS.include?(divider) && Sound::NOISE_HALVINGS.include?(halvings)
+
+          raise ArgumentError, "#{where} has `noise_clock: #{note.noise_clock.inspect}`. A noise clock is " \
+                               "[divider, halvings]: a divider 0 to 7, and halvings 0 to 13. Give two numbers in those ranges."
         end
 
         # A loudness is 0 (silent) to 15 (the loudest), the same scale a song block's `volume` is.

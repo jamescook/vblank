@@ -2579,6 +2579,7 @@ module VBlank
                 frame, frequency, _instrument, volume = event
                 shapes = IR::Tunes.said_duty(part, event) if frequency.positive? && lane.kind == :square
                 writes = console_note(lane, part, frequency, volume || part.volume, fade: IR::Tunes.said_fade(part, event),
+                                                                                   clock: IR::Tunes.said_noise_clock(event),
                                                                                    duty: shapes&.at(0))
                 control = note_reg_value(writes, regs[:reg_a])
                 control |= (volume || part.volume) << WAVE_VOLUME_SHIFT if keeps_wave_volume?(lane, frequency)
@@ -2624,7 +2625,7 @@ module VBlank
           # — and the player copies whichever pair it finds, knowing none of that. A square or noise
           # note's +fade+ (IR::Tunes.said_fade) is in its control value, which the voice counts by
           # itself, and so is a square note's +duty+ — its own first shape, or its part's.
-          def console_note(lane, part, frequency, volume, fade: nil, duty: nil)
+          def console_note(lane, part, frequency, volume, fade: nil, duty: nil, clock: nil)
             case lane.kind
             when :square
               VBlank::Audio::Sound::Registers.channel_note(lane.index, frequency: frequency, duty: duty || part.duty,
@@ -2633,7 +2634,7 @@ module VBlank
               VBlank::Audio::Sound::Registers.wave_note(frequency: frequency, volume: volume)
             else
               VBlank::Audio::Sound::Registers.noise_note(frequency: frequency, volume: volume,
-                                          decay: part.decay, metallic: part.metallic, fade: fade)
+                                          decay: part.decay, metallic: part.metallic, fade: fade, clock: clock)
             end
           end
 

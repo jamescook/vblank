@@ -254,9 +254,10 @@ module VBlank
           def note_tuning(voice, part, event)
             pitch = event[1]
             fade = Tunes.said_fade(part, event) unless pitch.zero?
-            return tuning(voice, pitch) unless fade
+            clock = Tunes.said_noise_clock(event)
+            return tuning(voice, pitch, clock) unless fade
 
-            tuning(voice, pitch) | (fade.bits << FADE_SHIFT) | (voice == NOISE_VOICE ? NOISE_SAID_FADE : 0)
+            tuning(voice, pitch, clock) | (fade.bits << FADE_SHIFT) | (voice == NOISE_VOICE ? NOISE_SAID_FADE : 0)
           end
 
           # Every rank the game's songs and sound effects can have, and nobody's, lowest first.
@@ -361,14 +362,14 @@ module VBlank
           # The numbers a note's voice is tuned by, as its registers take them: the period of a
           # square or wave note, and the hiss's clock (and whether it is the metallic one) for a
           # noise note. REST for a rest.
-          def tuning(voice, pitch)
+          def tuning(voice, pitch, clock = nil)
             return REST if pitch.zero?
 
             sound = VBlank::Audio::Sound
             case voice
             when WAVE_VOICE then sound::Registers.wave_rate(pitch)
             when NOISE_VOICE
-              divisor, shift = sound.noise_rung(pitch)
+              divisor, shift = clock || sound.noise_rung(pitch)
               (shift << 4) | divisor
             else sound::Registers.frequency_value(pitch)
             end
