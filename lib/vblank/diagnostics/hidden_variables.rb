@@ -12,7 +12,7 @@ module VBlank
 
       WORDS = Ractor.make_shareable({
         copy: ["keeps its number from this line, as Ruby does.",
-               "Unneeded if the line is moved below what changes the number."],
+               "Unneeded if everything that reads it comes before the line that changes the number."],
         swap: ["keeps one number while the others are written.", nil],
         picked: ["keeps the number the test picked.", nil],
         join: ["keeps the answer of `&&` or `||`.", "Unneeded in an `if` with no `else`."],
