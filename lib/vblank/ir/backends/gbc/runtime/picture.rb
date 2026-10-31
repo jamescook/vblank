@@ -1393,7 +1393,8 @@ module VBlank
               asm.ret
               # Where the game comes in having worked the cell's place out itself, for a row and a
               # cell written in the program and a column known to be on the map
-              # (Lowering::Picture#emit_cell_at_known_row): HL the place, BC the cell.
+              # (Lowering::Picture#emit_cell_at_known_row, #emit_cell_at_known_place): HL the place,
+              # BC the cell.
               asm.label("#{label}_at_hl")
               asm.load(:a, :c)
               asm.load_high(arg.call(3), :a)

@@ -1291,13 +1291,24 @@ module VBlank
               cols, rows = map_size_of(bg)
               routine = bg.bar? ? "rt_bar_cell" : "rt_background_cell" # a status bar's is in the window's grid
               row = folded(node.row)
-              if row && byte_valued?(node.col)
-                grid = bg.bar? ? Console::GBCHardware::TILE_MAP1 : Console::GBCHardware::TILE_MAP0
-                return emit_cell_at_known_row(routine, grid, node.col, row, [cols, rows], cell.value)
-              end
+              grid = bg.bar? ? Console::GBCHardware::TILE_MAP1 : Console::GBCHardware::TILE_MAP0
+              col = folded(node.col)
+              return emit_cell_at_known_place(routine, grid, col, row, [cols, rows], cell.value) if row && col
+              return emit_cell_at_known_row(routine, grid, node.col, row, [cols, rows], cell.value) if row && byte_valued?(node.col)
 
               emit_cell_numbers(node.col, node.row, cols | (rows << 8), cell.value)
               @asm.call("#{routine}_taken")
+            end
+
+            # A cell whose column, row and tile are all written in the program: its place in the
+            # grid is known now, so nothing of it is worked out or checked as the game runs. A game's
+            # lights and arrows are many such cells in one frame. Off the map, it writes nothing.
+            def emit_cell_at_known_place(routine, grid, col, row, (cols, rows), cell)
+              return unless col.between?(0, cols - 1) && row.between?(0, rows - 1)
+
+              @asm.load(:hl, grid + (row * 32) + col)
+              @asm.load(:bc, cell)
+              @asm.call("#{routine}_at_hl")
             end
 
             # A cell whose row and tile are written in the program and whose column can only be a
