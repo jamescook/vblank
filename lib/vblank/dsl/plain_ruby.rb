@@ -190,6 +190,7 @@ module VBlank
         def rewritten_text(node)
           case node
           when Prism::IfNode, Prism::UnlessNode then conditional_text(node)
+          when Prism::CaseNode then case_text(node)
           when Prism::WhileNode then loop_text(node, "loop_while")
           when Prism::UntilNode then loop_text(node, "loop_until")
           when Prism::AndNode then joined_text(node, "join_both")
@@ -342,6 +343,7 @@ module VBlank
 
         def value_text(value)
           return "(#{value_text(lone_statement(value))})" if lone_statement(value)
+          return case_text(value, kept: true) if value.is_a?(Prism::CaseNode)
 
           conditional = value.is_a?(Prism::IfNode) || value.is_a?(Prism::UnlessNode)
           conditional ? conditional_text(value, kept: true) : rewritten_text(value)
@@ -452,6 +454,54 @@ module VBlank
           end
           "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{promotions}#{sides}" \
             "#{answer}.#{kept ? 'picked_value' : 'answer'})"
+        end
+
+        # `case` as a chain of tests. Each `when` is asked in turn, in Ruby's way on a plain value
+        # and as a test on a number the game keeps, and each arm stands in the no side of the one
+        # before it, so an arm that runs changes nothing the next asks about.
+        def case_text(node, kept: false)
+          subject = "__plain_ruby_#{@answers += 1}"
+          opened = (node.predicate || node).location
+          given = node.predicate ? "#{subject} = #{rewritten_text(node.predicate)}; " : ""
+          breaks = line_ends_between(node.predicate ? opened.end_offset : opened.start_offset, node.conditions.first.location.start_offset)
+          "(#{given}#{breaks}#{arm_text(node, 0, subject, kept)})"
+        end
+
+        def arm_text(node, index, subject, kept)
+          arm = node.conditions[index]
+          return else_arm_text(node) if arm.nil?
+
+          answer = "__plain_ruby_#{@answers += 1}"
+          promotions = promotions_text(node, node.conditions.drop(index).map(&:statements) + [node.else_clause], answer)
+          ends = (node.conditions[index + 1] || node.else_clause)&.location&.start_offset || node.end_keyword_loc.start_offset
+          sides = under_open_test(answer) do
+            yes = arm_body_text(arm, ends)
+            rest = node.conditions[index + 1] || node.else_clause ? arm_text(node, index + 1, subject, kept) : nil
+            "if #{answer}.open_yes_side; #{answer}.#{side_step(kept)}((#{yes})); end; " \
+              "#{"if #{answer}.open_no_side; #{answer}.#{side_step(kept)}((#{rest})); end; " if rest}"
+          end
+          "(#{answer} = #{STEPS}.branch_test(#{when_test_text(node, arm, subject)}); #{promotions}#{sides}" \
+            "#{answer}.#{kept ? 'picked_value' : 'answer'})"
+        end
+
+        def arm_body_text(arm, ends)
+          opened = arm.conditions.last.location.end_offset
+          arm.statements ? side_text(opened, arm.statements, ends) : line_ends_between(opened, ends)
+        end
+
+        def else_arm_text(node)
+          other = node.else_clause
+          opened = other.else_keyword_loc.end_offset
+          shut_at = node.end_keyword_loc.start_offset
+          other.statements ? side_text(opened, other.statements, shut_at) : line_ends_between(opened, shut_at)
+        end
+
+        def when_test_text(node, arm, subject)
+          choices = arm.conditions
+          return "#{STEPS}.when_test(#{subject}, #{choices.map { |choice| rewritten_text(choice) }.join(', ')})" if node.predicate
+
+          *others, last = choices
+          others.reverse.reduce(argument(last)) { |rest, choice| "#{STEPS}.join_either(#{argument(choice)}) { #{rest} }" }
         end
 
         # `if a && b` with no other side is one `if` inside another. So the right side is really

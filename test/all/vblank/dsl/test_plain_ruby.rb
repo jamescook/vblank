@@ -553,6 +553,117 @@ class TestPlainRuby < Minitest::Test
     refute_includes builder.program.walk.select { |node| node.kind == :var_ref }.map(&:name), :__kept_1
   end
 
+  private def case_on(start, &arms)
+    played do
+      n = var :n, start
+      seen = 0
+      game_loop { seen = instance_exec(n, &arms) }
+    end[:seen]
+  end
+
+  def test_case_on_a_variable_takes_the_arm_the_game_finds
+    arms = proc do |n|
+      picked = case n
+               when 0 then 1
+               when 1 then 2
+               else 3
+               end
+      picked
+    end
+
+    assert_equal [2, 3], [1, 9].map { |start| case_on(start, &arms) }
+  end
+
+  def test_case_takes_a_range_a_comma_list_and_a_list_written_out
+    arms = proc do |n|
+      picked = case n
+               when 0..2 then 1
+               when 5, 7 then 2
+               when *[9, 10] then 3
+               else 4
+               end
+      picked
+    end
+
+    assert_equal [1, 2, 3, 4], [1, 7, 10, 3].map { |start| case_on(start, &arms) }
+  end
+
+  def test_case_on_a_name_holding_a_symbol
+    player = played do
+      mode = :title
+      seen = 0
+      game_loop do
+        case mode
+        when :title then seen = 1
+        when :play then seen = 2
+        end
+        mode = :play
+      end
+    end
+
+    assert_equal 2, player[:seen]
+  end
+
+  def test_case_with_no_arm_found_and_no_else_does_nothing
+    player = played do
+      n = var :n, 9
+      seen = 0
+      game_loop do
+        case n
+        when 1 then seen = 1
+        end
+      end
+    end
+
+    assert_equal 0, player[:seen]
+  end
+
+  def test_case_on_a_working_out
+    player = played do
+      n = var :n, 1
+      seen = 0
+      game_loop do
+        case n + 1
+        when 2 then seen = 5
+        else seen = 6
+        end
+      end
+    end
+
+    assert_equal 5, player[:seen]
+  end
+
+  def test_case_with_no_subject_asks_each_test
+    player = played do
+      n = var :n, 4
+      seen = 0
+      game_loop do
+        case
+        when n > 9 then seen = 1
+        when n > 3, n < 0 then seen = 2
+        else seen = 3
+        end
+      end
+    end
+
+    assert_equal 2, player[:seen]
+  end
+
+  def test_case_on_a_plain_value_stays_ruby
+    player = played do
+      kind = "text"
+      seen = 0
+      case kind
+      when Integer then seen = 1
+      when String, Symbol then seen = 2
+      end
+      shown = 0
+      game_loop { shown = seen }
+    end
+
+    assert_equal 2, player[:shown]
+  end
+
   def test_the_right_of_or_runs_only_when_the_left_fails
     player = played(frames: 3) do
       n = 0

@@ -74,6 +74,32 @@ module VBlank
         right ? condition.discard || right : condition
       end
 
+      # One `when`: does +subject+ match any of +choices+? A plain subject is Ruby's to answer. A
+      # number the game keeps becomes a test, one choice at a time.
+      def when_test(subject, *choices)
+        return choices.any? { |choice| choice === subject } unless subject.is_a?(Value) || subject.is_a?(Condition) # rubocop:disable Style/CaseEquality
+
+        refuse_game_code!("`case` cannot ask about a test the game makes. To fix this, write `if`.") if subject.is_a?(Condition)
+
+        choices.map { |choice| test_of_choice(subject, choice) }.reduce(:|)
+      end
+
+      def test_of_choice(subject, choice)
+        case choice
+        when Integer, Symbol, Value then subject == choice
+        when true then subject == 1
+        when false then subject == 0
+        when Range then test_of_range(subject, choice)
+        else refuse_game_code!("`when #{choice.inspect}` cannot be asked of a number the game keeps. A game " \
+                               "can compare a number, a symbol, a range or a variable.")
+        end
+      end
+
+      def test_of_range(subject, range)
+        below_top = range.exclude_end? ? subject < range.end : subject <= range.end
+        (subject >= range.begin) & below_top
+      end
+
       # The left side of `found or next`, as Ruby would answer it. A test the game makes has no
       # answer yet, and a jump needs one now.
       def answer_before_jump(value, word)

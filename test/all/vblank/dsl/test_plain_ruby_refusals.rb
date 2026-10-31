@@ -52,6 +52,17 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_case_asking_what_a_game_cannot_answer_is_refused
+    assert_refused("`when String`") do
+      hp = var :hp, 5
+      game_loop do
+        case hp
+        when String then wait_vblank
+        end
+      end
+    end
+  end
+
   def test_game_code_can_read_a_local_from_outside_the_block
     lives = 3
     builder = built do
