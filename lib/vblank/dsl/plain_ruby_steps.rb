@@ -70,6 +70,14 @@ module VBlank
         right ? condition.discard || right : condition
       end
 
+      # The left side of `found or next`, as Ruby would answer it. A test the game makes has no
+      # answer yet, and a jump needs one now.
+      def answer_before_jump(value, word)
+        refuse_jump!(word) if game_test?(value)
+
+        !!value
+      end
+
       def loop_while(&test) = LoopTest.new(test, stops_when: false)
       def loop_until(&test) = LoopTest.new(test, stops_when: true)
 

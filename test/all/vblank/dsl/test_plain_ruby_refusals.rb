@@ -243,6 +243,16 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_a_jump_after_or_on_a_game_test_is_refused
+    assert_refused("`next` cannot leave") do
+      hp = 3
+      game_loop do
+        (hp > 0) || next
+        hp -= 1
+      end
+    end
+  end
+
   def test_a_game_with_no_file_is_refused
     block = eval("proc { game_loop { wait_vblank } }", binding, "-", 1) # rubocop:disable Security/Eval
     error = assert_raises(Refused) { VBlank::DSL::PlainRuby.game_block(block) }

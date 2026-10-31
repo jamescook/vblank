@@ -151,6 +151,7 @@ module VBlank
       # than editing in place, since a trailing `if` is evaluated before what stands to its left.
       class Rewriter
         STEPS = "::VBlank::DSL::PlainRubySteps"
+        JUMPS = [Prism::ReturnNode, Prism::BreakNode, Prism::NextNode].freeze
 
         attr_reader :block_node
 
@@ -237,8 +238,7 @@ module VBlank
         def jump_text(node)
           return copied_text(node) if @open_tests.empty?
 
-          word = node.is_a?(Prism::ReturnNode) ? "return" : node.is_a?(Prism::BreakNode) ? "break" : "next"
-          refusals = @open_tests.map { |test| "#{test}.refuse_jump!(:#{word})" }.join("; ")
+          refusals = @open_tests.map { |test| "#{test}.refuse_jump!(:#{jump_word(node)})" }.join("; ")
           "(#{refusals}; if true then #{copied_text(node)} end)"
         end
 
@@ -321,7 +321,31 @@ module VBlank
         end
 
         # The right side is a block so plain values keep Ruby's skipping of it.
-        def joined_text(node, step) = "#{STEPS}.#{step}(#{argument(node.left)}) { #{text(node.right)} }"
+        def joined_text(node, step)
+          jump = jump_in(node.right)
+          return jump_after_join_text(node, step, jump) if jump
+
+          "#{STEPS}.#{step}(#{argument(node.left)}) { #{text(node.right)} }"
+        end
+
+        # `found or next`. The right side of a join goes in a block, and a `next` or `break` in that
+        # block would leave only it, so a join that jumps is written out with no block at all.
+        def jump_after_join_text(node, step, jump)
+          left = "__plain_ruby_#{@answers += 1}"
+          right = "(#{text(node.right)})"
+          sides = step == "either" ? "#{left} : #{right}" : "#{right} : #{left}"
+          "(#{left} = #{argument(node.left)}; #{STEPS}.answer_before_jump(#{left}, :#{jump_word(jump)}) ? #{sides})"
+        end
+
+        # The jump this node would make from where it stands. A block of its own keeps its jumps.
+        def jump_in(node)
+          return node if JUMPS.any? { |kind| node.is_a?(kind) }
+          return if [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].any? { |kind| node.is_a?(kind) }
+
+          node.compact_child_nodes.filter_map { |child| jump_in(child) }.first
+        end
+
+        def jump_word(node) = node.class.name.split("::").last.delete_suffix("Node").downcase
 
         # A value handed to a step. The parentheses are for a call written without its own, like
         # `actions = menu :actions do ... end`, which Ruby takes alone but not as an argument.

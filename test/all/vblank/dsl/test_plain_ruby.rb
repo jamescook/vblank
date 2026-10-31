@@ -301,6 +301,59 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:seen]
   end
 
+  # `recording or next` must leave the loop's own block, not one the rewrite made.
+  def test_or_next_skips_the_rest_of_a_plain_ruby_block
+    player = played(frames: 1) do
+      count = 0
+      [1, nil, 3].each do |each_number|
+        kept = each_number or next
+        count += kept
+      end
+      total = var :total, count
+      game_loop { total += 0 }
+    end
+
+    assert_equal 4, player[:total]
+  end
+
+  def test_or_break_leaves_a_plain_ruby_block
+    player = played(frames: 1) do
+      count = 0
+      [1, nil, 3].each do |each_number|
+        kept = each_number || break
+        count += kept
+      end
+      total = var :total, count
+      game_loop { total += 0 }
+    end
+
+    assert_equal 1, player[:total]
+  end
+
+  def test_and_next_skips_the_rest_of_a_plain_ruby_block
+    player = played(frames: 1) do
+      count = 0
+      [1, 2, 3].each do |each_number|
+        each_number == 2 and next
+        count += each_number
+      end
+      total = var :total, count
+      game_loop { total += 0 }
+    end
+
+    assert_equal 4, player[:total]
+  end
+
+  def test_or_return_leaves_a_method
+    player = played(frames: 1) do
+      def first_given(one) = one || (return 9)
+      total = var :total, first_given(nil)
+      game_loop { total += 0 }
+    end
+
+    assert_equal 9, player[:total]
+  end
+
   def test_a_number_handed_in_is_truthy_even_at_zero
     player = played(frames: 2) do
       def count_if_there(count, by)
