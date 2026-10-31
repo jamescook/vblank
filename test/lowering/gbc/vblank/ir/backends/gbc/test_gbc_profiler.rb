@@ -7,8 +7,8 @@ require "stringio"
 # played at, how much of the time it slept, and its frames by routine, its own by the game's names.
 class TestGBCProfiler < Minitest::Test
   GAME = VBlank.game("BUSY", consoles: %i[gba gbc]) do
-    total = var :total, 0
-    func(:count_up) { repeat(40) { total.add! 3 } }
+    total = 0
+    func(:count_up) { repeat(40) { total += 3 } }
     game_loop { call :count_up }
   end
 
@@ -55,7 +55,7 @@ class TestGBCProfiler < Minitest::Test
       board = background :board, tiles: :set, map: Array.new(18) { "0123456" * 3 }
       worn = ->(n) { n * sprite_lists / 8 }
       balls = (0...8).map { |n| sprite :"ball#{worn.call(n)}", at: [8 + (n * 16), 120] }
-      step = var :step, 0
+      step = 0
       game_loop do
         step = (step + 1) % 16
         board.draw_with((0...7).to_h { |n| [:"bg#{n}", steps.map { |s| :"bg#{n}_#{s}" }] }, showing: step)

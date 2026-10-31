@@ -32,11 +32,11 @@ class TestGBCClips < Minitest::Test
     b.instance_eval do
       screen :tiled
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         hum.play(volume: volume, loop: loop, pitch: pitch) if count == 3
-        (count == stop_at).then { hum.stop } if stop_at
+        hum.stop if stop_at && count == stop_at
       end
     end
     b.finalize_program
@@ -130,7 +130,7 @@ class TestGBCClips < Minitest::Test
       end
       play_song :pad
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         hum.play if count == 3
@@ -162,11 +162,11 @@ class TestGBCClips < Minitest::Test
       end
       play_song :drone
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         hum.play if count == 3
-        (count == stop_at).then { hum.stop } if stop_at
+        hum.stop if stop_at && count == stop_at
       end
     end
     b.finalize_program
@@ -198,7 +198,7 @@ class TestGBCClips < Minitest::Test
       screen :tiled
       enable_sound
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         wave :triangle, 440 if count == wave_at
@@ -238,10 +238,10 @@ class TestGBCClips < Minitest::Test
       enable_sound
       sfx = sound_effects :sfx, { chime: effect }
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
-        (count == 3).then do
+        if count == 3
           hum.play
           sfx.play :chime
         end
@@ -270,7 +270,7 @@ class TestGBCClips < Minitest::Test
       enable_sound
       song(:tune) { voice(:lead) { |v| 16.times { v.note :C5, :quarter } } }
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         hum.play if count == 3
@@ -330,8 +330,8 @@ class TestGBCClips < Minitest::Test
       screen :tiled
       hum = sample :hum, pcm: recording
       x = var :x, 0
-      count = var :count, 0
-      func(:big) { 2000.times { x.add! 1 } }
+      count = 0
+      func(:big) { 2000.times { x += 1 } }
       game_loop do
         count += 1
         hum.play if count == 3
@@ -355,7 +355,7 @@ class TestGBCClips < Minitest::Test
     b.instance_eval do
       screen :tiled
       hum = sample :hum, pcm: recording
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         hum.play if count == 3

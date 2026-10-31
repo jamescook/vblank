@@ -36,13 +36,13 @@ class TestGBCSpriteLists < Minitest::Test
     VBlank.game("FADING SCENES", consoles: %i[gbc]) do
       screen :tiled
       image :ship, width: size, height: size, data: ship, colors: %i[transparent red green]
-      showing = var :showing, 0
+      showing = 0
       scenes.times do |s|
         scene :"fading#{s}" do
           if s.zero? && filler.positive?
             never = var :never, 0
             if never == 1
-              filler.times { |i| never.set! never + i }
+              filler.times { |i| never = never + i }
             end
           end
           ships = (0...sprites).map do |n|
@@ -55,10 +55,12 @@ class TestGBCSpriteLists < Minitest::Test
           end
           step = var :"step#{s}", 0
           ships.each { |ship, lists| ship.draw_with lists, showing: step }
-          (step == steps - 1).then do
+          if step == steps - 1
             step = 0
             showing = (s + 1) % scenes
-          end.else { step.add! 1 }
+          else
+            step += 1
+          end
         end
       end
       game_loop do

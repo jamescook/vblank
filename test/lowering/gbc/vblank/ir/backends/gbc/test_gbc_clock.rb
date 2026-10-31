@@ -21,11 +21,11 @@ class TestGBCClock < Minitest::Test
     b.instance_eval do
       now = clock
       readings = DATE.to_h { |name| [name, var(name, -1)] }
-      present = var :present, -1
-      set = var :set, -1
+      present = -1
+      set = -1
       game_loop do
         now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) if pressed(:a)
-        readings.each { |name, reading| reading.set! now.public_send(name) }
+        readings.each_key { |name| readings[name] = now.public_send(name) }
         present = 0
         present = 1 if now.present?
         set = 0

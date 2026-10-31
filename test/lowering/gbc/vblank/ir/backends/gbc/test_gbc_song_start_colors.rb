@@ -32,10 +32,10 @@ class TestGBCSongStartColors < Minitest::Test
       end
       sfx = sound_effects :sfx, { chime: score.new(tempo: 150, length: 60, parts: parts) }
       music_volume 60
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
-        (count == 5).then do
+        if count == 5
           play_song :tune
           sfx.play :chime
           fade :black, 50

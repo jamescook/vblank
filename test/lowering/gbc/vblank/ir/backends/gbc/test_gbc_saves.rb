@@ -10,21 +10,21 @@ class TestGBCSaves < Minitest::Test
 
   COUNTING_UP = VBlank.game("COUNT", consoles: %i[gba gbc]) do
     best = save_var :best, 5
-    game_loop { best.add! 2 }
+    game_loop { best += 2 }
   end
 
   # A record in save memory, written, read back and summed by the game itself.
   RECORDS = VBlank.game("RECORDS", consoles: %i[gba gbc]) do
-    score = var :score, 0
-    loaded = var :loaded, 0
+    score = 0
+    loaded = 0
     files = save_data(:files) { keep score }
     game_loop do
-      score.add! 3
-      (score == 9).then { files[0].save }
-      (score == 15).then do
-        score.set! 0
+      score += 3
+      files[0].save if score == 9
+      if score == 15
+        score = 0
         files[0].load
-        loaded.set! score
+        loaded = score
       end
     end
   end
@@ -67,7 +67,7 @@ class TestGBCSaves < Minitest::Test
   def test_save_memory_other_than_32k_of_battery_is_refused_in_plain_words
     game = VBlank.game("FLASHY", consoles: %i[gba gbc], save_memory: 128) do
       best = save_var :best, 5
-      game_loop { best.add! 1 }
+      game_loop { best += 1 }
     end
 
     error = assert_raises(GBC::LoweringError) { GBC.new.build(game.program(console: :gbc)) }

@@ -51,30 +51,30 @@ class TestGBCPictureGroups < Minitest::Test
       groups = (0...count).to_h { |room| [room, names[room * PICTURES_A_ROOM, PICTURES_A_ROOM]] }
       together = (0...(count - 1)).map { |room| [room, room + 1] }
       shelf = picture_groups(:rooms, groups, up_together: together) if grouped
-      passes = var :passes, 0
-      here = var :here, 0
-      beside = var :beside, 0
-      touching = var :touching, 0
+      passes = 0
+      here = 0
+      beside = 0
+      touching = 0
       left = sprite :left, facing: names.to_h { |name| [name, name] }, at: [16, 40]
       right = sprite :right, facing: names.to_h { |name| [name, name] }, at: [40, 40]
       right.hide
       shelf&.show here, beside
       game_loop do
-        passes.add! 1
-        here.set!((passes / PASSES_A_ROOM).clamp(0, count - 1))
-        beside.set! here
+        passes += 1
+        here = (passes / PASSES_A_ROOM).clamp(0, count - 1)
+        beside = here
         right.hide
-        right.x.set! 96
-        ((passes % PASSES_A_ROOM == PASSES_A_ROOM - 1) & (here < count - 1)).then do
-          beside.set! here + 1
+        right.x = 96
+        if passes % PASSES_A_ROOM == PASSES_A_ROOM - 1 && here < count - 1
+          beside = here + 1
           right.show
-          right.x.set! 40
+          right.x = 40
         end
         shelf&.show here, beside
         left.face names, showing: (here * PICTURES_A_ROOM) + (passes % PICTURES_A_ROOM)
         right.face names, showing: (beside * PICTURES_A_ROOM) + 1
-        touching.set! 0
-        left.overlaps?(right).then { touching.add! 1 }
+        touching = 0
+        touching += 1 if left.overlaps?(right)
       end
     end
     builder.finalize_program
@@ -121,19 +121,19 @@ class TestGBCPictureGroups < Minitest::Test
         image(name, "#" => :white, "r" => :red, "g" => :green, "." => :transparent) { TestGBCPictureGroups.art(n) }
       end
       shelf = picture_groups(:rooms, { 0 => first, 1 => names[PICTURES_A_ROOM, PICTURES_A_ROOM] })
-      passes = var :passes, 0
+      passes = 0
       things = sprites.map do |name, (pictures, later)|
         [sprite(name, facing: pictures.to_h { |picture| [picture, picture] }, at: [16, 40]), pictures, later,
          var(:"#{name}_pose", 0)]
       end
       shelf.show 0
       game_loop do
-        passes.add! 1
-        (passes >= CHANGE_PASS).then { shelf.show then_up }
+        passes += 1
+        shelf.show then_up if passes >= CHANGE_PASS
         things.each do |thing, pictures, later, pose|
           next if pictures.length == 1
 
-          (passes >= CHANGE_PASS).then { pose.set! later }
+          pose = later if passes >= CHANGE_PASS
           thing.face pictures, showing: pose
         end
       end
@@ -194,11 +194,11 @@ class TestGBCPictureGroups < Minitest::Test
       groups = (0...3).to_h { |room| [room, names[room * PICTURES_A_ROOM, PICTURES_A_ROOM]] }
       shelf = picture_groups(:rooms, groups, up_together: [[0, 1], [1, 2]])
       sprite :thing, facing: { thing_0: :thing_0 }, at: [16, 40]
-      passes = var :passes, 0
+      passes = 0
       shelf.show 0, 0
       game_loop do
-        passes.add! 1
-        (passes >= CHANGE_PASS).then { shelf.show 0, beside }
+        passes += 1
+        shelf.show 0, beside if passes >= CHANGE_PASS
       end
     end
     builder.finalize_program

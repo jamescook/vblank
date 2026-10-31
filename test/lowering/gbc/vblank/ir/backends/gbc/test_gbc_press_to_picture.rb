@@ -23,7 +23,7 @@ class TestGBCPressToPicture < Minitest::Test
       tiles :set, "w" => :white_tile, "." => :black_tile
       field = background :field, tiles: :set, map: Array.new(18) { ".....w" + ("." * 26) }
       ball = sprite :ball, at: [40, 100]
-      across = var :across, 0
+      across = 0
       game_loop do
         if pressed(:down)
           ball.x += 16
@@ -45,8 +45,8 @@ class TestGBCPressToPicture < Minitest::Test
       screen :tiled
       image(:ball, "#" => :white) { "########\n" * 8 }
       image(:mark, "#" => :red) { "########\n" * 8 }
-      ticks = var :ticks, 0
-      once_a_frame { ticks.add! 1 }
+      ticks = 0
+      once_a_frame { ticks += 1 }
       var :state, 0
       scene(:title) do
         cursor = sprite :ball, at: [40, 100]

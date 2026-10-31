@@ -41,16 +41,20 @@ class TestGBCStillSprites < Minitest::Test
         piece.draw_with fades, showing: faded
         piece
       end
-      shade = var :shade, 0
-      tick = var :tick, 0
+      shade = 0
+      tick = 0
       game_loop do
         changed = tick == 0
-        (tick >= frames_a_shade - 1).then { tick.set! 0 }.else { tick.add! 1 }
-        changed.then { (shade == 2).then { shade.set! 0 }.else { shade.add! 1 } }
+        if tick >= frames_a_shade - 1
+          tick = 0
+        else
+          tick += 1
+        end
+        if shade == 2 then shade = 0 else shade += 1 end if changed
         give = lambda do
           pieces.each_with_index { |piece, n| piece.face(n.odd? ? turned : shades, showing: shade) }
         end
-        every_pass ? give.call : changed.then { give.call }
+        every_pass ? give.call : (give.call if changed)
       end
     end
   end
@@ -89,20 +93,24 @@ class TestGBCStillSprites < Minitest::Test
         step = var :step, 0
         tick = var :tick, 0
         fading = passes < 17
-        fading.then { fade.set! passes }
-        (fading | (passes == 17)).then { pieces.each { |piece| piece.draw_with steps, showing: fade } }
-        (passes >= 18).then do
-          (tick == 0).then do
+        fade = passes if fading
+        pieces.each { |piece| piece.draw_with steps, showing: fade } if fading || passes == 17
+        if passes >= 18
+          if tick == 0
             pieces.each_with_index do |piece, n|
               piece.show
               piece.face poses, showing: blink[step]
-              piece.x.set! columns[field] + ((n % 10) * 8)
+              piece.x = columns[field] + ((n % 10) * 8)
             end
-            step.set!((step + 1) & 3)
+            step = (step + 1) & 3
           end
-          (tick >= frames_a_shade - 1).then { tick.set! 0 }.else { tick.add! 1 }
+          if tick >= frames_a_shade - 1
+            tick = 0
+          else
+            tick += 1
+          end
         end
-        passes.add! 1
+        passes += 1
       end
       game_loop do
         case_var(:showing) { when_val 0, :border }
@@ -124,9 +132,13 @@ class TestGBCStillSprites < Minitest::Test
         [:"pose#{s}", :"border#{s}"]
       end.to_h
       border = sprite :border, at: [16, 16], facing: poses
-      shade = var :shade, 0
+      shade = 0
       game_loop do
-        (shade == 2).then { shade.set! 0 }.else { shade.add! 1 }
+        if shade == 2
+          shade = 0
+        else
+          shade += 1
+        end
         border.face poses.keys, showing: shade
       end
     end

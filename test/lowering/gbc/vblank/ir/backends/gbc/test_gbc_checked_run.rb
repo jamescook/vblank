@@ -12,9 +12,9 @@ class TestGBCCheckedRun < Minitest::Test
 
   def test_arithmetic_that_wraps_divides_and_shifts_agrees_with_the_interpreter
     run = checked(frames: 40) do
-      a = var :a, 7
-      b = var :b, -3
-      c = var :c, 0
+      a = 7
+      b = -3
+      c = 0
       game_loop do
         a = (a * 1103) + 12_345
         b = (b - a) / 7
@@ -27,8 +27,8 @@ class TestGBCCheckedRun < Minitest::Test
 
   def test_fractions_multiplied_and_divided_agree_with_the_interpreter
     run = checked(frames: 30) do
-      speed = var :speed, 1.25
-      at = var :at, -3.5
+      speed = 1.25
+      at = -3.5
       game_loop do
         at = (at * speed) / 1.75
         speed += 0.125
@@ -41,8 +41,8 @@ class TestGBCCheckedRun < Minitest::Test
   def test_a_list_pushed_shifted_and_read_agrees_with_the_interpreter
     run = checked(frames: 24) do
       trail = list :trail, capacity: 5, width: :byte
-      n = var :n, 120
-      sum = var :sum, 0
+      n = 120
+      sum = 0
       game_loop do
         n += 3
         trail.push n
@@ -59,8 +59,8 @@ class TestGBCCheckedRun < Minitest::Test
       checked(frames: 5) do
         body = list :body, capacity: 4
         body.push 10
-        x = var :x, 0
-        game_loop { x.set! body[3] }
+        x = 0
+        game_loop { x = body[3] }
       end
     end
 
@@ -70,8 +70,8 @@ class TestGBCCheckedRun < Minitest::Test
   def test_buttons_held_and_pressed_reach_the_game_on_the_frames_they_are_held
     run = GBC::CheckedRun.new
     run.input_each_frame { |frame| frame % 3 == 1 ? %i[a right] : [] }.run(program_of do
-      held_a = var :held_a, 0
-      presses = var :presses, 0
+      held_a = 0
+      presses = 0
       game_loop do
         held_a += 1 if held(:a)
         presses += 1 if pressed(:right)
@@ -83,8 +83,8 @@ class TestGBCCheckedRun < Minitest::Test
 
   def test_scenes_picked_by_a_variable_agree_with_the_interpreter
     run = checked(frames: 20) do
-      state = var :state, 0
-      ticks = var :ticks, 0
+      state = 0
+      ticks = 0
       scene(:title) { ticks += 1; state = 1 if ticks > 3 }
       scene(:play) { ticks += 10; if ticks > 50 then state = 0; ticks = 0 end }
       game_loop do
@@ -100,15 +100,15 @@ class TestGBCCheckedRun < Minitest::Test
 
   def test_a_routine_picked_by_a_number_and_a_counted_loop_agree_with_the_interpreter
     run = checked(frames: 12) do
-      total = var :total, 0
-      pick = var :pick, 0
-      func(:one) { total.add! 1 }
-      func(:two) { total.add! 20 }
-      func(:three) { total.add! 300 }
+      total = 0
+      pick = 0
+      func(:one) { total += 1 }
+      func(:two) { total += 20 }
+      func(:three) { total += 300 }
       game_loop do
         call %i[one two three], number: pick
         pick = (pick + 1) % 4
-        repeat(3) { |i| total.add! i }
+        repeat(3) { |i| total += i }
       end
     end
 
@@ -117,7 +117,7 @@ class TestGBCCheckedRun < Minitest::Test
 
   def test_a_game_that_halts_ends_where_the_interpreter_ends
     run = checked(frames: 60) do
-      x = var :x, 0
+      x = 0
       game_loop do
         x += 1
         halt if x >= 9
@@ -140,8 +140,8 @@ class TestGBCCheckedRun < Minitest::Test
   def test_a_routine_bigger_than_a_bank_is_cut_into_parts_that_still_agree
     run = checked(frames: 3) do
       seed 777
-      hits = var :hits, 0
-      game_loop { 160.times { chance(50).then { hits.add! 1 } } }
+      hits = 0
+      game_loop { 160.times { hits += 1 if chance(50) } }
     end
 
     assert_operator run[:hits], :>, 0
@@ -150,7 +150,7 @@ class TestGBCCheckedRun < Minitest::Test
   def test_the_sounds_a_game_makes_are_logged_as_the_interpreter_logs_them
     run = checked(frames: 12) do
       enable_sound
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         beep :blip if pass % 4 == 0
@@ -187,14 +187,14 @@ class TestGBCCheckedRun < Minitest::Test
         note :E4, :eighth
         note :G4, :eighth
       end
-      x = var :x, 1
-      frames = var :frames, 0
-      passes = var :passes, 0
-      once_a_frame { frames.add! 1 }
+      x = 1
+      frames = 0
+      passes = 0
+      once_a_frame { frames += 1 }
       game_loop do
         play_song :tune
         passes += 1
-        repeat(60) { x.set! (x * 1103) + 12_345 }
+        repeat(60) { x = (x * 1103) + 12_345 }
       end
     end
 

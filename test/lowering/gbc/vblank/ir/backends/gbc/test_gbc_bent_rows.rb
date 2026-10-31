@@ -26,12 +26,12 @@ class TestGBCBentRows < Minitest::Test
       tiles :stripes, "#" => :bar
       water = background :water, tiles: :stripes, map: Array.new(20) { "#" * 30 }
       ripple = table :ripple, (0...64).map { |i| (Math.sin(i * 2 * Math::PI / 64) * 3).round }
-      phase = var :phase, 0
-      spare = var :spare, 0
+      phase = 0
+      spare = 0
       water.scroll_each_row { |row| ripple[(row - phase) % 64] }
       game_loop do
         phase += 1
-        extra.times { spare.add! 1 }
+        extra.times { spare += 1 }
       end
     end
   end

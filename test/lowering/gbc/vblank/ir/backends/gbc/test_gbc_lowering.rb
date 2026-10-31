@@ -30,8 +30,8 @@ class TestGBCLowering < Minitest::Test
       colors :warm, %i[transparent yellow]
       hero = sprite :dot, at: [10, 10]
       rock = sprite :dot, at: [40, 10]
-      hits = var :hits, 0
-      fading = var :fading, 100
+      hits = 0
+      fading = 100
       game_loop do
         hero.x += 3 if held(:right)
         hero.draw_with :warm if held(:right)
@@ -62,8 +62,8 @@ class TestGBCLowering < Minitest::Test
       end
       hero = layer(:back) { sprite :dot, at: [6, 6] }
       layer(:front) { sprite :ring, at: [8, 8] }
-      pass = var :pass, 0
-      floor = var :floor, -1
+      pass = 0
+      floor = -1
       game_loop do
         pass += 1
         floor = 0 if pass == 4
@@ -83,26 +83,26 @@ class TestGBCLowering < Minitest::Test
   # of its list, a button held, and the sums and tests between them.
   def test_game_plays_as_the_interpreter_plays_it
     game = program do
-      var :state, 0
-      total = var :total, 0
-      which = var :which, 0
-      var :beats, 0
-      func(:one) { add! :total, 100 }
-      func(:two) { add! :total, 1000 }
-      scene(:title) { set! :state, 1 }
+      state = 0
+      total = 0
+      which = 0
+      beats = 0
+      func(:one) { total += 100 }
+      func(:two) { total += 1000 }
+      scene(:title) { state = 1 }
       scene(:play) do
-        repeat(5, stop_when: total > 40) { |i| add! :total, i * 3 }
+        repeat(5, stop_when: total > 40) { |i| total += i * 3 }
         call %i[one two], number: which
-        add! :which, 1
+        which += 1
       end
       game_loop do
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
         end
-        every(3) { add! :beats, 1 }
+        every(3) { beats += 1 }
         if held(:a)
-          sub! :total, 7
+          total -= 7
         else
           clamp! :total, -5, 5000
         end
@@ -124,8 +124,8 @@ class TestGBCLowering < Minitest::Test
       trail = list :trail, capacity: 8, width: :byte
       words = list :words, capacity: 4
       bytes = list :bytes, capacity: 4, width: :byte
-      i = var :i, 0
-      sum = var :sum, 0
+      i = 0
+      sum = 0
       game_loop do
         trail.push steps[i]
         trail.shift if trail.length > 5
@@ -150,14 +150,14 @@ class TestGBCLowering < Minitest::Test
   def test_saves_play_as_the_interpreter_plays_them
     game = program do
       best = save_var :best, 5
-      score = var :score, 0
-      loaded = var :loaded, 0
+      score = 0
+      loaded = 0
       files = save_data(:files) { keep score }
       game_loop do
         best += 2
         score += 3
         files[0].save if score == 9
-        (score == 15).then do
+        if score == 15
           score = 0
           files[0].load
           loaded = score
@@ -174,16 +174,16 @@ class TestGBCLowering < Minitest::Test
   # once enough have gone by — a pass crossing two of its ticks runs its handler twice.
   def test_timers_play_as_the_interpreter_plays_them
     game = program do
-      fast_count = var :fast_count, 0
-      func(:count_tick) { add! :fast_count, 1 }
+      fast_count = 0
+      func(:count_tick) { fast_count += 1 }
       slow = timer :slow, per_second: 7
       fast = timer :fast, per_second: 90
       fast.on_tick do
         call :count_tick
         fast.stop if fast_count >= 20
       end
-      var :seen, 0
-      game_loop { set! :seen, slow.ticks }
+      seen = 0
+      game_loop { seen = slow.ticks }
     end
 
     run = GBC::CheckedRun.new.run(game, frames: 30)
@@ -198,7 +198,7 @@ class TestGBCLowering < Minitest::Test
       enable_sound
       define_sound :ping, frequency: 880, duty: :quarter, decay: :fast, volume: 12
       song(:tune) { note :C4, :quarter }
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         play_song :tune if pass == 1
@@ -236,9 +236,9 @@ class TestGBCLowering < Minitest::Test
   # its own called where its statements stood, and still plays as the interpreter plays it.
   def test_routine_bigger_than_bank_is_cut_into_parts
     game = program do
-      total = var :total, 0
+      total = 0
       game_loop do
-        3000.times { |n| total.add! n % 7 }
+        3000.times { |n| total += n % 7 }
         total = 0 if total > 1_000_000
       end
     end

@@ -40,8 +40,8 @@ class TestGBCPowerOn < Minitest::Test
       # Drawn with lists of its own, as a screen faded in from white is: its first colour, white,
       # is then the backdrop, since no cell of it is empty.
       colors :pale_again, %i[transparent white blue green red]
-      count = var :count, 0
-      repeat(setting_up) { count.add! 1 }
+      count = 0
+      repeat(setting_up) { count += 1 }
       game_loop { field.draw_with :pale_again }
     end
     b.finalize_program
@@ -67,8 +67,8 @@ class TestGBCPowerOn < Minitest::Test
         title.draw_with :pale_again
       end
       scene(:busy) { background :busy, tiles: :many, map: [row] }
-      count = var :count, 0
-      repeat(setting_up) { count.add! 1 }
+      count = 0
+      repeat(setting_up) { count += 1 }
       var :state, 0
       game_loop do
         case_var(:state) do
@@ -86,8 +86,8 @@ class TestGBCPowerOn < Minitest::Test
     b = Builder.new(options: VBlank::Cartridge::Options.new(console: :gbc))
     b.instance_eval do
       screen :bitmap
-      count = var :count, 0
-      repeat(setting_up) { count.add! 1 }
+      count = 0
+      repeat(setting_up) { count += 1 }
       game_loop do
         clear_screen :white
         fill_rect 40, 40, 20, 20, :red
@@ -145,10 +145,10 @@ class TestGBCPowerOn < Minitest::Test
     b.instance_eval do
       screen :bitmap
       sample(:hum, pcm: recording).play if plays
-      count = var :count, 0
-      passes = var :passes, 0
-      first = var :first, -1
-      repeat(setting_up) { count.add! 1 }
+      count = 0
+      passes = 0
+      first = -1
+      repeat(setting_up) { count += 1 }
       game_loop do
         first = frames_since_power_on if passes == 0
         passes += 1

@@ -72,7 +72,7 @@ class TestGBCMusic < Minitest::Test
         voice(:lead) { |v| PITCHES.first(4).each { |pitch| v.note pitch, :sixteenth } }
       end
       play_song :short
-      game_loop { tick.add! 1 }
+      game_loop { tick += 1 }
     end
 
     assert_operator voice_entries(program, 40), :>=, 9

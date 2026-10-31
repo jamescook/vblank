@@ -16,7 +16,7 @@ class TestGBCRumble < Minitest::Test
     b.instance_eval do
       screen :tiled
       hits = saving ? save_var(:hits, 0) : var(:hits, 0)
-      clock.present?.then { hits.add! 0 } if with_clock
+      hits += 0 if with_clock && clock.present?
       game_loop do
         if pressed(:a)
           rumble frames: 10, pattern: "##..#.#."

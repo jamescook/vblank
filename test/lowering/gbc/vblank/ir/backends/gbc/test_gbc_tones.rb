@@ -37,7 +37,7 @@ class TestGBCTones < Minitest::Test
         voice(:harmony) { |v| v.vibrato depth: 15, speed: 6; v.note :E4, :whole }
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         beep 880, duty: :half, decay: :none, volume: 12 if count == 20
@@ -75,7 +75,7 @@ class TestGBCTones < Minitest::Test
     program = color_program do
       enable_sound
       sfx = sound_effects :sfx, { siren: siren }
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         sfx.play :siren if count == 4
@@ -130,10 +130,10 @@ class TestGBCTones < Minitest::Test
         voice(:drums, plays: :noise) { |v| v.note :C4, :whole, decay: :none }
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
-        (count == 50).then do
+        if count == 50
           beep 880, duty: :half, decay: :none, volume: 12
           noise :kick, decay: :none
           wave :sawtooth, :A3, volume: :half

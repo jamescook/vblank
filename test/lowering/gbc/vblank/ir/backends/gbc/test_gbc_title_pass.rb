@@ -32,12 +32,16 @@ class TestGBCTitlePass < Minitest::Test
         pose = step_poses[step]
         sprites.each do |each|
           each.face pictures, showing: pose
-          each.y.set! rows[pose]
+          each.y = rows[pose]
         end
-        left.add!(-1)
-        (left == 0).then do
-          (step == steps.length - 1).then { step.set! 0 }.else { step.add! 1 }
-          left.set! step_frames[step]
+        left += -1
+        if left == 0
+          if step == steps.length - 1
+            step = 0
+          else
+            step += 1
+          end
+          left = step_frames[step]
         end
       end
     end
