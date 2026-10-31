@@ -79,7 +79,7 @@ class TestRecolor < Minitest::Test
   # number is 2 by the third frame.
   private def counting_through_the_sets
     program do |ship|
-      ship.x.add! 1
+      ship.x += 1
       recolor :slot, [:slot, :warm, :cold], showing: ship.x - 40
     end
   end
@@ -99,9 +99,9 @@ class TestRecolor < Minitest::Test
 
   def test_own_puts_back_the_colors_it_was_declared_with
     back = program do |ship|
-      ship.x.add! 1
+      ship.x += 1
       recolor :slot, :warm
-      (ship.x > 41).then { recolor :slot, :own }
+      recolor :slot, :own if ship.x > 41
     end
     i = game_player.run(back, frames: 4)
 
@@ -146,7 +146,7 @@ class TestRecolor < Minitest::Test
       ship = sprite :ship, at: [40, 40]
       ship.draw_with :slot if through_one_list
       game_loop do
-        ship.x.add! 1
+        ship.x += 1
         if through_one_list
           recolor :slot, names, showing: ship.x - 41
         else
@@ -177,7 +177,7 @@ class TestRecolor < Minitest::Test
   # declared with.
   def test_a_tint_that_moves_keeps_the_colors_the_list_holds
     moving = program do |ship|
-      ship.x.add! 1
+      ship.x += 1
       recolor :slot, :warm
       tint :red, (ship.x - 40) * 10
     end
@@ -189,9 +189,13 @@ class TestRecolor < Minitest::Test
   # holds what it was told.
   def test_a_fade_that_lifts_a_tint_keeps_the_colors_the_list_holds
     lifted = program do |ship|
-      ship.x.add! 1
+      ship.x += 1
       recolor :slot, :warm
-      (ship.x < 43).then { tint :red, 50 }.else { fade :black, 50 }
+      if ship.x < 43
+        tint :red, 50
+      else
+        fade :black, 50
+      end
     end
 
     [2, 4, 6].each { |frames| assert_backends_agree(lifted, frames: frames) }

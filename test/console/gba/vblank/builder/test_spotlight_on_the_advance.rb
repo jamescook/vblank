@@ -71,10 +71,10 @@ class TestSpotlightOnTheAdvance < Minitest::Test
     moving = lit_room(radius: 20) do |light|
       step = var :step, 0
       once_a_frame do
-        step.add! 1
+        step += 1
         light.move_to 40 + step * 10, 30 + step * 5
-        light.radius.set! 20 + step * 4
-        light.dark.set! 100
+        light.radius = 20 + step * 4
+        light.dark = 100
       end
     end
     screen = shown(moving, frames: 4)
@@ -156,7 +156,7 @@ class TestSpotlightOnTheAdvance < Minitest::Test
   # frame is drawn on the next picture, as a sprite's place is.
   def test_every_size_up_to_150_is_the_midpoint_circle
     walking = lit_room(radius: 0, dark: 100) do |light|
-      once_a_frame { (light.radius < 150).then { light.radius.add! 1 } }
+      once_a_frame { light.radius += 1 if light.radius < 150 }
     end
     seen = []
     run = game_player
@@ -205,8 +205,8 @@ class TestSpotlightOnTheAdvance < Minitest::Test
       scene(:title) { instance_exec(&title) }
       scene(:playing) {}
       game_loop do
-        turn.add! 1
-        (turn == 6).then { mode.set! back ? 0 : 1 }
+        turn += 1
+        mode = back ? 0 : 1 if turn == 6
         case_var(:mode) { when_val 0, :title; when_val 1, :playing }
       end
     end
@@ -271,8 +271,8 @@ class TestSpotlightOnTheAdvance < Minitest::Test
       scene(:title) { layer(:water, transparency: 50) { background :pond, tiles: :set, map: ["r" * 32] * 32 } }
       scene(:playing) {}
       game_loop do
-        turn.add! 1
-        mode.set! 1 - ((turn >> 2) & 1)
+        turn += 1
+        mode = 1 - ((turn >> 2) & 1)
         case_var(:mode) { when_val 0, :title; when_val 1, :playing }
       end
     end

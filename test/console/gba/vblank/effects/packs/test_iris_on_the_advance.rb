@@ -60,8 +60,8 @@ class TestIrisOnTheAdvance < Minitest::Test
     swapped = room(before: -> { iris_out frames: 6 },
                    each: lambda {
                      gone = var :gone, 0
-                     iris_shut?.then do
-                       gone.set! 1
+                     if iris_shut?
+                       gone = 1
                        iris_in frames: 6
                      end
                    })
@@ -142,9 +142,9 @@ class TestIrisOnTheAdvance < Minitest::Test
       turn = var :turn, 0
       closed = var :closed, 0
       light = spotlight
-      turn.add! 1
-      (turn == 3).then { instance_exec(&walk) }
-      iris_shut?.then { closed.set! 1 }
+      turn += 1
+      instance_exec(&walk) if turn == 3
+      closed = 1 if iris_shut?
       var(:size_now, 0).set! light.radius
       var(:dark_now, 0).set! light.dark
     })
