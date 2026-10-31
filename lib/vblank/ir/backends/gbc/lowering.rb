@@ -248,6 +248,14 @@ module VBlank
               @program.walk.any? { |node| node.kind == :wait_vblank }
           end
 
+          # Does the game declare a list of bytes full, or fill one? Then its runtime carries the
+          # quick way to do it, and a game that does neither builds without it.
+          def fills_byte_lists?
+            lists = @program.walk.select { |node| node.kind == :list_new && node.width == :byte }
+            names = lists.map(&:name)
+            lists.any?(&:full_of) || @program.walk.any? { |node| node.kind == :list_fill && names.include?(node.name) }
+          end
+
           private
 
           # --- refusals ---

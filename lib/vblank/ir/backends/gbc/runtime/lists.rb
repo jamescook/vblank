@@ -29,10 +29,11 @@ module VBlank
 
             module_function
 
-            def emit(asm, memory)
+            # +byte_fills+ says the game fills a list of bytes (Lowering#fills_byte_lists?).
+            def emit(asm, memory, byte_fills: false)
               q = Quick.for(memory)
               emit_helpers(asm, memory, q)
-              emit_routines(asm, memory, q)
+              emit_routines(asm, memory, q, byte_fills)
               emit_start(asm)
             end
 
@@ -245,7 +246,7 @@ module VBlank
               asm.call("rt_take_args")
             end
 
-            def emit_routines(asm, memory, q)
+            def emit_routines(asm, memory, q, byte_fills)
               # rt_list_empty(list)
               asm.label("rt_list_empty")
               take_args(asm, 1)
@@ -370,7 +371,7 @@ module VBlank
               asm.load(:a, Frame::LIST_EMPTY)
               asm.jump("rt_list_fault")
 
-              emit_fill(asm, memory, q)
+              emit_fill(asm, memory, q, byte_fills)
               emit_copy(asm, memory, q)
             end
 
@@ -392,7 +393,7 @@ module VBlank
 
             # rt_list_fill(list, from, count, value): every slot from +from+ for +count+ holds the
             # value. Nothing for a count of nought or less; the first and the last index checked.
-            def emit_fill(asm, memory, q)
+            def emit_fill(asm, memory, q, byte_fills)
               asm.label("rt_list_fill")
               take_args(asm, 4)
               count = arg(memory, 2, 4)
@@ -427,6 +428,7 @@ module VBlank
               asm.load(:a, from & 0xFF)
               asm.call("rt_list_index")
               asm.pop(:de) # the first slot
+              emit_byte_fill(asm, memory, q, count) if byte_fills
               asm.load_high(:a, count)
               asm.load(:c, :a)
               asm.load_high(:a, count + 1)
@@ -453,6 +455,35 @@ module VBlank
               asm.or_a(:c)
               asm.jump_relative(:nz, "rt_list_fill_loop")
               asm.ret
+            end
+
+            # A LIST OF BYTES IS FILLED IN ONE WALK, from the first slot's address. The Color has no
+            # copying engine for work memory, so this is the quickest there is: a store and a count
+            # for each byte, where the walk below works out an address and writes a number of four
+            # bytes for each slot. A game declares its lists before its first frame, and this is
+            # what keeps them from making it late. The run cannot come round past the capacity: a
+            # list declared full starts at its first slot, and a list the game shifts is refused
+            # `fill` (Builder#refuse_filled_shifted_lists!).
+            def emit_byte_fill(asm, memory, q, count)
+              asm.load_high(:a, q.width)
+              asm.cp_a(1)
+              asm.jump_relative(:nz, "rt_list_fill_wider")
+              asm.call("rt_list_slot_address")
+              asm.load_high(:a, count)
+              asm.load(:c, :a)
+              asm.load_high(:a, count + 1)
+              asm.load(:b, :a)
+              asm.load_high(:a, arg(memory, 3, 4))
+              asm.load(:e, :a)
+              asm.label("rt_list_fill_bytes")
+              asm.load(:a, :e)
+              asm.load([:hli], :a)
+              asm.dec(:bc)
+              asm.load(:a, :b)
+              asm.or_a(:c)
+              asm.jump_relative(:nz, "rt_list_fill_bytes")
+              asm.ret
+              asm.label("rt_list_fill_wider")
             end
 
             # rt_list_copy(list, table, kept, table_length, at, count): the list made to hold the
