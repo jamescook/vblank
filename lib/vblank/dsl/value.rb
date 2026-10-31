@@ -167,7 +167,7 @@ module VBlank
       def hidden_copy(why = :copy)
         return hidden_copy_with_truth if truth
 
-        kept = @builder.hidden_variable(why)
+        kept = @builder.hidden_variable(why, like: self)
         kept.set!(self)
         kept.mark_boolean! if boolean?
         kept

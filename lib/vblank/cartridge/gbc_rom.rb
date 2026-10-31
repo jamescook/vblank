@@ -55,6 +55,12 @@ module VBlank
       # came from), for the tools that read a running one back, or nil.
       attr_reader :built
 
+      # The variables the build added that the author never declared (see
+      # Diagnostics::HiddenVariables).
+      attr_writer :hidden_variables
+
+      def hidden_variables = @hidden_variables || []
+
       # +banks+ is the linked cartridge, bank 0 first, each 16K. +rumble+ says it carries a motor.
       def initialize(banks, title:, save_bytes: 0, clock: false, rumble: false, built: nil)
         @built = built
@@ -110,8 +116,10 @@ module VBlank
 
         result = Diagnostics::GBCProfiler.run(self, frames: frames, settle: settle, keys: keys)
         case format
-        when :human then Diagnostics::GBCProfiler.render(result, out: out)
-        when :json then out.puts(JSON.generate(result.to_h))
+        when :human
+          Diagnostics::HiddenVariables.render(self, IR::Printer.for(out))
+          Diagnostics::GBCProfiler.render(result, out: out)
+        when :json then out.puts(JSON.generate(result.to_h.merge(Diagnostics::HiddenVariables.as_json(self))))
         else raise ArgumentError, "unknown profile format #{format.inspect} (use :human or :json)"
         end
         result

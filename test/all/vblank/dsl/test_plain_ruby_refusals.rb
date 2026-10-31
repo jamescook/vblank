@@ -70,6 +70,44 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_a_plain_number_changed_in_a_ruby_block_under_a_game_test_is_refused
+    assert_refused("inside a block") do
+      def counted(a)
+        n = 0
+        if a > 3
+          3.times { n += 1 }
+        end
+        n
+      end
+      hp = var :hp, 5
+      seen = 0
+      game_loop { seen = counted(hp) }
+    end
+  end
+
+  def test_a_yes_or_no_given_a_number_from_another_name_is_refused
+    assert_refused("started as `true` or `false`") do
+      ok = true
+      count = var :count, 0
+      game_loop { ok = count }
+    end
+  end
+
+  def test_a_begin_while_changing_a_plain_number_is_refused
+    assert_refused("`begin`") do
+      def counted(limit)
+        n = 0
+        begin
+          n += 1
+        end while n < limit
+        n
+      end
+      limit = var :limit, 3
+      seen = 0
+      game_loop { seen = counted(limit) }
+    end
+  end
+
   def test_game_code_can_read_a_local_from_outside_the_block
     lives = 3
     builder = built do

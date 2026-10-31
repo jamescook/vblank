@@ -221,7 +221,9 @@ module VBlank
         when true then target.set!(1)
         when false, nil then target.set!(0)
         when Condition then store_answer(target, value)
-        else target.set!(value)
+        else
+          refuse_number_in_boolean!(target) if target.boolean? && value.is_a?(Value) && !value.boolean?
+          target.set!(value)
         end
       end
 
@@ -287,7 +289,7 @@ module VBlank
         return value unless test.game? && outer.none?(&:game?)
         return value unless value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
 
-        own = test.hidden_variable(:promoted)
+        own = test.hidden_variable(:promoted, like: value.is_a?(Value) ? value : nil)
         own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
         own.unwritten = value.nil?
         own.start_truth_as_nil! if may_stay_nil && value.nil?
@@ -312,6 +314,38 @@ module VBlank
       # `x += amount` on such a name.
       def change_under(tests, target, operator, amount)
         tests.any?(&:game?) ? change(target, operator, amount) : target.public_send(operator, amount)
+      end
+
+      # The left of a join whose right side changes a name, asked like an `if`'s test.
+      class JoinSide
+        attr_reader :value
+
+        def initialize(value) = @value = value
+
+        def game? = PlainRubySteps.game_test?(@value)
+        def hidden_variable(why, like: nil) = PlainRubySteps.as_condition(@value).hidden_variable(why, like: like)
+        def refuse_jump!(word) = PlainRubySteps.refuse_jump!(word)
+      end
+
+      def side_of_join(value) = JoinSide.new(value)
+
+      def refuse_change_in_block!(name, tests)
+        return unless tests.any?(&:game?)
+
+        refuse_game_code!("`#{name}` is changed inside a block, under a test the game makes as it plays. The " \
+                          "block runs while building, so the game cannot follow this. To fix this, start it " \
+                          "with `#{name} = var :#{name}, 0`.")
+      end
+
+      def refuse_begin_while!(name)
+        refuse_game_code!("This `begin` loop changes `#{name}`, and its test is one the game makes as it plays. " \
+                          "To fix this, start it with `#{name} = var :#{name}, 0`.")
+      end
+
+      def refuse_number_in_boolean!(target)
+        refuse_game_code!("`#{target.name}` started as `true` or `false`, and this line gives it a number. A " \
+                          "game variable keeps one kind unless the line says so. To fix this, compare the " \
+                          "number, like `#{target.name} = count > 0`, or start it with a number.")
       end
 
       def refuse_object_under_test!(name, held)
@@ -482,7 +516,7 @@ module VBlank
         end
 
         def game? = true
-        def hidden_variable(why) = @condition.hidden_variable(why)
+        def hidden_variable(why, like: nil) = @condition.hidden_variable(why, like: like)
 
         def open_yes_side
           @if_node = @condition.open_branch
@@ -564,7 +598,7 @@ module VBlank
         end
 
         def game? = !@game_loop.nil?
-        def hidden_variable(why) = @game_loop.hidden_variable(why)
+        def hidden_variable(why, like: nil) = @game_loop.hidden_variable(why, like: like)
 
         def refuse_jump!(word)
           PlainRubySteps.refuse_jump!(word) if @game_loop

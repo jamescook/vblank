@@ -170,6 +170,7 @@ module VBlank
           @open_tests = []
           @lone_joins = {}.compare_by_identity
           @tail_ternaries = {}.compare_by_identity
+          @block_tests = []
         end
 
         def rewritten_block = rewritten(@block_node)
@@ -200,6 +201,7 @@ module VBlank
           when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
           when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
           when Prism::MultiWriteNode then multi_write_text(node)
+          when Prism::InstanceVariableOrWriteNode then instance_variable_or_text(node)
           when Prism::LocalVariableOrWriteNode then logic_write_text(node, "join_either")
           when Prism::LocalVariableAndWriteNode then logic_write_text(node, "join_both")
           when Prism::InstanceVariableWriteNode then instance_variable_write_text(node)
@@ -240,11 +242,14 @@ module VBlank
         # A `return` in a block belongs to that block, so tests open outside it do not apply.
         def own_scope_text(node)
           outer = @open_tests
+          outer_block_tests = @block_tests
+          @block_tests = node.is_a?(Prism::DefNode) ? [] : @block_tests + outer
           @open_tests = []
           @tail_ternaries[node.body.body.last] = true if method_body?(node)
           copied_text(node)
         ensure
           @open_tests = outer
+          @block_tests = outer_block_tests
         end
 
         def method_body?(node) = node.is_a?(Prism::DefNode) && node.body.is_a?(Prism::StatementsNode)
@@ -306,6 +311,9 @@ module VBlank
         # runs now, or a pool's, which records game code. Only running it can tell, so the step
         # looks, using the question the block's builder answers.
         def guarded_write_text(node, written)
+          if !@block_tests.empty? && node.depth.positive? && @names.plain_name_write?(node)
+            return "(#{STEPS}.refuse_change_in_block!(:#{node.name}, [#{@block_tests.join(', ')}]); #{written})"
+          end
           return written unless @names.plain_number_changed_from_block?(node)
 
           recording = "(respond_to?(:recording_game_code?) && recording_game_code?)"
@@ -319,6 +327,13 @@ module VBlank
           return "#{prefix}#{STEPS}.keep_as_own(#{value})" if LocalNames.makes_variable?(node.value)
 
           "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value}))"
+        end
+
+        # `@x ||= var :x, 0`, the same as `@x = var :x, 0` the first time.
+        def instance_variable_or_text(node)
+          return copied_text(node) unless LocalNames.makes_variable?(node.value)
+
+          "#{node.name} ||= #{STEPS}.keep_as_own(#{value_text(node.value)})"
         end
 
         def write_text(node)
@@ -480,7 +495,19 @@ module VBlank
 
           given = @lone_joins.key?(node) ? ", used: false" : ""
           given = ", into: #{into}" if into
+          return join_under_test_text(node, step, given) unless @names.names_to_promote(node, [node.right]).empty?
+
           "#{STEPS}.#{step}(#{argument(node.left)}#{given}) { #{rewritten_text(node.right)} }"
+        end
+
+        # `a > 3 && x = 2`: the right side is a side of a test, so a name it changes is given a
+        # variable first, as on a side of an `if`.
+        def join_under_test_text(node, step, given)
+          left = "__plain_ruby_#{@answers += 1}"
+          promotions = promotions_text(node, [node.right], left).gsub(", may_stay_nil: true", "")
+          right = under_open_test(left) { rewritten_text(node.right) }
+          "(#{left} = #{STEPS}.side_of_join(#{argument(node.left)}); #{promotions}" \
+            "#{STEPS}.#{step}(#{left}.value#{given}) { #{right} })"
         end
 
         # `found or next`. The right side of a join goes in a block, and a `next` or `break` in that
@@ -515,6 +542,8 @@ module VBlank
           opened = node.predicate.location.end_offset
           shut_at = node.closing_loc&.start_offset || node.location.end_offset
           promotions = promotions_text(node, [statements], test)
+          names = @names.names_to_promote(node, [statements])
+          promotions = "#{STEPS}.refuse_begin_while!(:#{names.first})" if node.begin_modifier? && !names.empty?
           body = under_open_test(test) do
             if trailing then rewritten_text(statements)
             elsif statements then side_text(opened, statements, shut_at)

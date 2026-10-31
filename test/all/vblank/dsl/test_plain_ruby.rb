@@ -952,6 +952,23 @@ class TestPlainRuby < Minitest::Test
     assert_equal 0, player[:seen]
   end
 
+  # hp starts at 5, so Ruby's d is 6 and the square is drawn at 6. A name that worked its number
+  # out again at the draw would put it at 1.
+  def test_d_keeps_the_number_from_its_line_when_hp_changes_before_the_draw
+    player = played(frames: 1) do
+      hp = var :hp, 5
+      game_loop do
+        d = hp + 1
+        hp = 0
+        draw_rect_at d, 10, 2, 2, :green
+        halt
+      end
+    end
+
+    refute_equal 0, player.screen.pixel(6, 10), "drawn at 6, where Ruby says d is"
+    assert_equal 0, player.screen.pixel(1, 10), "nothing drawn at 1"
+  end
+
   def test_a_worked_out_number_keeps_its_value_from_its_line
     player = played do
       hp = var :hp, 5
@@ -1174,6 +1191,26 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, notes.length
   end
 
+  def test_a_write_on_the_right_of_a_join_under_a_game_test_follows_the_test
+    player = played do
+      def nudged(a)
+        x = 1
+        a > 3 && x = 2
+        x
+      end
+      high = var :high, 5
+      low = var :low, 1
+      seen_high = 0
+      seen_low = 0
+      game_loop do
+        seen_high = nudged(high)
+        seen_low = nudged(low)
+      end
+    end
+
+    assert_equal [2, 1], [player[:seen_high], player[:seen_low]]
+  end
+
   def test_a_method_ending_in_a_ternary_of_verbs_still_runs_one_side
     player = played do
       def nudge(hp, tally) = hp > 3 ? tally[:high] += 1 : tally[:low] += 1
@@ -1183,6 +1220,47 @@ class TestPlainRuby < Minitest::Test
     end
 
     assert_equal [3, 0], [player[:high], player[:low]]
+  end
+
+  def test_an_ivar_made_with_or_equals_copies_another_variable
+    player = played do
+      @a = var :a, 5
+      @b ||= var :b, 0
+      @b = @a
+      game_loop { @a += 1 }
+    end
+
+    assert_equal [8, 5], [player[:a], player[:b]]
+  end
+
+  def test_a_fraction_changed_under_a_game_test_keeps_its_fraction
+    player = played do
+      hp = var :hp, 5
+      speed = var :speed, 1.5
+      seen = 0
+      game_loop do
+        step = speed
+        step = step + 1 if hp > 3
+        seen = (step * 2).to_i
+      end
+    end
+
+    assert_equal 5, player[:seen]
+  end
+
+  def test_a_fraction_kept_from_its_line_keeps_its_fraction
+    player = played do
+      speed = var :speed, 1.5
+      seen = 0
+      game_loop do
+        kept = speed + 1
+        speed = 0.0
+        seen = (kept * 2).to_i
+        halt
+      end
+    end
+
+    assert_equal 5, player[:seen]
   end
 
   def test_an_ivar_made_by_var_copies_another_variable

@@ -84,7 +84,7 @@ module VBlank
 
       def close_repeat = @builder.close_repeat
 
-      def hidden_variable(why) = @builder.hidden_variable(why)
+      def hidden_variable(why, like: nil) = @builder.hidden_variable(why, like: like)
 
       # The opposite test. A Ruby `!` on a Condition would otherwise answer plain false, and
       # the comparison would be lost with no word said.

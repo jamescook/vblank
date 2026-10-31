@@ -332,6 +332,20 @@ class TestProfiler < Minitest::Test
     assert_includes out.string, "a number such as -1"
   end
 
+  def test_the_profile_as_data_lists_the_hidden_variables
+    rom = VBlank.build("HIDDEN", console: :gba, out: StringIO.new, err: StringIO.new) do
+      a = 1
+      b = 2
+      game_loop { a, b = b, a }
+    end
+    out = StringIO.new
+    rom.profile(format: :json, out: out, frames: 5)
+    hidden = JSON.parse(out.string).fetch("hidden_variables")
+
+    assert_equal [1, 4], [hidden["count"], hidden["bytes"]]
+    assert_equal "swap", hidden["lines"].first["why"]
+  end
+
   def test_a_game_needing_no_hidden_variable_lists_none
     out = StringIO.new
     lopsided_game.profile(out: out, frames: 5)

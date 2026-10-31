@@ -951,12 +951,13 @@ module VBlank
     # A variable of its own for a number the author never named: a value picked between two,
     # or a number kept (see PlainRubySteps). Nothing reads it before something has set it. +why+
     # is which line of Diagnostics::HiddenVariables tells the author about it.
-    def hidden_variable(why)
+    def hidden_variable(why, like: nil)
       @hidden_variables += 1
       name = :"__kept_#{@hidden_variables}"
       ensure_var(name)
+      @fraction_vars[name] = like.fraction_bits if like&.fraction?
       @hidden_variable_notes << HiddenVariableNote.new(name:, source: Messages::AuthorSource.author_source, why:)
-      DSL::Value.new(self, Build.var_ref(name), name: name)
+      value_handle_for(name)
     end
 
     # What the build added for the author that the author never wrote, for `rom.profile`.

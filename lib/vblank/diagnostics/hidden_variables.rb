@@ -37,6 +37,18 @@ module VBlank
         printer.puts("")
       end
 
+      # The same list as data, for `rom.profile(format: :json)`.
+      def as_json(rom)
+        notes = rom.hidden_variables
+        { hidden_variables: { count: notes.length, bytes: notes.length * BYTES_EACH,
+                              lines: notes.map { |note| line_json(note) } } }
+      end
+
+      def line_json(note)
+        said, advice = WORDS.fetch(note.why)
+        { at: place(note.source), line: line_text(note.source), why: note.why.to_s, says: said, advice: advice }
+      end
+
       def place(source) = source ? File.basename(source) : "the library"
 
       # What the author wrote there, which says more than a line number on its own.

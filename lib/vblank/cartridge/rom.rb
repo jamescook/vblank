@@ -189,6 +189,7 @@ module VBlank
         when :json
           out.puts(JSON.generate(result.to_h
                                        .merge(Diagnostics::BuildReport.as_json(self))
+                                       .merge(Diagnostics::HiddenVariables.as_json(self))
                                        .merge(findings: findings_json)))
         else raise ArgumentError, "unknown profile format #{format.inspect} (use :human or :json)"
         end
