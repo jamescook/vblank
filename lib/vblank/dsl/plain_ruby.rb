@@ -324,6 +324,8 @@ module VBlank
         def write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
           return "#{prefix}#{STEPS}.write_under(#{open_tests_text}, #{promoted_name_text(node)}, (#{value_text(node.value)}))" if promoted?(node)
+          return picked_into_text(node) if picks_into_variable?(node)
+          return joined_into_text(node, prefix) if joins_into_variable?(node)
 
           case @names.action_for(node)
           when :declare then "#{prefix}#{declaration(node)}"
@@ -347,6 +349,7 @@ module VBlank
           if @names.keeps_truth?(node)
             return "#{STEPS}.start_with_truth(#{value_text(node.value)}) { |start| var(:#{name}, start) }"
           end
+          return "var(:#{name}, false)" if node.value.is_a?(Prism::NilNode)
           return "var(:#{name}, #{rewritten_text(node.value)})" if LocalNames.number?(node)
 
           start = "__plain_ruby_#{@answers += 1}"
@@ -471,12 +474,13 @@ module VBlank
         end
 
         # The right side is a block so plain values keep Ruby's skipping of it.
-        def joined_text(node, step)
+        def joined_text(node, step, into: nil)
           jump = jump_in(node.right)
           return jump_after_join_text(node, step, jump) if jump
 
-          used = @lone_joins.key?(node) ? ", used: false" : ""
-          "#{STEPS}.#{step}(#{argument(node.left)}#{used}) { #{rewritten_text(node.right)} }"
+          given = @lone_joins.key?(node) ? ", used: false" : ""
+          given = ", into: #{into}" if into
+          "#{STEPS}.#{step}(#{argument(node.left)}#{given}) { #{rewritten_text(node.right)} }"
         end
 
         # `found or next`. The right side of a join goes in a block, and a `next` or `break` in that
@@ -549,7 +553,7 @@ module VBlank
         def value_step(kept)
           return "tail_value" if kept == :tail
 
-          kept ? "picked_value" : "answer"
+          kept && !kept.is_a?(String) ? "picked_value" : "answer"
         end
 
         # `case` as a chain of tests. Each `when` is asked in turn, in Ruby's way on a plain value
@@ -573,11 +577,11 @@ module VBlank
           sides = under_open_test(answer) do
             yes = arm_body_text(arm, ends)
             rest = node.conditions[index + 1] || node.else_clause ? arm_text(node, index + 1, subject, kept) : nil
-            "if #{answer}.open_yes_side; #{answer}.#{side_step(kept)}((#{yes})); end; " \
-              "#{"if #{answer}.open_no_side; #{answer}.#{side_step(kept)}((#{rest})); end; " if rest}"
+            "if #{answer}.open_yes_side; #{side_close_text(answer, kept, yes)}; end; " \
+              "#{"if #{answer}.open_no_side; #{side_close_text(answer, kept, rest)}; end; " if rest}"
           end
           "(#{answer} = #{STEPS}.branch_test(#{when_test_text(node, arm, subject)}); #{promotions}#{sides}" \
-            "#{answer}.#{kept ? 'picked_value' : 'answer'})"
+            "#{answer}.#{value_step(kept)})"
         end
 
         def arm_body_text(arm, ends)
@@ -647,15 +651,55 @@ module VBlank
 
         def other_side(node) = node.is_a?(Prism::UnlessNode) ? node.else_clause : node.subsequent
 
-        def side_step(kept)
-          return "keep_tail_value" if kept == :tail
+        # How a side ends. +kept+ says what its value is for: nothing, the value of the whole
+        # conditional, a method's answer (:tail), or the name of a game variable to go straight
+        # into, which needs nothing to hold it on the way.
+        def side_close_text(answer, kept, body)
+          return "#{answer}.store_side(#{kept}, (#{body}))" if kept.is_a?(String)
+          return "#{answer}.keep_tail_value((#{body}))" if kept == :tail
 
-          kept ? "keep_side_value" : "close_side"
+          "#{answer}.#{kept ? 'keep_side_value' : 'close_side'}((#{body}))"
+        end
+
+        # `x = test ? a : b` on a game variable is `if test then x = a else x = b end`. It takes
+        # an answer on every side, since a side with none leaves nothing to store.
+        def picks_into_variable?(write)
+          return false if @names.keeps_truth?(write) || !answers_on_every_side?(write.value)
+
+          %i[assign start].include?(@names.action_for(write)) && !@names.first_write?(write)
+        end
+
+        def answers_on_every_side?(value)
+          case value
+          when Prism::CaseNode then !value.else_clause.nil?
+          when Prism::IfNode
+            value.subsequent.is_a?(Prism::ElseNode) || (value.subsequent && answers_on_every_side?(value.subsequent))
+          when Prism::UnlessNode then !value.else_clause.nil?
+          else false
+          end
+        end
+
+        # `done = a && work` on a game variable keeps the join's answer in `done` itself.
+        def joins_into_variable?(write)
+          [Prism::AndNode, Prism::OrNode].any? { |kind| write.value.is_a?(kind) } && !jump_in(write.value.right) &&
+            @names.action_for(write) == :assign && !@names.keeps_truth?(write)
+        end
+
+        def joined_into_text(write, prefix)
+          name = write.name
+          step = write.value.is_a?(Prism::AndNode) ? "join_both" : "join_either"
+          "#{prefix}#{STEPS}.assign(#{name}, #{joined_text(write.value, step, into: name)})"
+        end
+
+        def picked_into_text(write)
+          name = write.name.to_s
+          text = write.value.is_a?(Prism::CaseNode) ? case_text(write.value, kept: name) : conditional_text(write.value, kept: name)
+          "#{name} = (#{text}; #{name})"
         end
 
         def yes_side_text(node, answer, shut_at, kept)
           body = side_body_text(node, other_side(node)&.location&.start_offset || shut_at)
-          "if #{answer}.open_yes_side; #{answer}.#{side_step(kept)}((#{body})); end; "
+          "if #{answer}.open_yes_side; #{side_close_text(answer, kept, body)}; end; "
         end
 
         def no_side_text(node, answer, shut_at, kept)
@@ -669,7 +713,7 @@ module VBlank
                  else
                    "#{conditional_text(other, kept: kept)}#{line_ends_between(other.location.end_offset, shut_at)}"
                  end
-          "if #{answer}.open_no_side; #{answer}.#{side_step(kept)}((#{body})); end; "
+          "if #{answer}.open_no_side; #{side_close_text(answer, kept, body)}; end; "
         end
 
         # One side's statements. What follows them is kept as written, because a heredoc's

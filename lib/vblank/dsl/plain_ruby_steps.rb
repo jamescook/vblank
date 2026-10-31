@@ -57,26 +57,26 @@ module VBlank
       # plays, which nobody can tell from Ruby's skipping of the right side. A right side that
       # does something, or reads a list, is really skipped (see #side_under). +used+ is false
       # for a join standing alone as a statement, whose answer nothing reads.
-      def join_both(left, used: true)
+      def join_both(left, used: true, into: nil)
         return left && yield unless game_test?(left)
 
         condition = as_condition(left)
         right, if_node = side_under(condition) { yield }
-        return keep_side_answer(condition, if_node, right, otherwise: 0, used: used) if if_node
+        return keep_side_answer(condition, if_node, right, otherwise: 0, used: used, into: into) if if_node
         return condition & as_condition(right) if game_test?(right)
 
         right ? condition : condition.discard
       end
 
       # `||`, the same way round.
-      def join_either(left, used: true)
+      def join_either(left, used: true, into: nil)
         return left || yield unless game_test?(left)
         return number_or_other_side(left) { yield } if left.is_a?(Value) && left.truth
 
         condition = as_condition(left)
         unless_left = !condition
         right, if_node = side_under(unless_left) { yield }
-        return keep_side_answer(unless_left, if_node, right, otherwise: 1, used: used) if if_node
+        return keep_side_answer(unless_left, if_node, right, otherwise: 1, used: used, into: into) if if_node
         return condition | as_condition(right) if game_test?(right)
 
         right ? condition.discard || right : condition
@@ -157,17 +157,17 @@ module VBlank
       end
 
       # Closes the branch #side_under left open. The join's answer is the right side's on that
-      # side and +otherwise+ on the other, so it is kept in a hidden variable, the same way
-      # `x = test ? a : b` keeps its number.
-      def keep_side_answer(condition, if_node, right, otherwise:, used:)
+      # side and +otherwise+ on the other, so it is kept: in +into+, the game variable it is going
+      # to anyway, or else in a hidden variable.
+      def keep_side_answer(condition, if_node, right, otherwise:, used:, into: nil)
         unless used
           forget_value(right)
           condition.close_branch
           return
         end
 
-        answer = condition.hidden_variable(:join)
-        answer.mark_boolean!
+        answer = into || condition.hidden_variable(:join)
+        answer.mark_boolean! unless into
         store_truthiness(answer, right)
         condition.close_branch
         condition.open_other_branch(if_node)
@@ -219,7 +219,7 @@ module VBlank
 
         case value
         when true then target.set!(1)
-        when false then target.set!(0)
+        when false, nil then target.set!(0)
         when Condition then store_answer(target, value)
         else target.set!(value)
         end
@@ -470,6 +470,7 @@ module VBlank
         def close_side(value) = @answer = value
         def keep_side_value(value) = @answer = value
         def keep_tail_value(value) = @answer = value
+        def store_side(target, value) = @answer = PlainRubySteps.assign(target, value)
         def refuse_jump!(_word) = nil
       end
 
@@ -520,6 +521,12 @@ module VBlank
         end
 
         def tail_value = @kept
+
+        # A side of `x = test ? a : b` on a game variable: the number goes straight into x.
+        def store_side(target, value)
+          PlainRubySteps.assign(target, value)
+          @condition.close_branch
+        end
 
         def picked_value
           return @kept if @other_side

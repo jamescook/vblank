@@ -1080,6 +1080,100 @@ class TestPlainRuby < Minitest::Test
     assert_equal [5, 3], [player[:from_hp], player[:from_lives]]
   end
 
+  private def hidden_notes_of(&block)
+    builder = Builder.new
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(block))
+    builder.finalize_program
+    builder.hidden_variable_notes
+  end
+
+  def test_picking_into_a_game_variable_needs_no_hidden_variable
+    player = played do
+      hp = var :hp, 5
+      x = 0
+      y = 0
+      z = 0
+      game_loop do
+        x = hp > 3 ? 1 : 2
+        y = if hp > 9 then 3 else 4 end
+        z = case hp
+            when 5 then 6
+            else 7
+            end
+      end
+    end
+    notes = hidden_notes_of do
+      hp = var :hp, 5
+      x = 0
+      game_loop { x = hp > 3 ? 1 : 2 }
+    end
+
+    assert_equal [1, 4, 6], [player[:x], player[:y], player[:z]]
+    assert_empty notes
+  end
+
+  def test_a_side_of_a_pick_can_read_the_variable_it_goes_into
+    player = played do
+      hp = var :hp, 5
+      x = 10
+      game_loop { x = hp > 3 ? x + 1 : 0 }
+    end
+
+    assert_equal 13, player[:x]
+  end
+
+  def test_a_join_into_a_game_variable_needs_no_hidden_variable
+    player = played do
+      a = var :a, 5
+      count = 0
+      done = false
+      game_loop { done = a > 1 && (count += 1) > 0 }
+    end
+    notes = hidden_notes_of do
+      a = var :a, 5
+      count = 0
+      done = false
+      game_loop { done = a > 1 && (count += 1) > 0 }
+    end
+
+    assert_equal [1, 3], [player[:done], player[:count]]
+    assert_empty notes
+  end
+
+  def test_a_name_holding_only_nil_true_and_false_needs_no_hidden_variable
+    player = played(frames: 2) do
+      flag = nil
+      seen = 0
+      passes = 0
+      game_loop do
+        seen = 1 if flag
+        passes += 1
+        flag = true if passes == 1
+        flag = nil if passes == 2
+      end
+    end
+    notes = hidden_notes_of do
+      flag = nil
+      game_loop { flag = true if pressed(:a) }
+    end
+
+    assert_equal 1, player[:seen]
+    assert_empty notes
+  end
+
+  def test_a_name_asked_nil_tells_nil_from_false
+    notes = hidden_notes_of do
+      flag = nil
+      seen = 0
+      game_loop do
+        flag = false if pressed(:a)
+        seen = 1 if flag.nil?
+      end
+    end
+
+    assert_equal 1, notes.length
+  end
+
   def test_a_method_ending_in_a_ternary_of_verbs_still_runs_one_side
     player = played do
       def nudge(hp, tally) = hp > 3 ? tally[:high] += 1 : tally[:low] += 1

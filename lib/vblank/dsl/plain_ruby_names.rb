@@ -77,8 +77,17 @@ module VBlank
           # say which of those it is.
           def keeps_truth?
             kinds = @writes.map { |write| LocalNames.kind_written(write.node) }
+            return false if holds_only_yes_or_no?(kinds)
+
             kinds.include?(:nil) || (kinds.include?(:yes_or_no) && kinds.include?(:other))
           end
+
+          # nil and false read the same in a test, so a name nobody asks `.nil?` is a yes or no.
+          def holds_only_yes_or_no?(kinds)
+            !asked_nil && kinds.all? { |kind| %i[nil yes_or_no].include?(kind) }
+          end
+
+          attr_accessor :asked_nil
 
           def variable? = auto_variable? || made_by_var?
         end
@@ -211,6 +220,8 @@ module VBlank
           LocalNames.number?(local.first_write.node)
         end
 
+        def first_write?(write) = @locals_by_node[write]&.first_write_of?(write) || false
+
         # Is this write's name a game variable?
         def variable_write?(write) = @locals_by_node[write]&.variable? || false
 
@@ -318,6 +329,7 @@ module VBlank
             read_names(child, scopes, in_game_code || game_block)
           end
           read_place_change(node, in_game_code) if node.name == :[]= || node.attribute_write?
+          @locals_by_node[node.receiver]&.asked_nil = true if node.name == :nil?
         end
 
         def ruby_iteration?(call) = RUBY_ITERATORS.include?(call.name) && written_out?(call.receiver)
