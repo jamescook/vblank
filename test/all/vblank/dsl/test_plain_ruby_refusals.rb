@@ -43,6 +43,15 @@ class TestPlainRubyRefusals < Minitest::Test
     assert_refused("`lives` is set outside") { scene(:play) { lives = 2 } }
   end
 
+  def test_a_name_holding_an_object_changed_under_a_game_test_is_refused
+    assert_refused("`label` holds") do
+      hp = var :hp, 5
+      label = "LOW"
+      label = "HIGH" if hp > 3
+      game_loop { draw_text label, 0, 0, :white }
+    end
+  end
+
   def test_game_code_can_read_a_local_from_outside_the_block
     lives = 3
     builder = built do

@@ -313,6 +313,8 @@ module VBlank
 
         def write_text(node)
           prefix = between(node.location.start_offset, node.value.location.start_offset)
+          return "#{prefix}#{STEPS}.write_under(#{open_tests_text}, #{promoted_name_text(node)}, (#{value_text(node.value)}))" if promoted?(node)
+
           case @names.action_for(node)
           when :declare then "#{prefix}#{declaration(node)}"
           # The line that makes a variable in game code sets it on every pass, as Ruby would.
@@ -353,7 +355,25 @@ module VBlank
           "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{rewritten_text(node.value)} })"
         end
 
+        def promoted?(node) = @names.promoted?(node) && !@open_tests.empty?
+
+        def open_tests_text = "[#{@open_tests.join(', ')}]"
+
+        def promoted_name_text(node) = ":#{node.name}, #{node.name}"
+
+        # What stands before a side's code: each name it changes given a variable, if the test
+        # turns out to be the game's. There it goes before the branch, where the name's number
+        # still holds whichever way the test goes. +outer+ are tests already open around this one.
+        def promotions_text(node, sides, answer, outer: @open_tests)
+          given = [answer, *outer].join(", ")
+          @names.names_to_promote(node, sides).map { |name| "#{name} = #{STEPS}.promote(#{name}, #{given}); " }.join
+        end
+
         def change_text(node)
+          if promoted?(node)
+            return "#{node.name} = #{STEPS}.change_under(#{open_tests_text}, #{node.name}, " \
+                   ":#{node.binary_operator}, #{argument(node.value)})"
+          end
           return copied_text(node) if @names.plain_name_write?(node)
 
           "#{node.name} = #{STEPS}.change(#{node.name}, :#{node.binary_operator}, #{argument(node.value)})"
@@ -399,6 +419,7 @@ module VBlank
           trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
           opened = node.predicate.location.end_offset
           shut_at = node.closing_loc&.start_offset || node.location.end_offset
+          promotions = promotions_text(node, [statements], test)
           body = under_open_test(test) do
             if trailing then rewritten_text(statements)
             elsif statements then side_text(opened, statements, shut_at)
@@ -406,7 +427,8 @@ module VBlank
             end
           end
           first = node.begin_modifier? ? "#{body}; " : ""
-          "(#{test} = #{STEPS}.#{step} { #{rewritten_text(node.predicate)} }; #{first}while #{test}.go_round; #{body}; end)"
+          "(#{test} = #{STEPS}.#{step} { #{rewritten_text(node.predicate)} }; #{first}" \
+            "while #{test}.go_round#{" { #{promotions} }" unless promotions.empty?}; #{body}; end)"
         end
 
         # What a pair of parentheses holds, when that is one conditional.
@@ -424,10 +446,12 @@ module VBlank
 
           answer = "__plain_ruby_#{@answers += 1}"
           shut_at = node.end_keyword_loc&.start_offset || node.location.end_offset
+          promotions = promotions_text(node, [node.statements, other_side(node)], answer)
           sides = under_open_test(answer) do
             "#{yes_side_text(node, answer, shut_at, kept)}#{no_side_text(node, answer, shut_at, kept)}"
           end
-          "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{sides}#{answer}.#{kept ? 'picked_value' : 'answer'})"
+          "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{promotions}#{sides}" \
+            "#{answer}.#{kept ? 'picked_value' : 'answer'})"
         end
 
         # `if a && b` with no other side is one `if` inside another. So the right side is really
@@ -440,10 +464,12 @@ module VBlank
           tests = tests_joined_by_and(node.predicate)
           answers = tests.map { "__plain_ruby_#{@answers += 1}" }
           shut_at = node.end_keyword_loc&.start_offset || node.location.end_offset
+          outers = answers.each_index.map { |index| @open_tests + answers.first(index) }
+          promotions = answers.zip(outers).map { |answer, outer| promotions_text(node, [node.statements], answer, outer: outer) }
           body = under_open_tests(answers) { side_body_text(node, shut_at) }
-          tests.zip(answers).reverse.reduce(body) do |inner, (test, answer)|
+          tests.zip(answers, promotions).reverse.reduce(body) do |inner, (test, answer, promoted)|
             before = test.equal?(tests.first) ? "" : line_ends_before_test(tests, test)
-            "(#{before}#{answer} = #{STEPS}.branch_test(#{argument(test)}); " \
+            "(#{before}#{answer} = #{STEPS}.branch_test(#{argument(test)}); #{promoted}" \
               "if #{answer}.open_yes_side; #{answer}.close_side((#{inner})); end; #{answer}.answer)"
           end
         end

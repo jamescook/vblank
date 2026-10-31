@@ -20,7 +20,7 @@ module VBlank
       # Truthiness is Ruby's. Only a test, or a yes or no the game keeps, has an answer that waits
       # for the game to play. Every other value is answered here: nil and false are falsy, and
       # everything else is truthy, a number of the game's among them, whatever it holds.
-      def game_test?(value) = value.is_a?(Condition) || (value.is_a?(Value) && value.yes_no?)
+      def game_test?(value) = value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
 
       # Does this name a place that keeps a number, rather than a working-out of one?
       def variable?(value) = value.is_a?(Value) && value.handle?
@@ -41,7 +41,7 @@ module VBlank
 
       # The other answer to a test, for `!` and `unless`.
       def opposite(value)
-        return !value unless value.is_a?(Value) && value.yes_no?
+        return !value unless value.is_a?(Value) && value.boolean?
 
         value == 0
       end
@@ -119,7 +119,7 @@ module VBlank
         end
 
         answer = condition.hidden_variable
-        answer.yes_no!
+        answer.mark_boolean!
         store_truthiness(answer, right)
         condition.close_branch
         condition.open_other_branch(if_node)
@@ -185,6 +185,46 @@ module VBlank
         answer.close_side(nil)
       end
 
+      # A plain name is about to be changed under +test+. A test the game makes runs both sides
+      # while building, so a plain name would end up with the last side's value whichever way
+      # the game goes. It gets a hidden variable holding its value now, and the sides change that.
+      # Tests already open around this one have seen to it, in +outer+.
+      def promote(value, test, *outer)
+        return value unless test.game? && outer.none?(&:game?)
+        return value unless value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
+
+        own = test.hidden_variable
+        own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
+        own.unwritten = value.nil?
+        store_in_variable(own, value) unless value.nil?
+        own
+      end
+
+      # `x = value` on a name #promote saw to, if one of +tests+ is the game's. A name not given
+      # anything yet can take an object made here, as `actions = menu ...` does, since a verb
+      # that declares something runs once however the test goes.
+      def write_under(tests, name, target, value)
+        return value unless tests.any?(&:game?)
+
+        refuse_object_under_test!(name, target) unless variable?(target)
+        return assign(target, value) if game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
+        return value if target.unwritten
+
+        refuse_object_under_test!(name, value)
+      end
+
+      # `x += amount` on such a name.
+      def change_under(tests, target, operator, amount)
+        tests.any?(&:game?) ? change(target, operator, amount) : target.public_send(operator, amount)
+      end
+
+      def refuse_object_under_test!(name, held)
+        shown = held.is_a?(String) ? held.inspect : "a #{held.class.name.split('::').last}"
+        refuse_game_code!("`#{name}` holds #{shown}, and this line changes it under a test the game makes " \
+                          "as it plays. A game can keep only numbers, symbols, `true` and `false`. To fix this, " \
+                          "keep a number and pick with it.")
+      end
+
       # `x = value` where x is a game variable.
       def assign(target, value)
         return value unless variable?(target)
@@ -209,7 +249,7 @@ module VBlank
 
       def own_variable(value)
         own = yield(value.fraction? ? 0.0 : 0)
-        own.yes_no! if value.yes_no?
+        own.mark_boolean! if value.boolean?
         own
       end
 
@@ -298,6 +338,7 @@ module VBlank
           @value = value
         end
 
+        def game? = false
         def open_yes_side = !!@value
         def open_no_side = !@value
         def close_side(value) = @answer = value
@@ -311,6 +352,9 @@ module VBlank
         def initialize(condition)
           @condition = condition
         end
+
+        def game? = true
+        def hidden_variable = @condition.hidden_variable
 
         def open_yes_side
           @if_node = @condition.open_branch
@@ -329,14 +373,14 @@ module VBlank
         # A side's value, for `x = test ? a : b`. There is no way to pick one of two numbers in
         # the game, so each side stores its number in one hidden variable.
         def keep_side_value(value)
-          yes_no = [true, false].include?(value) || value.is_a?(Condition)
-          unless yes_no || value.is_a?(Integer) || value.is_a?(Value)
+          boolean = [true, false].include?(value) || value.is_a?(Condition)
+          unless boolean || value.is_a?(Integer) || value.is_a?(Value)
             PlainRubySteps.refuse_game_code!("A test made as the game plays can only choose between numbers, " \
                                    "or between `true` and `false`. This side is #{value.inspect}. A " \
                                    "game variable cannot hold that.")
           end
           @kept ||= @condition.hidden_variable
-          @kept.yes_no! if yes_no || (value.is_a?(Value) && value.yes_no?)
+          @kept.mark_boolean! if boolean || (value.is_a?(Value) && value.boolean?)
           PlainRubySteps.store_in_variable(@kept, value)
           @condition.close_branch
         end
@@ -366,14 +410,18 @@ module VBlank
           @stops_when = stops_when
         end
 
-        def go_round
+        # The block runs once it is known this is a game's loop, and before the loop opens.
+        def go_round(&before_loop)
           return close_game_loop if @game_loop
 
           value = @test.call
           return @stops_when ? !value : !!value unless PlainRubySteps.game_test?(value)
 
-          open_game_loop(value)
+          open_game_loop(value, &before_loop)
         end
+
+        def game? = !@game_loop.nil?
+        def hidden_variable = @game_loop.hidden_variable
 
         def refuse_jump!(word)
           PlainRubySteps.refuse_jump!(word) if @game_loop
@@ -381,11 +429,22 @@ module VBlank
 
         private
 
-        def open_game_loop(value)
-          held = PlainRubySteps.as_condition(value)
-          @game_loop = @stops_when ? held : !held
+        # A name given a variable by the block must be read as that variable from now on, in the
+        # test too, or the loop would ask about the number it held before.
+        def open_game_loop(value, &before_loop)
+          @game_loop = stopping_test(value)
+          if before_loop
+            yield
+            @game_loop.discard
+            @game_loop = stopping_test(@test.call)
+          end
           @game_loop.open_repeat(MOST_PASSES)
           true
+        end
+
+        def stopping_test(value)
+          held = PlainRubySteps.as_condition(value)
+          @stops_when ? held : !held
         end
 
         def close_game_loop

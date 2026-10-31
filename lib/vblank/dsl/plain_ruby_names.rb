@@ -25,19 +25,24 @@ module VBlank
 
         Write = Struct.new(:node, :in_game_code)
 
+        CHANGES = [Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode].freeze
+
         # Writes by game code to a local of the scope the block sits in.
         attr_reader :outside_writes
 
         # One local, in the scope that owns it.
         class Local
-          attr_reader :name, :writes
+          attr_reader :name, :writes, :reads
           attr_accessor :variable_name
 
           def initialize(name, parameter:)
             @name = name
             @parameter = parameter
             @writes = []
+            @reads = []
           end
+
+          def read_from?(offset) = reads.any? { |read| read.location.start_offset >= offset }
 
           def parameter? = @parameter
           def first_write = @writes.first
@@ -98,6 +103,7 @@ module VBlank
           @locals_by_node = {}.compare_by_identity
           @ruby_iteration_writes = {}.compare_by_identity
           @outside_writes = []
+          @promoted_writes = {}.compare_by_identity
           @names_used = Hash.new(0)
           @iterating_in_game_code = false
           read_names(block_node, [], false)
@@ -124,6 +130,19 @@ module VBlank
           local.variable_name ||= next_variable_name(local.name)
         end
 
+        # The plain names +sides+ change that are read after +node+, in a conditional or a loop that
+        # may turn out to be a test the game makes. A name read nowhere else needs nothing. It
+        # stops at a block, whose writes are not in the same scope as the test.
+        def names_to_promote(node, sides)
+          writes = sides.compact.flat_map { |side| plain_writes_in(side) }
+          kept = writes.select { |write| @locals_by_node[write].read_from?(node.location.end_offset) }
+          kept.each { |write| @promoted_writes[write] = true }
+          kept.map(&:name).uniq
+        end
+
+        # Is this a write to a name that #names_to_promote named?
+        def promoted?(write) = @promoted_writes.key?(write)
+
         # Is this write a number, staying plain, being changed from a block inside its scope?
         def plain_number_changed_from_block?(write)
           local = @locals_by_node[write]
@@ -137,6 +156,13 @@ module VBlank
         def variable_read?(read) = @locals_by_node[read]&.variable? || false
 
         private
+
+        def plain_writes_in(node)
+          return [] if [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].any? { |kind| node.is_a?(kind) }
+
+          own = plain_name_write?(node) && CHANGES.any? { |kind| node.is_a?(kind) } ? [node] : []
+          own + node.compact_child_nodes.flat_map { |child| plain_writes_in(child) }
+        end
 
         def first_write_action(local)
           return if local.made_by_var? || !local.auto_variable?
@@ -162,6 +188,7 @@ module VBlank
             read_children(node, scopes, in_game_code)
           when Prism::LocalVariableReadNode then
             local = scopes[-1 - node.depth]&.[](node.name)
+            local&.reads&.push(node)
             @locals_by_node[node] = local if local
           else read_children(node, scopes, in_game_code)
           end
@@ -223,6 +250,7 @@ module VBlank
 
           local = (scope[node.name] ||= Local.new(node.name, parameter: false))
           local.writes << Write.new(node, in_game_code)
+          local.reads << node unless node.is_a?(Prism::LocalVariableWriteNode)
           @ruby_iteration_writes[node] = true if @iterating_in_game_code && !in_game_code
           @locals_by_node[node] = local
         end

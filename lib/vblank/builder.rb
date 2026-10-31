@@ -132,7 +132,7 @@ module VBlank
       @repeat_seq = 0          # counts repeat loops, to name each one's hidden index var
       @game_whiles = 0         # how many game `while` loops are open now
       @hidden_variables = 0    # counts the variables a picked value keeps its answer in
-      @yes_no_variables = {}   # the variables started with `true` or `false`
+      @boolean_variables = {}   # the variables started with `true` or `false`
       @timer_seq = 0           # counts every/after timers, to name each one's hidden counter var
       @rng_seq = 0             # counts anonymous random draws, to name each one's hidden var
       @approach_seq = 0        # counts approach calls, to name each one's hidden delta var

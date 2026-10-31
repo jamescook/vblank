@@ -444,6 +444,115 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:seen]
   end
 
+  def test_a_number_changed_under_a_game_test_in_setup_follows_the_test
+    player = played do
+      hp = var :hp, 5
+      taken = 1
+      taken = 2 if hp > 3
+      left = 1
+      left = 2 if hp > 9
+      seen_taken = 0
+      seen_left = 0
+      game_loop do
+        seen_taken = taken
+        seen_left = left
+      end
+    end
+
+    assert_equal [2, 1], [player[:seen_taken], player[:seen_left]]
+  end
+
+  def test_a_number_changed_under_a_game_test_in_a_method_follows_the_test
+    player = played do
+      def speed_for(hp)
+        s = 1
+        before = s
+        s = 2 if hp > 3
+        s += before
+        s
+      end
+      hp = var :hp, 5
+      low = var :low, 1
+      seen = 0
+      seen_low = 0
+      game_loop do
+        seen = speed_for(hp)
+        seen_low = speed_for(low)
+      end
+    end
+
+    assert_equal [3, 2], [player[:seen], player[:seen_low]]
+  end
+
+  def test_a_name_first_given_a_number_on_both_sides_of_a_game_test_follows_the_test
+    player = played do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        if hp > 3
+          picked = 1
+        else
+          picked = 2
+        end
+        seen = picked
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_an_argument_changed_under_a_game_test_follows_the_test
+    player = played do
+      def later_of(pose, passes)
+        pose = 7 if passes >= 2
+        pose
+      end
+      passes = 0
+      seen = 0
+      game_loop do
+        passes += 1
+        seen = later_of(1, passes)
+      end
+    end
+
+    assert_equal 7, player[:seen]
+  end
+
+  def test_a_number_changed_in_a_game_loop_inside_a_method_follows_the_test
+    player = played do
+      def count_up(limit)
+        n = 0
+        while n < limit
+          n += 1
+        end
+        n
+      end
+      limit = var :limit, 3
+      seen = 0
+      game_loop { seen = count_up(limit) }
+    end
+
+    assert_equal 3, player[:seen]
+  end
+
+  def test_a_name_only_used_under_a_game_test_costs_no_variable
+    builder = Builder.new
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(proc do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        if hp > 3
+          worked = hp + 1
+          worked += 1
+          seen = worked
+        end
+      end
+    end))
+    builder.finalize_program
+
+    refute_includes builder.program.walk.select { |node| node.kind == :var_ref }.map(&:name), :__kept_1
+  end
+
   def test_the_right_of_or_runs_only_when_the_left_fails
     player = played(frames: 3) do
       n = 0
