@@ -42,7 +42,7 @@ module MusicVolumeGames
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         named_once ? (pass == 1).then { play_song :hold } : play_song(:hold)
         instance_exec(pass, &body)
       end
@@ -66,7 +66,7 @@ module MusicVolumeGames
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         play_song :drums
         instance_exec(pass, &body)
       end
@@ -116,8 +116,8 @@ class TestMusicVolume < Minitest::Test
   # after a fade out, from nothing.
   def test_a_fade_in_brings_the_music_up_from_silence
     program = held_note_game(named_once: true) do |pass|
-      (pass == 5).then { fade_music_out frames: 2 }
-      (pass == 10).then { fade_music_in frames: 5 }
+      fade_music_out frames: 2 if pass == 5
+      fade_music_in frames: 5 if pass == 10
     end
     heard = loudness_by_frame(program, 30).select { |frame, _| frame > 10 }
 
@@ -128,8 +128,8 @@ class TestMusicVolume < Minitest::Test
   # than dropping to silence first and coming up from there.
   def test_a_fade_in_during_a_fade_out_turns_round_where_it_is
     program = held_note_game(named_once: true) do |pass|
-      (pass == 10).then { fade_music_out frames: 5 }
-      (pass == 12).then { fade_music_in }
+      fade_music_out frames: 5 if pass == 10
+      fade_music_in if pass == 12
     end
     heard = loudness_by_frame(program, 30).reject { |frame, _| frame == 2 }.values.flatten(1)
 
@@ -147,8 +147,8 @@ class TestMusicVolume < Minitest::Test
   # A fade in said with no length comes up as fast as the last fade out went down.
   def test_a_fade_in_with_no_length_takes_as_long_as_the_fade_out_did
     program = held_note_game(named_once: true) do |pass|
-      (pass == 5).then { fade_music_out frames: 3 }
-      (pass == 15).then { fade_music_in }
+      fade_music_out frames: 3 if pass == 5
+      fade_music_in if pass == 15
     end
     heard = loudness_by_frame(program, 30).select { |frame, _| frame > 15 }
 
@@ -187,10 +187,10 @@ class TestMusicVolume < Minitest::Test
       song(:tune) { note :C4, :whole }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         play_song :tune
-        (pass == 10).then { fade_music_out }
-        (pass == 90).then { fade_music_in }
+        fade_music_out if pass == 10
+        fade_music_in if pass == 90
       end
     end
 
@@ -206,7 +206,11 @@ class TestMusicVolume < Minitest::Test
       over = var :over, 0
       game_loop do
         play_song :tune
-        (over == 1).then { fade_music_out }.else { fade_music_in }
+        if over == 1
+          fade_music_out
+        else
+          fade_music_in
+        end
       end
     end
 
@@ -221,10 +225,10 @@ class TestMusicVolume < Minitest::Test
       song(:tune) { note :C4, :whole }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         play_song :tune
-        (pass == 10).then { fade_music_out }
-        (pass == 90).then { music_volume 100 }
+        fade_music_out if pass == 10
+        music_volume 100 if pass == 90
       end
     end
 
@@ -240,10 +244,10 @@ class TestMusicVolume < Minitest::Test
       pass = var :pass, 0
       slider = var :slider, 80
       game_loop do
-        pass.add! 1
+        pass += 1
         play_song :tune
-        (pass == 10).then { fade_music_out }
-        (pass == 90).then { music_volume slider }
+        fade_music_out if pass == 10
+        music_volume slider if pass == 90
       end
     end
 
@@ -272,10 +276,10 @@ class TestMusicVolume < Minitest::Test
       loud_at_start = var :loud_at_start, 0
       silent_at = var :silent_at, 0
       game_loop do
-        pass.add! 1
-        (pass == 1).then { loud_at_start.set! music_volume }
-        (pass == 2).then { fade_music_out frames: 4 }
-        ((music_volume == 0) & (silent_at == 0)).then { silent_at.set! pass }
+        pass += 1
+        loud_at_start = music_volume if pass == 1
+        fade_music_out frames: 4 if pass == 2
+        silent_at = pass if music_volume == 0 && silent_at == 0
       end
     end
     b.finalize_program

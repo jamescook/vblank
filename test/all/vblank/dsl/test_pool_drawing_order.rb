@@ -29,7 +29,7 @@ module PoolDrawingOrderGames
       game_loop do
         instance_exec(crowd, step, &script)
         crowd.each { |thing| thing.face COLORS, showing: thing.tag }
-        step.add! 1
+        step += 1
       end
     end
     b.finalize_program
@@ -54,8 +54,10 @@ module PoolDrawingOrderGames
         crowd.spawn x: 200, y: 100, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: RED
       end
-      (step == 1).then { crowd.each { |thing| (thing.tag == BLUE).then { thing.remove } } }
-      (step == 2).then { crowd.spawn x: 44, y: 44, tag: GREEN }
+      if step == 1
+        crowd.each { |thing| (thing.tag == BLUE).then { thing.remove } }
+      end
+      crowd.spawn x: 44, y: 44, tag: GREEN if step == 2
     end
   end
 
@@ -68,7 +70,9 @@ module PoolDrawingOrderGames
         crowd.spawn x: 200, y: 120, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: GREEN
       end
-      (step == 1).then { crowd.each { |thing| (thing.x == 200).then { thing.remove } } }
+      if step == 1
+        crowd.each { |thing| (thing.x == 200).then { thing.remove } }
+      end
       (step == 2).then do
         crowd.spawn x: 42, y: 42, tag: RED
         crowd.spawn x: 44, y: 44, tag: BLUE
@@ -83,7 +87,7 @@ module PoolDrawingOrderGames
         crowd.spawn x: 200, y: 100, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: RED
       end
-      (step == 2).then { crowd.spawn x: 44, y: 44, tag: GREEN }
+      crowd.spawn x: 44, y: 44, tag: GREEN if step == 2
     end
   end
 
@@ -94,7 +98,9 @@ module PoolDrawingOrderGames
         crowd.spawn x: 40, y: 40, tag: RED
         crowd.spawn x: 44, y: 44, tag: GREEN
       end
-      (step == 2).then { crowd.each { |thing| (thing.tag == RED).then { thing.remove } } }
+      if step == 2
+        crowd.each { |thing| (thing.tag == RED).then { thing.remove } }
+      end
     end
   end
 end
@@ -175,10 +181,10 @@ class TestPoolDrawingOrder < Minitest::Test
           ships.spawn x: 80, y: 40
         end
         ships.each do |ship|
-          (ship.x == 80).then { ship.draw_with :hurt }
-          ((step == 2) & (ship.x == 40)).then { ship.remove }
+          ship.draw_with :hurt if ship.x == 80
+          ship.remove if step == 2 && ship.x == 40
         end
-        step.add! 1
+        step += 1
       end
     end
     b.finalize_program

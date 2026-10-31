@@ -20,7 +20,7 @@ class TestEachPass < Minitest::Test
       turn = var :turn, 0
       instance_exec(&before) if before
       game_loop do
-        turn.add! 1
+        turn += 1
         instance_exec(turn, &each)
       end
     end
@@ -36,8 +36,8 @@ class TestEachPass < Minitest::Test
   private def counting = lambda {
     steps = var :steps, 0
     each_pass(:counting) do |job|
-      steps.add! 1
-      (steps == 4).then { job.stop }
+      steps += 1
+      job.stop if steps == 4
     end
   }
 
@@ -59,7 +59,7 @@ class TestEachPass < Minitest::Test
     restarting = lambda {
       steps = var :steps, 0
       each_pass(:restarting) do |job|
-        steps.add! 1
+        steps += 1
         job.stop
         job.start
       end

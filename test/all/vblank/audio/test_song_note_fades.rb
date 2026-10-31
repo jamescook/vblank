@@ -147,8 +147,8 @@ class TestSongNoteFades < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 10).then { music_volume 50 }
+        count += 1
+        music_volume 50 if count == 10
         wait_vblank
       end
     end
@@ -175,7 +175,7 @@ class TestSongNoteFades < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         instance_exec(count, &volume)
         wait_vblank
       end
@@ -212,8 +212,8 @@ class TestSongNoteFades < Minitest::Test
   # ...AND SWELLS ON when the music volume comes back up, from where it was held.
   def test_a_held_swell_swells_on_when_the_music_comes_back
     entries = loudness_of_pad(swelling_pad_game do |count|
-      (count == 1).then { music_volume 50 }
-      (count == 40).then { music_volume 100 }
+      music_volume 50 if count == 1
+      music_volume 100 if count == 40
     end, frames: 60)
 
     assert_equal [:loudness, 1, 7, NoteFade.swelling(1)], entries.last, "struck at 7 again, swelling"

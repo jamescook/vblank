@@ -76,7 +76,7 @@ class TestSpriteDrawsWith < Minitest::Test
       step = var :step, 0
       game_loop do
         ship.draw_with [:ink, :hurt], showing: step
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -110,8 +110,8 @@ class TestSpriteDrawsWith < Minitest::Test
       pass = var :pass, 0
       game_loop do
         ship.draw_with :hurt
-        pass.add! 1
-        (pass == 3).then { tag.changed }
+        pass += 1
+        tag.changed if pass == 3
       end
     end
     builder.finalize_program
@@ -141,8 +141,8 @@ class TestSpriteDrawsWith < Minitest::Test
       step = var :step, 0
       game_loop do
         ship.draw_with [:warm, :hot], showing: step
-        ship.x.add! 1
-        step.add! 1
+        ship.x += 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -171,8 +171,12 @@ class TestSpriteDrawsWith < Minitest::Test
 
   def test_a_sprite_told_its_own_colors_goes_back_to_them
     i = game_player.run(program do |ship|
-      (ship.x == 40).then { ship.draw_with :hurt }.else { ship.draw_with :own }
-      ship.x.set! 41
+      if ship.x == 40
+        ship.draw_with :hurt
+      else
+        ship.draw_with :own
+      end
+      ship.x = 41
     end, frames: 4)
 
     assert_equal Color.resolve(:red), i.screen.pixel(42, 41)
@@ -193,9 +197,11 @@ class TestSpriteDrawsWith < Minitest::Test
       ships.spawn x: 80, y: 40
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         ships.each do |ship|
-          (frame == 1).then { (ship.x == 80).then { ship.draw_with :hurt } }
+          if frame == 1
+            (ship.x == 80).then { ship.draw_with :hurt }
+          end
           (frame == respawn_at).then { (ship.x == 80).then { ship.remove } } if respawn_at
         end
         (frame == respawn_at).then { ships.spawn x: 80, y: 40 } if respawn_at
@@ -230,9 +236,11 @@ class TestSpriteDrawsWith < Minitest::Test
       ships.spawn x: 40, y: 40
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 1).then { ships.each { |ship| ship.draw_with :hurt } }
-        (frame == 3).then { ships.spawn x: 80, y: 40 }
+        frame += 1
+        if frame == 1
+          ships.each { |ship| ship.draw_with :hurt }
+        end
+        ships.spawn x: 80, y: 40 if frame == 3
       end
     end
     builder.finalize_program
@@ -425,7 +433,7 @@ class TestSpriteDrawsWith < Minitest::Test
       step = var :step, -1
       game_loop do
         ship.draw_with names, showing: step
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -464,9 +472,9 @@ class TestSpriteDrawsWith < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -503,9 +511,9 @@ class TestSpriteDrawsWith < Minitest::Test
       tick = var :tick, 0
       game_loop do
         tint :red, 50
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

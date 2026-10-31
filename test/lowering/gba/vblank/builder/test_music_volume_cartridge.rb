@@ -18,8 +18,8 @@ class TestMusicVolumeCartridge < Minitest::Test
   # logs, one after another — every step of the way, not only where it ends up.
   def test_both_backends_step_through_the_same_volumes
     program = held_note_game(named_once: true) do |pass|
-      (pass == 10).then { fade_music_out frames: 9 }
-      (pass == 30).then { fade_music_in frames: 9 }
+      fade_music_out frames: 9 if pass == 10
+      fade_music_in frames: 9 if pass == 30
     end
     interpreted = game_player.run(program, frames: 60).audio
                              .select { |entry| entry[0] == :loudness && entry[1] == 1 }.map(&:last)
@@ -47,8 +47,8 @@ class TestMusicVolumeCartridge < Minitest::Test
   # ...and on the console, where it can be heard: loud, then silent, then loud again.
   def test_the_console_fades_the_music_out_and_back_in
     program = held_note_game(named_once: true) do |pass|
-      (pass == 10).then { fade_music_out frames: 10 }
-      (pass == 40).then { fade_music_in }
+      fade_music_out frames: 10 if pass == 10
+      fade_music_in if pass == 40
     end
     energy = assert_emulator_loads_rom(assemble_rom(program, name: "MUSFADE"), frames: 70).audio_energy_by_frame
     loud = energy.max / 4

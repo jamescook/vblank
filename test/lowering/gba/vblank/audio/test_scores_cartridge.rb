@@ -98,7 +98,7 @@ class TestScoresCartridge < Minitest::Test
     named_on = lambda do |on|
       game(scores) do |music, pass|
         track = var :track, 0
-        (pass == on).then { track.set! 1 }
+        track = 1 if pass == on
         music.play track
       end
     end
@@ -112,7 +112,7 @@ class TestScoresCartridge < Minitest::Test
   # ...and stopped and named again on that pass, it plays straight through a second time.
   def test_a_stop_and_a_play_as_it_ends_plays_it_again_on_both_backends
     program = game([held_note(plays: :piano, plays_once: true)]) do |music, pass|
-      (pass == 21).then { stop_music }
+      stop_music if pass == 21
       music.play 0
     end
     twice = ([[:piano]] * 40) + ([[]] * 20)
@@ -135,9 +135,9 @@ class TestScoresCartridge < Minitest::Test
       sfx = sound_effects :sfx, { ping: ping }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         music.play 0
-        ((pass == 10) | (pass == 30)).then { sfx.play :ping }
+        sfx.play :ping if pass == 10 || pass == 30
       end
     end
     b.finalize_program
@@ -150,7 +150,7 @@ class TestScoresCartridge < Minitest::Test
   # voice is back, and near the start of the recording.
   def test_the_console_starts_a_song_that_ended_over_on_a_stop_and_a_play
     program = game([held_note(plays: :piano, plays_once: true)]) do |music, pass|
-      (pass == 40).then { stop_music }
+      stop_music if pass == 40
       music.play 0
     end
     console = assert_emulator_loads_rom(assemble_rom(program, name: "SCOREBACK"), frames: 36)
@@ -167,8 +167,8 @@ class TestScoresCartridge < Minitest::Test
     scores = [held_note(plays: :piano, plays_once: true), notes_every_ten_ticks(:G4, plays: :harp)]
     program = game(scores) do |music, pass|
       track = var :track, 0
-      (pass == 40).then { track.set! 1 }
-      (pass == 50).then { track.set! 0 }
+      track = 1 if pass == 40
+      track = 0 if pass == 50
       music.play track
     end
     console = assert_emulator_loads_rom(assemble_rom(program, name: "SCORENEXT"), frames: 36)
@@ -253,7 +253,7 @@ class TestScoresCartridge < Minitest::Test
   def test_the_console_starts_a_song_over_on_a_stop_and_a_play
     held = Score.new(tempo: 150, length: 600, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: :C4)])])
     restarted = game([held]) do |music, pass|
-      (pass == 20).then { stop_music }
+      stop_music if pass == 20
       music.play 0
     end
     left_alone = game([held]) { |music, _| music.play 0 }
@@ -268,7 +268,7 @@ class TestScoresCartridge < Minitest::Test
     scores = [notes_every_ten_ticks(:C4, plays: :piano), notes_every_ten_ticks(:G4, plays: :harp)]
     rom = assemble_rom(game(scores) do |music, pass|
       track = var :track, 1
-      (pass == 10).then { track.set! 9 }
+      track = 9 if pass == 10
       music.play track
     end, name: "SCORENONE")
 

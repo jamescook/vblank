@@ -191,7 +191,7 @@ class TestMenu < Minitest::Test
   # raced down the list one row a frame can land on the right row by coincidence, and
   # in a three-row walk it often does.
   private def counting_moves(repeat_every:)
-    menu_program(repeat_every: repeat_every) { |m| m.moved.then { add! :chose, 1 } }
+    menu_program(repeat_every: repeat_every) { |m| add! :chose, 1 if m.moved }
   end
 
   def test_holding_a_button_walks_the_list_instead_of_racing_down_it
@@ -277,11 +277,11 @@ class TestMenu < Minitest::Test
         menu(:main, at: [X, Y], spacing: SPACING) do |rows|
           ROWS.each { |label| rows.item(label) }
         end
-        pressed(:b).then { state.set! 1 }
+        state = 1 if pressed(:b)
       end
       scene :away do
         draw_text "AWAY", 10, 120, :white
-        pressed(:b).then { state.set! 0 }
+        state = 0 if pressed(:b)
       end
     end
 
@@ -309,11 +309,11 @@ class TestMenu < Minitest::Test
         menu(:main, at: [X, Y], spacing: SPACING, starts_on: 2) do |rows|
           ROWS.each { |label| rows.item(label) }
         end
-        pressed(:b).then { state.set! 1 }
+        state = 1 if pressed(:b)
       end
       scene :away do
         draw_text "AWAY", 10, 120, :white
-        pressed(:b).then { state.set! 0 }
+        state = 0 if pressed(:b)
       end
     end
 
@@ -330,7 +330,7 @@ class TestMenu < Minitest::Test
         menu(:left, at: [X, Y], spacing: SPACING) { |r| ROWS.each { |l| r.item(l) } }
         right = menu(:right, at: [160, Y], spacing: SPACING) { |r| ROWS.each { |l| r.item(l) } }
         # Setting the pick jumps that cursor, and only that one.
-        right.picked.set! 3
+        right.picked = 3
       end
     end
     i = walk(program, frames: 2, &NOTHING_HELD)
@@ -628,10 +628,10 @@ class TestMenu < Minitest::Test
         menu(:main, at: [X, Y], spacing: SPACING, color: :gray, picked: :white) do |rows|
           ROWS.each { |label| rows.item(label) }
         end
-        pressed(:b).then { state.set! 1 }
+        state = 1 if pressed(:b)
       end
       scene :away do
-        pressed(:b).then { state.set! 0 }
+        state = 0 if pressed(:b)
       end
     end
 
@@ -780,8 +780,8 @@ class TestMenu < Minitest::Test
       t = var :t, 0
       game_loop do
         clear_screen :black if on == :bitmap
-        t.add! 1
-        pressed(:select).then { open.set! 1 - open }
+        t += 1
+        open = 1 - open if pressed(:select)
         (t == opens_at).then { open.set! 1 } if opens_at
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white, disabled: :red }
         options[:repeat_every] = repeat_every if repeat_every

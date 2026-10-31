@@ -173,7 +173,7 @@ class TestSoundEffectsCartridge < Minitest::Test
   # ...and the same on the wave voice, whose held note takes a new volume without starting again.
   def test_the_console_keeps_an_effects_wave_voice_when_the_music_volume_moves
     program = long_note_under_an_effect(plays: :triangle, effect_plays: :sawtooth) do |pass|
-      (pass == 20).then { music_volume 50 }
+      music_volume 50 if pass == 20
     end
 
     assert_backends_share_the_voice(program, WAVE_TONES, channel: 3)
@@ -200,8 +200,8 @@ class TestSoundEffectsCartridge < Minitest::Test
 
   def test_the_console_plays_effects_of_two_groups_together
     two_groups = game([cry(72, group: :voice), hurt(64, group: :sword)]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 8).then { sfx.play 1 }
+      sfx.play 0 if pass == 3
+      sfx.play 1 if pass == 8
     end
 
     assert_backends_share_both_voices(two_groups)
@@ -216,11 +216,14 @@ class TestSoundEffectsCartridge < Minitest::Test
   # lower one is, sounding or not.
   def test_the_console_decides_several_asks_on_one_pass_the_way_the_interpreter_does
     together = [[1, 0], [0, 1]].map do |order|
-      game([cry(64), hurt(72)]) { |sfx, pass| (pass == 3).then { order.each { |which| sfx.play which } } }
+      game([cry(64), hurt(72)]) { |sfx, pass| order.each { |which| sfx.play which } if pass == 3 }
     end
     again_and_lower = game([cry(72), hurt(64)]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 8).then { sfx.play 0; sfx.play 1 }
+      sfx.play 0 if pass == 3
+      if pass == 8
+        sfx.play 0
+        sfx.play 1
+      end
     end
     twice_and_lower = game([cry(72), hurt(64)]) { |sfx, pass| (pass == 3).then { sfx.play 0; sfx.play 0; sfx.play 1 } }
 

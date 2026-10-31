@@ -23,7 +23,7 @@ module ScoresOnTheAdvanceGames
       music = songs :music, scores
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         instance_exec(music, pass, &body)
       end
     end
@@ -41,8 +41,8 @@ module ScoresOnTheAdvanceGames
   private def volume_moved_on_a_song_played_once
     game([held_note(plays_once: true)]) do |music, pass|
       music.play 0
-      (pass == 8).then { music_volume 50 }
-      (pass == 40).then { music_volume 100 }
+      music_volume 50 if pass == 8
+      music_volume 100 if pass == 40
     end
   end
 end
@@ -146,7 +146,7 @@ class TestScoresOnTheAdvance < Minitest::Test
     scores = [notes_every_ten_ticks(:C4), notes_every_ten_ticks(:E4), notes_every_ten_ticks(:G4)]
     program = game(scores) do |music, pass|
       track = var :track, 2
-      (pass == 15).then { track.set! 1 }
+      track = 1 if pass == 15
       music.play track
     end
 
@@ -157,7 +157,7 @@ class TestScoresOnTheAdvance < Minitest::Test
   def test_a_number_naming_no_song_leaves_the_music_alone
     program = game([notes_every_ten_ticks(:C4, :E4)]) do |music, pass|
       track = var :track, 0
-      (pass == 5).then { track.set! 7 }
+      track = 7 if pass == 5
       music.play track
     end
 
@@ -188,7 +188,7 @@ class TestScoresOnTheAdvance < Minitest::Test
 
   def test_stopping_and_playing_again_in_one_frame_starts_the_song_over
     program = game([notes_every_ten_ticks(:C4, :E4, :G4)]) do |music, pass|
-      (pass == 15).then { stop_music }
+      stop_music if pass == 15
       music.play 0
     end
 
@@ -198,7 +198,11 @@ class TestScoresOnTheAdvance < Minitest::Test
 
   def test_stopping_keeps_it_stopped
     program = game([notes_every_ten_ticks(:C4, :E4, :G4)]) do |music, pass|
-      (pass < 5).then { music.play 0 }.else { music.stop }
+      if pass < 5
+        music.play 0
+      else
+        music.stop
+      end
     end
 
     assert_equal({ 2 => [NOTES[:C4]] }, notes_by_frame(program, 25))
@@ -216,7 +220,7 @@ class TestScoresOnTheAdvance < Minitest::Test
   # it, in the same pass or a later one.
   def test_a_song_that_ended_starts_over_after_a_stop
     program = game([two_notes_once]) do |music, pass|
-      (pass == 40).then { stop_music }
+      stop_music if pass == 40
       music.play 0
     end
 
@@ -227,9 +231,9 @@ class TestScoresOnTheAdvance < Minitest::Test
   # The stop and the naming can be passes apart.
   def test_a_song_that_ended_starts_over_when_named_some_passes_after_a_stop
     program = game([two_notes_once]) do |music, pass|
-      (pass < 40).then { music.play 0 }
-      (pass == 40).then { stop_music }
-      (pass >= 45).then { music.play 0 }
+      music.play 0 if pass < 40
+      stop_music if pass == 40
+      music.play 0 if pass >= 45
     end
 
     assert_equal({ 2 => [NOTES[:C4]], 12 => [NOTES[:E4]], 46 => [NOTES[:C4]], 56 => [NOTES[:E4]] },
@@ -240,8 +244,8 @@ class TestScoresOnTheAdvance < Minitest::Test
   def test_a_song_that_ended_starts_over_after_another_song
     program = game([two_notes_once, notes_every_ten_ticks(:G4)]) do |music, pass|
       track = var :track, 0
-      (pass == 40).then { track.set! 1 }
-      (pass == 45).then { track.set! 0 }
+      track = 1 if pass == 40
+      track = 0 if pass == 45
       music.play track
     end
 
@@ -256,8 +260,8 @@ class TestScoresOnTheAdvance < Minitest::Test
     volumes = lambda do |score|
       program = game([score]) do |music, pass|
         music.play 0
-        (pass == 4).then { fade_music_out frames: 4 }
-        (pass == 12).then { fade_music_in frames: 4 }
+        fade_music_out frames: 4 if pass == 4
+        fade_music_in frames: 4 if pass == 12
       end
       game_player.run(program, frames: 20).audio.select { |entry| entry[0] == :loudness }.map(&:last)
     end

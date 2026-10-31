@@ -54,7 +54,7 @@ module SoundEffectsOnTheAdvanceGames
   private def games_own_wave_over_a_song
     triangle = every_ten_ticks(:C4, :E4, :G4, :C5, :E5, plays: :triangle)
     hit = every_ten_ticks(:C5, plays: :sawtooth)
-    game([hit], tune: triangle) { |_sfx, pass| (pass == 5).then { wave :sine, :C5 } }
+    game([hit], tune: triangle) { |_sfx, pass| wave :sine, :C5 if pass == 5 }
   end
 end
 

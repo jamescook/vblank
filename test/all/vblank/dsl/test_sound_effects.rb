@@ -50,7 +50,7 @@ module SoundEffectsGames
       sfx = sound_effects :sfx, effects
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         music&.play 0
         instance_exec(sfx, pass, music, &body)
       end
@@ -85,7 +85,7 @@ module SoundEffectsGames
     hit = Score.new(tempo: 150, priority: effect_priority, parts: [Part.new(plays: effect_plays, volume: 9, duty: :quarter, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 5, key: :D5),
     ])])
-    game([hit], tune: tune) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    game([hit], tune: tune) { |sfx, pass| sfx.play 0 if pass == 10 }
   end
 
   # A song on the first square voice, and an effect over it whose second note is at volume 0.
@@ -96,7 +96,7 @@ module SoundEffectsGames
     hit = Score.new(tempo: 150, priority: 68, parts: [Part.new(volume: 9, duty: :quarter, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 5, key: :D5, volume: 0),
     ])])
-    game([hit], tune: tune) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    game([hit], tune: tune) { |sfx, pass| sfx.play 0 if pass == 10 }
   end
 
   # A song on the triangle, and an effect over it on the sawtooth whose second note is at volume 1.
@@ -107,7 +107,7 @@ module SoundEffectsGames
     hit = Score.new(tempo: 150, priority: 68, parts: [Part.new(plays: :sawtooth, volume: 9, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 5, key: :D5, volume: 1),
     ])])
-    game([hit], tune: tune) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    game([hit], tune: tune) { |sfx, pass| sfx.play 0 if pass == 10 }
   end
 
   # A song whose part, on the voice +plays+ names, swells in from volume 0 on every note, outranking
@@ -119,7 +119,7 @@ module SoundEffectsGames
     hit = Score.new(tempo: 150, priority: 68, parts: [Part.new(plays: plays, volume: 9, duty: :quarter, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 5, key: :D5),
     ])])
-    game([hit], tune: tune) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    game([hit], tune: tune) { |sfx, pass| sfx.play 0 if pass == 10 }
   end
 
   # What the interpreter says the wave voice was set to on each frame it was: the waveform of the
@@ -153,8 +153,8 @@ module SoundEffectsGames
   # The cry asked for on pass 3, and the hurt on pass 8.
   private def cry_then_hurt(cry_priority:, hurt_priority:, group: :voice)
     game([cry(cry_priority, group: group), hurt(hurt_priority, group: group)]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 8).then { sfx.play 1 }
+      sfx.play 0 if pass == 3
+      sfx.play 1 if pass == 8
     end
   end
 
@@ -204,8 +204,8 @@ module SoundEffectsGames
       Note.new(at: 0, key: nil), Note.new(at: 2, key: :C5, volume: 1), Note.new(at: 4, key: :C5, length: 8),
     ])])
     game([hit], tune: [triangle, sine]) do |sfx, pass, music|
-      (pass == 10).then { sfx.play 0 }
-      (pass >= 16).then { music.play 1 }
+      sfx.play 0 if pass == 10
+      music.play 1 if pass >= 16
     end
   end
 
@@ -240,14 +240,14 @@ module SoundEffectsGames
       Part.new(volume: 7, duty: :three_quarter, notes: [Note.new(at: 0, key: :E5)]),
     ])
     game([high, low], tune: tune) do |sfx, pass|
-      (pass == 10).then { sfx.play 0 }
-      (pass == 20).then { sfx.play 1 }
+      sfx.play 0 if pass == 10
+      sfx.play 1 if pass == 20
     end
   end
 
   # One effect with no song at all, asked for on pass 3 and again on pass 8.
   private def effect_asked_for_twice
-    game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| ((pass == 3) | (pass == 8)).then { sfx.play 0 } }
+    game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 8 }
   end
 
   # The quieter of two effects picked by a number, and then a number naming no effect.
@@ -256,9 +256,9 @@ module SoundEffectsGames
     loud = Score.new(tempo: 150, priority: 90, parts: [Part.new(volume: 9, notes: [Note.new(at: 0, key: :C5)])])
     game([loud, quiet]) do |sfx, pass|
       which = var :which, 1
-      (pass == 3).then { sfx.play which }
-      (pass == 40).then { which.set! 2 }
-      (pass == 41).then { sfx.play which }
+      sfx.play which if pass == 3
+      which = 2 if pass == 40
+      sfx.play which if pass == 41
     end
   end
 
@@ -282,7 +282,7 @@ module SoundEffectsGames
       Note.new(at: 0, key: :C5), Note.new(at: 10, key: :E5),
     ])])
     game([hit], tune: tune) do |sfx, pass|
-      (pass == 10).then { sfx.play 0 }
+      sfx.play 0 if pass == 10
       instance_exec(pass, &body)
     end
   end
@@ -290,16 +290,16 @@ module SoundEffectsGames
   # An effect of a group whose one note comes five frames in, asked for on pass 3 and again on 20.
   private def late_effect_of_a_group_asked_for_twice
     late = Score.new(tempo: 150, group: :voice, parts: [Part.new(notes: [Note.new(at: 5, key: :C5, length: 40)])])
-    game([late]) { |sfx, pass| ((pass == 3) | (pass == 20)).then { sfx.play 0 } }
+    game([late]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 20 }
   end
 
   # The cry, and then by a number the game works out a hurt with no group, in one list.
   private def ungrouped_effect_from_a_list_with_groups
     game([cry(72), hurt(64, group: nil)]) do |sfx, pass|
       which = var :which, 0
-      (pass == 3).then { sfx.play which }
-      (pass == 4).then { which.set! 1 }
-      (pass == 8).then { sfx.play which }
+      sfx.play which if pass == 3
+      which = 1 if pass == 4
+      sfx.play which if pass == 8
     end
   end
 end
@@ -360,7 +360,7 @@ class TestSoundEffects < Minitest::Test
       Note.new(at: 0, key: :C4, length: 10), Note.new(at: 20, key: :E4),
     ])])
     program = game([every_ten_ticks(:C5, priority: 20), every_ten_ticks(:G5, priority: 90)], tune: tune) do |sfx, pass|
-      (pass == 21).then { sfx.play 0 }
+      sfx.play 0 if pass == 21
     end
 
     assert_equal [[:"music.0", NOTES[:E4]]], notes_by_frame(program, 30)[22]
@@ -370,7 +370,7 @@ class TestSoundEffects < Minitest::Test
   # next note is due, and the song's note is never written, since the effect wrote the voice first.
   def test_a_song_note_that_loses_its_voice_on_the_frame_it_starts_is_never_played
     program = game([every_ten_ticks(:C5, priority: 68)], tune: every_ten_ticks(:C4, :E4, :G4)) do |sfx, pass|
-      (pass == 21).then { sfx.play 0 }
+      sfx.play 0 if pass == 21
     end
 
     assert_equal [[:"sfx.0", NOTES[:C5]]], notes_by_frame(program, 30)[22]
@@ -493,8 +493,8 @@ class TestSoundEffects < Minitest::Test
   # Effects in different groups, or in none, sound together.
   def test_effects_in_different_groups_sound_together
     apart = notes_by_frame(game([cry(72, group: :voice), hurt(64, group: :sword)]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 8).then { sfx.play 1 }
+      sfx.play 0 if pass == 3
+      sfx.play 1 if pass == 8
     end, 40)
     ungrouped = notes_by_frame(cry_then_hurt(cry_priority: 72, hurt_priority: 64, group: nil), 40)
 
@@ -516,8 +516,11 @@ class TestSoundEffects < Minitest::Test
   # same pass is not played — whether or not it was already sounding.
   def test_an_effect_asked_for_again_still_holds_its_group_against_a_lower_one
     sounding = game([cry(72), hurt(64)]) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 8).then { sfx.play 0; sfx.play 1 }
+      sfx.play 0 if pass == 3
+      if pass == 8
+        sfx.play 0
+        sfx.play 1
+      end
     end
     twice = game([cry(72), hurt(64)]) { |sfx, pass| (pass == 3).then { sfx.play 0; sfx.play 0; sfx.play 1 } }
 
@@ -541,7 +544,7 @@ class TestSoundEffects < Minitest::Test
 
   def test_an_effect_is_played_by_name
     program = game({ hit: every_ten_ticks(:C5), spark: every_ten_ticks(:E5) }) do |sfx, pass|
-      (pass == 3).then { sfx.play :spark }
+      sfx.play :spark if pass == 3
     end
 
     assert_equal [[:"sfx.spark", NOTES[:E5]]], notes_by_frame(program, 10)[4]
@@ -550,9 +553,9 @@ class TestSoundEffects < Minitest::Test
   def test_the_effect_played_is_the_one_a_number_names_and_a_number_naming_none_plays_nothing
     program = game([every_ten_ticks(:C5), every_ten_ticks(:E5)]) do |sfx, pass|
       which = var :which, 1
-      (pass == 3).then { sfx.play which }
-      (pass == 4).then { which.set! 7 }
-      (pass == 5).then { sfx.play which }
+      sfx.play which if pass == 3
+      which = 7 if pass == 4
+      sfx.play which if pass == 5
     end
 
     assert_equal({ 4 => [[:"sfx.1", NOTES[:E5]]], 28 => [[:"sfx.1", 0]] }, notes_by_frame(program, 40))
@@ -562,8 +565,8 @@ class TestSoundEffects < Minitest::Test
   # sound of a hit belongs to the frame of the hit.
   def test_the_log_says_which_effect_started_on_which_frame
     program = game({ hit: every_ten_ticks(:C5), spark: every_ten_ticks(:E5) }) do |sfx, pass|
-      (pass == 3).then { sfx.play :hit }
-      (pass == 4).then { sfx.play :spark }
+      sfx.play :hit if pass == 3
+      sfx.play :spark if pass == 4
     end
     started = {}
     i = game_player
@@ -581,8 +584,8 @@ class TestSoundEffects < Minitest::Test
   def test_starting_the_song_over_does_not_cut_an_effect_off
     tune = every_ten_ticks(:C4, :E4, :G4)
     program = game([every_ten_ticks(:C5, :E5, priority: 68)], tune: tune) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 6).then { stop_music }
+      sfx.play 0 if pass == 3
+      stop_music if pass == 6
     end
     heard = notes_by_frame(program, 20)
 
@@ -595,8 +598,8 @@ class TestSoundEffects < Minitest::Test
   def test_the_music_volume_does_not_reach_a_voice_an_effect_holds
     tune = Score.new(tempo: 150, parts: [Part.new(notes: [Note.new(at: 0, key: :C4)])], length: 200)
     program = game([every_ten_ticks(:C5, :E5)], tune: tune) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 6).then { music_volume 50 }
+      sfx.play 0 if pass == 3
+      music_volume 50 if pass == 6
     end
     i = game_player.run(program, frames: 20)
     after = i.audio.drop_while { |entry| entry != [:sound_effect, :"sfx.0"] }
@@ -688,7 +691,7 @@ class TestSoundEffects < Minitest::Test
   # ...and the same on the wave voice, whose held note takes a new volume without starting again.
   def test_the_music_volume_moving_leaves_the_effects_wave_voice_setting_alone
     program = long_note_under_an_effect(plays: :triangle, effect_plays: :sawtooth) do |pass|
-      (pass == 20).then { music_volume 50 }
+      music_volume 50 if pass == 20
     end
 
     assert_equal [[0, setting(:wave, 12)], [9, setting(:wave, 9)], [43, 0]],

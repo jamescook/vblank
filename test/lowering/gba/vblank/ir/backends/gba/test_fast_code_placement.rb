@@ -27,14 +27,14 @@ class TestFastCodePlacement < Minitest::Test
       total = var :total, 0
       f = var :f, 0
       func(:work, fast: fast) do
-        total.set! 0
+        total = 0
         repeat(passes) { |i| total.add! i }
       end
       game_loop do
         wait_vblank
         call :work
         fill_rect 0, 0, 40, 8, :green
-        f.add! 1
+        f += 1
         (f >= halt_after).then { halt } if halt_after
       end
     end
@@ -235,7 +235,7 @@ class TestFastCodePlacement < Minitest::Test
       scene :menu, fast: menu_fast do
         cursor = sprite :cursor, at: [20, 20]
         cursor.move :right
-        pressed(:start).then { state.set! 1 }
+        state = 1 if pressed(:start)
       end
       scene :playing do
         hero = sprite :hero, at: [100, 60]
@@ -402,7 +402,7 @@ class TestFastCodePlacement < Minitest::Test
       func(:pick) { shift.set! 4 }
       water.scroll_each_row do |row|
         call :pick
-        shift.add! row % 2
+        shift += row % 2
         shift
       end
     end
@@ -501,7 +501,7 @@ class TestFastCodePlacement < Minitest::Test
       screen :bitmap
       hearts = var :hearts, 3
       file = save_data(:file) { keep hearts }
-      game_loop { pressed(:a).then { hearts.set! 7; file[0].save } }
+      game_loop { if pressed(:a) then hearts = 7; file[0].save end }
     end.program
 
     assert_charged_at_least_emitted(program, moved: :__save_file__step)

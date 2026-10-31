@@ -36,7 +36,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
         clear_screen :black
         9.times { |i| fill_rect 3 + (i * 25), 5 + (i * 13), 14, 9, %i[red green blue][i % 3] }
         12.times { |i| pixel 7 + (i * 19), 150 - (i * 11), :white }
-        frame.add! 1
+        frame += 1
         instance_exec(frame, &timeline)
       end
     end
@@ -76,8 +76,8 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
 
   def test_a_bare_pixelate_in_comes_back_at_the_same_speed
     there_and_back = painted_game do |frame|
-      (frame == 2).then { pixelate_out frames: 6 }
-      (frame == 20).then { pixelate_in }
+      pixelate_out frames: 6 if frame == 2
+      pixelate_in if frame == 20
     end
     seen = sizes_shown(there_and_back, 40)
     out = seen.index(LARGEST) - seen.index { |size| size > 1 }
@@ -112,11 +112,15 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
       frame = var :frame, 0
       shade = var :shade, 0
       game_loop do
-        (shade == 0).then { clear_screen :red }.else { clear_screen :blue }
-        frame.add! 1
-        (frame == 2).then { pixelate_out frames: 6 }
+        if shade == 0
+          clear_screen :red
+        else
+          clear_screen :blue
+        end
+        frame += 1
+        pixelate_out frames: 6 if frame == 2
         ((pixelate_size == 16) & (shade == 0)).then do
-          shade.set! 1
+          shade = 1
           pixelate_in frames: 6
         end
       end
@@ -134,8 +138,8 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   def test_the_size_read_is_the_size_the_screen_is_showing
     watching = painted_game do |frame|
       reached = var :reached, 0
-      (frame == 2).then { pixelate_out frames: 8 }
-      ((pixelate_size == 16) & (reached == 0)).then { reached.set! frame }
+      pixelate_out frames: 8 if frame == 2
+      reached = frame if pixelate_size == 16 && reached == 0
     end
     reached = game_player.run(watching, frames: 30)[:reached]
 
@@ -148,9 +152,9 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   def test_the_frame_after_the_walk_turns_round_is_still_in_the_biggest_blocks
     turning = painted_game do |frame|
       turned = var :turned, 0
-      (frame == 2).then { pixelate_out frames: 8 }
+      pixelate_out frames: 8 if frame == 2
       ((pixelate_size == 16) & (turned == 0)).then do
-        turned.set! frame
+        turned = frame
         pixelate_in
       end
     end
@@ -175,10 +179,10 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
       layer(:ui) { sprite :dot, at: [100, 60] }
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         room.scroll_by 1, 0
-        (frame == 2).then { pixelate_out frames: 6, under: :ui }
-        (frame == 12).then { pixelate_in }
+        pixelate_out frames: 6, under: :ui if frame == 2
+        pixelate_in if frame == 12
       end
     end
 

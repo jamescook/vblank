@@ -41,7 +41,7 @@ module TiledCollisionGames
     scene(hero_at: [16, 16]) do |hero|
       game_loop do
         wait_vblank
-        held(:right).then { hero.move :right, by: 2 }
+        hero.move :right, by: 2 if held(:right)
       end
     end
   end
@@ -66,8 +66,8 @@ class TestTiledCollision < Minitest::Test
       var :went_left, 0
       game_loop do
         wait_vblank
-        hero.can_move?(:right, by: 2).then { set! :went_right, 1 }
-        hero.can_move?(:left, by: 2).then { set! :went_left, 1 }
+        set! :went_right, 1 if hero.can_move?(:right, by: 2)
+        set! :went_left, 1 if hero.can_move?(:left, by: 2)
         halt
       end
     end
@@ -118,7 +118,7 @@ class TestTiledCollision < Minitest::Test
       tick = var :tick, 0
       game_loop do
         wait_vblank
-        tick.add! 1
+        tick += 1
         (tick == 10).then do
           room.set_tile 4, 2, "."
           room.set_tile 8, 2, "#"
@@ -148,15 +148,15 @@ class TestTiledCollision < Minitest::Test
       where = var :where, 0
       game_loop do
         wait_vblank
-        tick.add! 1
-        (tick == 3).then { room.set_tile 4, 2, "." }
-        (tick == 5).then { where.set! 1 }
+        tick += 1
+        room.set_tile 4, 2, "." if tick == 3
+        where = 1 if tick == 5
         (tick == 7).then do
-          where.set! 0
-          hero.x.set! 16
+          where = 0
+          hero.x = 16
         end
         room.show_map where
-        (tick > 8).then { hero.move :right, by: 2 }
+        hero.move :right, by: 2 if tick > 8
       end
     end
   end
@@ -176,17 +176,17 @@ class TestTiledCollision < Minitest::Test
       scene(:hall) do
         room = background :room, tiles: :dungeon, map: HALL
         hero.blocked_by room
-        (tick == 3).then { room.set_tile 4, 2, "." }
-        (tick > 8).then { hero.move :right, by: 2 }
+        room.set_tile 4, 2, "." if tick == 3
+        hero.move :right, by: 2 if tick > 8
       end
       scene(:away) { background :yard, tiles: :dungeon, map: Array.new(5) { "." * 10 } }
       game_loop do
         wait_vblank
-        tick.add! 1
-        (tick == 5).then { set! :state, 1 }
+        tick += 1
+        set! :state, 1 if tick == 5
         (tick == 7).then do
           set! :state, 0
-          hero.x.set! 16
+          hero.x = 16
         end
         case_var(:state) do
           when_val 0, :hall
@@ -225,10 +225,10 @@ class TestTiledCollision < Minitest::Test
         end
       end
       game_loop do
-        tick.add! 1
+        tick += 1
         (tick == 20).then do
-          state.set! 1
-          hero.x.set! 16
+          state = 1
+          hero.x = 16
         end
         case_var(:state) do
           when_val 0, :one

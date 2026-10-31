@@ -32,7 +32,7 @@ class TestShowMap < Minitest::Test
       rooms = background :rooms, tiles: :dungeon, map: { hall: HALL, cave: CAVE, mixed: MIXED }
       frames = var :frames, 0
       game_loop do
-        frames.add! 1
+        frames += 1
         instance_exec(rooms, frames, &steering)
       end
     end
@@ -65,7 +65,7 @@ class TestShowMap < Minitest::Test
   def test_a_map_can_be_named_by_a_number_the_game_works_out
     program = rooms_program do |rooms, frames|
       where = var :where, 0
-      (frames == 2).then { where.set! 1 } # ...which is the cave, second of the three
+      where = 1 if frames == 2 # ...which is the cave, second of the three
       rooms.show_map where
     end
 
@@ -84,8 +84,8 @@ class TestShowMap < Minitest::Test
 
   def test_a_game_can_walk_back_and_forth_between_maps
     program = rooms_program do |rooms, frames|
-      (frames == 2).then { rooms.show_map :cave }
-      (frames == 4).then { rooms.show_map :hall }
+      rooms.show_map :cave if frames == 2
+      rooms.show_map :hall if frames == 4
     end
 
     # The third pass's map, as far behind as the framework draws (Testing#framework_drawing_lag).
@@ -109,8 +109,8 @@ class TestShowMap < Minitest::Test
   def test_a_number_naming_no_map_leaves_the_picture_alone
     program = rooms_program do |rooms, frames|
       far = var :far, 900
-      (frames == 2).then { rooms.show_map far }
-      (frames == 4).then { rooms.show_map(-3) }
+      rooms.show_map far if frames == 2
+      rooms.show_map(-3) if frames == 4
     end
 
     assert_equal Color.resolve(:red), cell_of(program, frames: 8), "still the hall"
@@ -121,9 +121,9 @@ class TestShowMap < Minitest::Test
   # on the way in, which is where it wants that decision anyway.
   def test_a_map_comes_back_exactly_as_it_was_declared
     program = rooms_program do |rooms, frames|
-      (frames == 2).then { rooms.set_tile 1, 1, "." }
-      (frames == 4).then { rooms.show_map :cave }
-      (frames == 6).then { rooms.show_map :hall }
+      rooms.set_tile 1, 1, "." if frames == 2
+      rooms.show_map :cave if frames == 4
+      rooms.show_map :hall if frames == 6
     end
 
     assert_equal Color.resolve(:blue), cell_of(program, frames: 4), "the cell was opened"
@@ -160,9 +160,9 @@ class TestShowMap < Minitest::Test
   # this reads where the copy landed instead.
   def test_the_copy_happens_once_a_frame_in_the_gap_between_frames
     program = rooms_program do |rooms, frames|
-      (frames == 2).then { rooms.show_map :cave }
-      (frames == 4).then { rooms.show_map :mixed }
-      (frames == 6).then { rooms.show_map :hall }
+      rooms.show_map :cave if frames == 2
+      rooms.show_map :mixed if frames == 4
+      rooms.show_map :hall if frames == 6
     end
 
     copies = program.walk.select { |node| node.kind == :show_map }
@@ -203,8 +203,8 @@ class TestShowMap < Minitest::Test
   def test_a_program_can_branch_on_which_room_it_is_in
     program = rooms_program do |rooms, frames|
       here = var :here, 0
-      (frames == 2).then { rooms.show_map :cave }
-      (rooms.showing == rooms.map_number(:cave)).then { here.set! 7 }
+      rooms.show_map :cave if frames == 2
+      here = 7 if rooms.showing == rooms.map_number(:cave)
     end
 
     assert_equal 7, game_player.run(program, frames: 6)[:here]
@@ -219,9 +219,9 @@ class TestShowMap < Minitest::Test
 
   def test_both_backends_agree_walking_back_and_forth
     program = rooms_program do |rooms, frames|
-      (frames == 2).then { rooms.show_map :cave }
-      (frames == 4).then { rooms.show_map :mixed }
-      (frames == 6).then { rooms.show_map :hall }
+      rooms.show_map :cave if frames == 2
+      rooms.show_map :mixed if frames == 4
+      rooms.show_map :hall if frames == 6
     end
     assert_backends_agree(program, frames: 9)
   end
@@ -229,7 +229,7 @@ class TestShowMap < Minitest::Test
   def test_both_backends_agree_on_a_number_the_game_worked_out
     program = rooms_program do |rooms, frames|
       where = var :where, 0
-      (frames == 3).then { where.set! 2 }
+      where = 2 if frames == 3
       rooms.show_map where
     end
     assert_backends_agree(program, frames: 7)
@@ -250,8 +250,8 @@ class TestShowMap < Minitest::Test
       rooms = background :rooms, tiles: :dungeon, map: { left: left, right: right }
       frames = var :frames, 0
       game_loop do
-        frames.add! 1
-        (frames == 2).then { rooms.show_map :right }
+        frames += 1
+        rooms.show_map :right if frames == 2
         rooms.scroll_to 256, 0
       end
     end
@@ -292,8 +292,8 @@ class TestShowMap < Minitest::Test
       rooms = background :rooms, tiles: :dungeon, map: maps
       frames = var :frames, 0
       game_loop do
-        frames.add! 1
-        (frames == 2).then { rooms.show_map pick }
+        frames += 1
+        rooms.show_map pick if frames == 2
       end
     end
     builder.finalize_program
