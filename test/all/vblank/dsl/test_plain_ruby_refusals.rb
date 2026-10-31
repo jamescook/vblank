@@ -36,6 +36,23 @@ class TestPlainRubyRefusals < Minitest::Test
     assert_refused("`Minitest`") { game_loop { Minitest::Test } }
   end
 
+  def test_game_code_changing_a_local_from_outside_the_block_is_refused
+    lives = 3
+
+    assert_refused("`lives` is set outside") { game_loop { lives -= 1 if pressed(:a) } }
+    assert_refused("`lives` is set outside") { scene(:play) { lives = 2 } }
+  end
+
+  def test_game_code_can_read_a_local_from_outside_the_block
+    lives = 3
+    builder = built do
+      shown = 0
+      game_loop { shown = lives }
+    end
+
+    assert_kind_of Builder, builder
+  end
+
   def test_a_gem_nobody_has_heard_of_is_refused_the_same_way
     assert_refused("`SomeGemNobodyListed`") { SomeGemNobodyListed.go }
   end

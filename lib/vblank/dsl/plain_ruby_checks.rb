@@ -70,6 +70,19 @@ module VBlank
           node.compact_child_nodes.each { |child| refuse_outside_calls!(child) }
         end
 
+        # A number set above the block and changed by game code would change once, while building,
+        # and the game would never see it. It cannot be made to work: a game can be built more
+        # than once, and a variable left in that outside name would belong to one build. Reading
+        # the number is fine.
+        def refuse_changed_outside_locals!(writes)
+          return if writes.empty?
+
+          name = writes.first.name
+          raise Refused, "`#{name}` is set outside the game block, so the game cannot change it. To fix " \
+                         "this, move the line that sets `#{name}` into the block. " \
+                         "(at #{File.basename(@file)}:#{writes.first.location.start_line})"
+        end
+
         # A line of game code in a file `require_relative` brought in is not read as a game: a
         # plain `state = 1` there sets a Ruby name, and nothing ever says so. Looking only at
         # what a file calls keeps this a read of the few files a game names.

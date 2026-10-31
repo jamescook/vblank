@@ -25,6 +25,9 @@ module VBlank
 
         Write = Struct.new(:node, :in_game_code)
 
+        # Writes by game code to a local of the scope the block sits in.
+        attr_reader :outside_writes
+
         # One local, in the scope that owns it.
         class Local
           attr_reader :name, :writes
@@ -83,6 +86,7 @@ module VBlank
         def initialize(block_node)
           @locals_by_node = {}.compare_by_identity
           @ruby_iteration_writes = {}.compare_by_identity
+          @outside_writes = []
           @names_used = Hash.new(0)
           @iterating_in_game_code = false
           read_names(block_node, [], false)
@@ -201,6 +205,7 @@ module VBlank
 
         def record_write(node, scopes, in_game_code)
           scope = scopes[-1 - node.depth]
+          @outside_writes << node if scope.nil? && in_game_code
           return unless scope
 
           local = (scope[node.name] ||= Local.new(node.name, parameter: false))

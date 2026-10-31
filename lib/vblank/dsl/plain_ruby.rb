@@ -73,6 +73,7 @@ module VBlank
       def checked_source(rewriter, code, file, allow)
         checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
         checks.refuse_outside_calls!
+        checks.refuse_changed_outside_locals!(rewriter.outside_writes)
         checks.refuse_game_code_in_plain_files!
         "proc { |*__plain_ruby_given| #{checks.constant_check}; (#{code}).call(*__plain_ruby_given) }"
       end
@@ -171,6 +172,8 @@ module VBlank
         end
 
         def rewritten_block = rewritten(@block_node)
+
+        def outside_writes = @names.outside_writes
 
         def rewritten(node)
           @names = LocalNames.new(node)
