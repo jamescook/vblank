@@ -10,38 +10,42 @@ module FramePairingGames
   FRAMES = 6  # long enough to be past the first frame, short enough to stay on screen
 
   # A marker the program draws itself, moved one step per frame.
-  HAND_DRAWN = Ractor.make_shareable(proc do
-    screen :bitmap
-    n = var :n, 0
-    game_loop do
-      clear_screen :black
-      n.add! 1
-      draw_rect_at n * FramePairingGames::STEP, FramePairingGames::ROW, 4, 4, :red
+  private def hand_drawn_marker
+    proc do
+      screen :bitmap
+      n = var :n, 0
+      game_loop do
+        clear_screen :black
+        n += 1
+        draw_rect_at n * FramePairingGames::STEP, FramePairingGames::ROW, 4, 4, :red
+      end
     end
-  end)
+  end
 
   # The same marker as a sprite — moved the same way, but painted by the framework.
-  A_SPRITE = Ractor.make_shareable(proc do
-    screen :tiled
-    image :hero, "#" => :red do
-      <<~ART
-        ########
-        ########
-        ########
-        ########
-        ########
-        ########
-        ########
-        ########
-      ART
+  private def sprite_marker
+    proc do
+      screen :tiled
+      image :hero, "#" => :red do
+        <<~ART
+          ########
+          ########
+          ########
+          ########
+          ########
+          ########
+          ########
+          ########
+        ART
+      end
+      n = var :n, 0
+      hero = sprite :hero, at: [0, FramePairingGames::ROW]
+      game_loop do
+        n += 1
+        hero.move_to n * FramePairingGames::STEP, FramePairingGames::ROW
+      end
     end
-    n = var :n, 0
-    hero = sprite :hero, at: [0, FramePairingGames::ROW]
-    game_loop do
-      n.add! 1
-      hero.move_to n * FramePairingGames::STEP, FramePairingGames::ROW
-    end
-  end)
+  end
 
   # Which step along the row the marker is sitting on — the value it was drawn from.
   private def marker_column
@@ -78,14 +82,14 @@ class TestFramePairing < Minitest::Test
   include FramePairingGames
 
   def test_the_interpreter_draws_a_programs_own_marker_from_this_frames_value
-    interpreter_pairs(HAND_DRAWN).each do |value, drawn|
+    interpreter_pairs(hand_drawn_marker).each do |value, drawn|
       assert_equal value, drawn,
                    "the variable is #{value} and the picture was drawn from #{drawn.inspect}"
     end
   end
 
   def test_the_interpreter_draws_a_sprite_from_the_pass_its_console_places_it_from
-    interpreter_pairs(A_SPRITE).each do |value, drawn|
+    interpreter_pairs(sprite_marker).each do |value, drawn|
       assert_equal value - framework_drawing_lag, drawn,
                    "the variable is #{value} and the picture was drawn from #{drawn.inspect}"
     end

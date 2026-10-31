@@ -22,10 +22,10 @@ module PerSceneModeGames
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap # default: direct-color Mode 3
-      var :state, 0
+      state = var :state, 0
       scene :title do
         clear_screen :red
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene :play do
         screen :bitmap, tear_free: true # this scene is double-buffered

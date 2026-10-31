@@ -127,7 +127,7 @@ class TestDifferential < Minitest::Test
       x = var :x, 10
       game_loop do
         clear_screen :black
-        x.add! 3
+        x += 3
         draw_rect_at x, 40, 8, 8, Color.resolve(:white)
       end
     end
@@ -159,7 +159,7 @@ class TestDifferential < Minitest::Test
       x = var :x, 10
       game_loop do
         clear_screen :black
-        x.add! 3
+        x += 3
         draw_rect_at x, 40, 8, 8, Color.resolve(:white)
         draw_text "BUF", 10, 100, Color.resolve(:cyan)
       end

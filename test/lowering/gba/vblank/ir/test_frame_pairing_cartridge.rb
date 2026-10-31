@@ -10,14 +10,14 @@ class TestFramePairingCartridge < Minitest::Test
   include FramePairingGames
 
   def test_the_console_draws_a_programs_own_marker_from_this_frames_value
-    value, drawn = console_pair(HAND_DRAWN)
+    value, drawn = console_pair(hand_drawn_marker)
 
     assert_equal value, drawn,
                  "the variable is #{value} and the picture was drawn from #{drawn.inspect}"
   end
 
   def test_the_console_draws_a_sprite_from_the_frame_befores_value
-    value, drawn = console_pair(A_SPRITE)
+    value, drawn = console_pair(sprite_marker)
 
     assert_equal value - 1, drawn,
                  "the variable is #{value} and the picture was drawn from #{drawn.inspect}"

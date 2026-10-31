@@ -60,7 +60,7 @@ class TestReadingCollections < Minitest::Test
       guards = pool :guard, x: 0, hp: 3, capacity: 4
       guards.spawn(x: 10)
       guards.spawn(x: 20, hp: 1)
-      game_loop { guards.each { |g| g.x.add! 1 } }
+      game_loop { guards.each { |g| g.x += 1 } }
     end
 
     assert_equal [nil, nil, 22, 12], run.pool(:guard, :x)

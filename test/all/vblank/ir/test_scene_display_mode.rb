@@ -13,10 +13,10 @@ module SceneDisplayModeGames
     b.instance_eval do
       image(:hero, "#" => :green) { "########\n" * 8 }
       screen :bitmap # default: direct-color bitmap
-      var :state, 0
+      state = var :state, 0
       scene :title do
         clear_screen :red
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene :play do
         screen :tiled # this scene is a tiled screen

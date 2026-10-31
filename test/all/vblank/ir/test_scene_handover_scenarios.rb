@@ -230,37 +230,42 @@ class TestSceneHandoverScenarios < Minitest::Test
     # A game loop counting frames in +tick+ and running scene +first+ while the variable :state
     # is 0 and +second+ while it is 1.
     def two_scene_loop(tick, first, second)
-      game_loop do
-        tick.add! 1
-        case_var(:state) do
-          when_val 0, first
-          when_val 1, second
+      instance_eval do
+        game_loop do
+          tick += 1
+          case_var(:state) do
+            when_val 0, first
+            when_val 1, second
+          end
         end
       end
     end
 
     # A tiled scene that hands over to a bitmap screen — all blue — on frame BITMAP_AWAY and takes
     # over again on frame BITMAP_BACK. +tiled+ is what the tiled scene declares; the block runs
-    # every frame with the frame count. +third+ names a scene run while :state is 2.
+    # every frame with the frame count and the variable :state. +third+ names a scene run while
+    # :state is 2.
     def across_a_bitmap_screen(tiled: -> {}, third: nil)
-      state = var :state, 0
-      tick = var :tick, 0
-      scene(:tiled_screen) do
-        instance_exec(&tiled)
-        (tick == BITMAP_AWAY).then { state.set! 1 }
-      end
-      scene(:bitmap_screen) do
-        screen :bitmap
-        clear_screen :blue
-        (tick == BITMAP_BACK).then { state.set! 0 }
-      end
-      game_loop do
-        tick.add! 1
-        yield tick if block_given?
-        case_var(:state) do
-          when_val 0, :tiled_screen
-          when_val 1, :bitmap_screen
-          when_val 2, third if third
+      instance_eval do
+        state = var :state, 0
+        tick = var :tick, 0
+        scene(:tiled_screen) do
+          instance_exec(&tiled)
+          state = 1 if tick == BITMAP_AWAY
+        end
+        scene(:bitmap_screen) do
+          screen :bitmap
+          clear_screen :blue
+          state = 0 if tick == BITMAP_BACK
+        end
+        game_loop do
+          tick += 1
+          yield tick, state if block_given?
+          case_var(:state) do
+            when_val 0, :tiled_screen
+            when_val 1, :bitmap_screen
+            when_val 2, third if third
+          end
         end
       end
     end
@@ -278,10 +283,10 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:room) do
         hall = background :hall, tiles: :room, map: Array.new(20) { "#" * 30 }
-        (tick == 2).then { hall.set_tile 15, 10, "o" }
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        hall.set_tile 15, 10, "o" if tick == 2
+        state = 1 if tick == SCENE_AWAY
       end
-      scene(:walk) { (tick == SCENE_BACK).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SCENE_BACK }
       two_scene_loop(tick, :room, :walk)
     end
   end
@@ -298,10 +303,10 @@ class TestSceneHandoverScenarios < Minitest::Test
       scene(:room) do
         rooms = background :rooms, tiles: :room, map: { red: Array.new(20) { "r" * 30 },
                                                         blue: Array.new(20) { "b" * 30 } }
-        (tick == 2).then { rooms.show_map :blue }
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        rooms.show_map :blue if tick == 2
+        state = 1 if tick == SCENE_AWAY
       end
-      scene(:walk) { (tick == SCENE_BACK).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SCENE_BACK }
       two_scene_loop(tick, :room, :walk)
     end
   end
@@ -315,9 +320,9 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:room) do
         sprite :red_box, at: [112, 72]
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        state = 1 if tick == SCENE_AWAY
       end
-      scene(:walk) { (tick == SCENE_BACK).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SCENE_BACK }
       two_scene_loop(tick, :room, :walk)
     end
   end
@@ -332,11 +337,11 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:red_room) do
         sprite :red_box, at: [112, 72]
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        state = 1 if tick == SCENE_AWAY
       end
       scene(:blue_room) do
         sprite :blue_box, at: [112, 72]
-        (tick == SCENE_BACK).then { state.set! 0 }
+        state = 0 if tick == SCENE_BACK
       end
       two_scene_loop(tick, :red_room, :blue_room)
     end
@@ -362,8 +367,8 @@ class TestSceneHandoverScenarios < Minitest::Test
       tiles :set, "#" => :red_art
       scene(:walk) { nil }
       across_a_bitmap_screen(tiled: -> { background :field, tiles: :set, map: Array.new(20) { "#" * 30 } },
-                             third: :walk) do |tick|
-        (tick == LEAVE_AFTER_BITMAP).then { set! :state, 2 }
+                             third: :walk) do |tick, state|
+        state = 2 if tick == LEAVE_AFTER_BITMAP
       end
     end
   end
@@ -405,11 +410,11 @@ class TestSceneHandoverScenarios < Minitest::Test
       scene(:talking) do
         tiles :box, from: canvas, count: 2, colors: :ink
         background :box, tiles: :box, map: [[1, 2]]
-        (tick == 5).then { state.set! 1 }
+        state = 1 if tick == 5
       end
       scene(:walking) do
-        (tick == 7).then { canvas[0] = 0x01 } # the top-left pixel, in white
-        (tick == 9).then { state.set! 0 }
+        canvas[0] = 0x01 if tick == 7 # the top-left pixel, in white
+        state = 0 if tick == 9
       end
       two_scene_loop(tick, :talking, :walking)
     end
@@ -425,11 +430,11 @@ class TestSceneHandoverScenarios < Minitest::Test
       scene(:talking) do
         image :tag, from: canvas, width: 16, height: 8, colors: :ink
         sprite :tag, at: [0, 0]
-        (tick == 5).then { state.set! 1 }
+        state = 1 if tick == 5
       end
       scene(:walking) do
-        (tick == 7).then { canvas[0] = 0x01 }
-        (tick == 9).then { state.set! 0 }
+        canvas[0] = 0x01 if tick == 7
+        state = 0 if tick == 9
       end
       two_scene_loop(tick, :talking, :walking)
     end
@@ -454,7 +459,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       red_and_blue_art
       tiles :set, "#" => :red_art, "o" => :blue_art
       field = background :field, tiles: :set, map: Array.new(20) { "#" * 30 }
-      across_a_bitmap_screen { |tick| (tick == 2).then { field.set_tile 0, 0, "o" } }
+      across_a_bitmap_screen { |tick| field.set_tile 0, 0, "o" if tick == 2 }
     end
   end
 
@@ -468,7 +473,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       tiles :set, "#" => :red_art, "o" => :blue_art
       field = background :field, tiles: :set,
                                  map: { red: Array.new(20) { "#" * 30 }, blue: Array.new(20) { "o" * 30 } }
-      across_a_bitmap_screen { |tick| ((tick == 2) | (tick == 11)).then { field.show_map :blue } }
+      across_a_bitmap_screen { |tick| field.show_map :blue if tick == 2 || tick == 11 }
     end
   end
 
@@ -480,7 +485,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       canvas = blank_canvas
       box = tiles :box, from: canvas, count: 2, colors: :ink
       background :box, tiles: :box, map: [[1, 2]]
-      across_a_bitmap_screen { |tick| (tick == 2).then { canvas[0] = 0x01; box.changed } }
+      across_a_bitmap_screen { |tick| if tick == 2 then canvas[0] = 0x01; box.changed end }
     end
   end
 
@@ -491,7 +496,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       canvas = blank_canvas
       tag = image :tag, from: canvas, width: 16, height: 8, colors: :ink
       sprite :tag, at: [0, 0]
-      across_a_bitmap_screen { |tick| (tick == 2).then { canvas[0] = 0x01; tag.changed } }
+      across_a_bitmap_screen { |tick| if tick == 2 then canvas[0] = 0x01; tag.changed end }
     end
   end
 
@@ -508,8 +513,8 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:title) do
         screen :bitmap
-        (tick == 1).then { clear_screen :blue }
-        (tick == 9).then { state.set! 1 }
+        clear_screen :blue if tick == 1
+        state = 1 if tick == 9
       end
       scene(:room) do
         field = background :field, tiles: :set, map: Array.new(20) { "#" * 30 }
@@ -532,12 +537,12 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:slot_room) do
         sprite(:slot_box, at: [112, 72]).draw_with :slot
-        (tick == 2).then { recolor :slot, :sea }
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        recolor :slot, :sea if tick == 2
+        state = 1 if tick == SCENE_AWAY
       end
       scene(:red_room) do
         sprite :red_box, at: [112, 72]
-        (tick == SCENE_BACK).then { state.set! 0 }
+        state = 0 if tick == SCENE_BACK
       end
       two_scene_loop(tick, :slot_room, :red_room)
     end
@@ -554,12 +559,12 @@ class TestSceneHandoverScenarios < Minitest::Test
       tick = var :tick, 0
       scene(:slot_room) do
         sprite(:slot_box, at: [112, 72]).draw_with :slot
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        state = 1 if tick == SCENE_AWAY
       end
       scene(:red_room) do
         sprite :red_box, at: [112, 72]
-        (tick == 6).then { recolor :slot, :sea }
-        (tick == SCENE_BACK).then { state.set! 0 }
+        recolor :slot, :sea if tick == 6
+        state = 0 if tick == SCENE_BACK
       end
       two_scene_loop(tick, :slot_room, :red_room)
     end
@@ -572,7 +577,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       screen :tiled
       slot_box
       across_a_bitmap_screen(tiled: -> { sprite(:slot_box, at: [112, 72]).draw_with :slot }) do |tick|
-        (tick == 2).then { recolor :slot, :sea }
+        recolor :slot, :sea if tick == 2
       end
     end
   end
@@ -592,9 +597,9 @@ class TestSceneHandoverScenarios < Minitest::Test
         field = background :field, tiles: :set, map: Array.new(20) { "r" + ("b" * 29) }
         sprite :blue_box, at: [112, 72]
         field.scroll_by 3, 0
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        state = 1 if tick == SCENE_AWAY
       end
-      scene(:walk) { (tick == SCENE_BACK).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SCENE_BACK }
       two_scene_loop(tick, :room, :walk)
     end
   end
@@ -612,9 +617,9 @@ class TestSceneHandoverScenarios < Minitest::Test
         field.scroll_each_row { |row| row & 1 }
         sprite :blue_box, at: [112, 72]
         field.scroll_by 3, 0
-        (tick == SCENE_AWAY).then { state.set! 1 }
+        state = 1 if tick == SCENE_AWAY
       end
-      scene(:walk) { (tick == SCENE_BACK).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SCENE_BACK }
       two_scene_loop(tick, :room, :walk)
     end
   end
@@ -647,7 +652,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       screen :tiled
       slot_box
       sprite(:slot_box, at: [112, 72]).draw_with :slot
-      across_a_bitmap_screen { |tick| (tick == 2).then { recolor :slot, :sea } }
+      across_a_bitmap_screen { |tick| recolor :slot, :sea if tick == 2 }
     end
   end
 end

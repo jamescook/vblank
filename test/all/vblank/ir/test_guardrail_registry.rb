@@ -119,7 +119,7 @@ class TestGuardrailRegistry < Minitest::Test
     ex = assert_raises(VBlank::ROMError) do
       VBlank.build("BOOM", console: :gba, code: "BBOM", maker: "01", err: err) do
         screen :bitmap
-        set! :boom, 1
+        var :boom, 1
         halt
       end
     end
@@ -145,7 +145,7 @@ class TestGuardrailRegistry < Minitest::Test
     # proving a check is active only while it's loaded.
     rom = VBlank.build("NOREG", console: :gba, code: "BNRG", maker: "01", err: StringIO.new) do
       screen :bitmap
-      set! :boom, 1
+      var :boom, 1
       clear_screen :blue
       halt
     end
