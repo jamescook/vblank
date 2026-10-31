@@ -326,7 +326,7 @@ module VBlank
           # The line that makes a variable in game code sets it on every pass, as Ruby would.
           when :start then "#{prefix}#{start_text(node)}"
           when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
-          else "#{prefix}#{kept_value_text(node.value)}"
+          else "#{prefix}#{kept_value_text(node.value, node)}"
           end
         end
 
@@ -349,7 +349,8 @@ module VBlank
           "(#{start} = #{value_text(node.value)}; #{STEPS}.start_name(#{start}) { |start| var(:#{name}, start) })"
         end
 
-        def kept_value_text(value)
+        def kept_value_text(value, write = nil)
+          return "#{STEPS}.kept_answer((#{value_text(value)}))" if write && @names.read_after_it_changes?(write)
           return value_text(value) unless value.is_a?(Prism::LocalVariableReadNode) && @names.variable_read?(value)
 
           "#{STEPS}.copy_of_variable(#{rewritten_text(value)})"

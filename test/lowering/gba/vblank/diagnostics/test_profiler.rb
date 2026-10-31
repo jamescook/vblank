@@ -312,6 +312,33 @@ class TestProfiler < Minitest::Test
     assert_operator result.unattributed, :<, 5.0, "what ran outside every named routine: #{shares.inspect}"
   end
 
+  def test_the_profile_lists_the_variables_normal_ruby_needed
+    rom = VBlank.build("HIDDEN", console: :gba, out: StringIO.new, err: StringIO.new) do
+      a = 1
+      b = 2
+      target = nil
+      game_loop do
+        a, b = b, a
+        target = a if pressed(:a)
+        target = nil if target
+      end
+    end
+    out = StringIO.new
+    rom.profile(out: out, frames: 5)
+
+    assert_includes out.string, "hidden variables: 2 (8 bytes)"
+    assert_includes out.string, "a, b = b, a"
+    assert_includes out.string, "target = nil"
+    assert_includes out.string, "a number such as -1"
+  end
+
+  def test_a_game_needing_no_hidden_variable_lists_none
+    out = StringIO.new
+    lopsided_game.profile(out: out, frames: 5)
+
+    refute_includes out.string, "hidden variables"
+  end
+
   def test_an_unknown_format_says_so
     assert_raises(ArgumentError) { lopsided_game.profile(format: :sideways, out: StringIO.new) }
   end

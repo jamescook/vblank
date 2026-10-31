@@ -212,7 +212,9 @@ module VBlank
     request = Cartridge::BuildRequest.new(program: program, evaluated: evaluated, findings: findings, title: title,
                                           code: code, maker: maker, validate: validate, options: options,
                                           profile: profile, progress: progress, out: out, err: err)
-    kit.builder.build(request)
+    kit.builder.build(request).tap do |rom|
+      rom.hidden_variables = evaluated.hidden_variable_notes if rom.respond_to?(:hidden_variables=)
+    end
   ensure
     # HOWEVER THE BUILD ENDED: close the line, then say what the guardrails found — with what the
     # console's build added to them, once it was handed them.

@@ -28,6 +28,8 @@ module VBlank
         CHANGES = [Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode,
                    Prism::LocalVariableTargetNode].freeze
 
+        NAMES = [Prism::LocalVariableReadNode, Prism::InstanceVariableReadNode].freeze
+
         # What gives a name a value outright, one name of `a, b = 1, 2` among them.
         WHOLE_WRITES = [Prism::LocalVariableWriteNode, Prism::LocalVariableTargetNode].freeze
 
@@ -131,6 +133,9 @@ module VBlank
           @ruby_iteration_writes = {}.compare_by_identity
           @outside_writes = []
           @promoted_writes = {}.compare_by_identity
+          @first_writes_in_game_code = {}.compare_by_identity
+          @reads_in_game_code = {}.compare_by_identity
+          @changes_by_name = {}
           @names_used = Hash.new(0)
           @iterating_in_game_code = false
           read_names(block_node, [], false)
@@ -167,6 +172,24 @@ module VBlank
           kept.map(&:name).uniq
         end
 
+        # A name given a working-out holds no number: the game works it out at each read, so it
+        # follows whatever it was made from, where a Ruby name keeps the answer from its line.
+        # That matters only if something it reads changes and the name is read after. In game
+        # code the line runs again each pass, so the read has to follow the change. In setting up
+        # it runs once, and game code reading the name comes round again after any change.
+        def read_after_it_changes?(write)
+          local = @locals_by_node[write]
+          return false unless local&.plain_name? && write.is_a?(Prism::LocalVariableWriteNode)
+
+          from = write.location.end_offset
+          changes = names_read_by(write.value).flat_map { |name| @changes_by_name.fetch(name, []) }
+                                              .select { |offset, _in_game| offset > from }
+          return false if changes.empty?
+          return true if local.read_from?(changes.map(&:first).min)
+
+          !@first_writes_in_game_code[write] && local.reads.any? { |read| @reads_in_game_code[read] }
+        end
+
         # Does each of +sides+ write +name+, so that it holds something whichever way the test goes?
         def written_on_every_side?(name, sides)
           sides.none?(&:nil?) && sides.length > 1 &&
@@ -195,6 +218,48 @@ module VBlank
         def variable_read?(read) = @locals_by_node[read]&.variable? || false
 
         private
+
+        # The places +node+ reads: a local, an instance variable, or one slot or attribute of one,
+        # `ball[:hp]` or `hero.x`, as written. A change to `ball[:x]` says nothing about `ball[:hp]`.
+        def names_read_by(node)
+          return [name_key(node)] if NAMES.any? { |kind| node.is_a?(kind) }
+          return [[name_key(node.receiver), node.slice]] if place_read?(node)
+
+          node.compact_child_nodes.flat_map { |child| names_read_by(child) }
+        end
+
+        # What a name is known by here. Two methods can each have a local called `step`, and those
+        # are two names. An instance variable is one name however many methods use it.
+        def name_key(node) = @locals_by_node.fetch(node) { node.name }
+
+        def place_read?(node)
+          node.is_a?(Prism::CallNode) && NAMES.any? { |kind| node.receiver.is_a?(kind) } &&
+            (node.name == :[] || node.arguments.nil?)
+        end
+
+        # Remembers where +name+ changes.
+        def record_change(name, node, in_game_code)
+          (@changes_by_name[name] ||= []) << [node.location.start_offset, in_game_code]
+        end
+
+        # `hero.x = 1`, `ball[:hp] = 1` and their `+=`, recorded as the place a read of it writes.
+        def read_place_change(node, in_game_code)
+          return unless NAMES.any? { |kind| node.receiver.is_a?(kind) }
+
+          record_change([name_key(node.receiver), place_written(node)], node, in_game_code)
+        end
+
+        def place_written(node)
+          receiver = node.receiver.slice
+          case node
+          when Prism::IndexOperatorWriteNode then "#{receiver}[#{node.arguments&.slice}]"
+          when Prism::CallOperatorWriteNode then "#{receiver}.#{node.read_name}"
+          else
+            return "#{receiver}.#{node.name.to_s.delete_suffix('=')}" unless node.name == :[]=
+
+            "#{receiver}[#{node.arguments.arguments[0...-1].map(&:slice).join(', ')}]"
+          end
+        end
 
         def plain_writes_in(node)
           return [] if [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].any? { |kind| node.is_a?(kind) }
@@ -226,9 +291,16 @@ module VBlank
                Prism::LocalVariableTargetNode then
             record_write(node, scopes, in_game_code)
             read_children(node, scopes, in_game_code)
+          when Prism::InstanceVariableWriteNode, Prism::InstanceVariableOperatorWriteNode
+            record_change(node.name, node, in_game_code)
+            read_children(node, scopes, in_game_code)
+          when Prism::IndexOperatorWriteNode, Prism::CallOperatorWriteNode
+            read_children(node, scopes, in_game_code)
+            read_place_change(node, in_game_code)
           when Prism::LocalVariableReadNode then
             local = scopes[-1 - node.depth]&.[](node.name)
             local&.reads&.push(node)
+            @reads_in_game_code[node] = true if in_game_code
             @locals_by_node[node] = local if local
           else read_children(node, scopes, in_game_code)
           end
@@ -245,6 +317,7 @@ module VBlank
             game_block = child.is_a?(Prism::BlockNode) && GAME_VERBS.include?(node.name)
             read_names(child, scopes, in_game_code || game_block)
           end
+          read_place_change(node, in_game_code) if node.name == :[]= || node.attribute_write?
         end
 
         def ruby_iteration?(call) = RUBY_ITERATORS.include?(call.name) && written_out?(call.receiver)
@@ -296,6 +369,8 @@ module VBlank
           return unless scope
 
           local = (scope[node.name] ||= Local.new(node.name, parameter: false))
+          record_change(local, node, in_game_code)
+          @first_writes_in_game_code[node] = true if in_game_code
           local.writes << Write.new(node, in_game_code || looped_from_outside?(local))
           local.reads << node unless WHOLE_WRITES.any? { |kind| node.is_a?(kind) }
           @ruby_iteration_writes[node] = true if @iterating_in_game_code && !in_game_code

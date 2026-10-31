@@ -166,7 +166,7 @@ module VBlank
           return
         end
 
-        answer = condition.hidden_variable
+        answer = condition.hidden_variable(:join)
         answer.mark_boolean!
         store_truthiness(answer, right)
         condition.close_branch
@@ -287,7 +287,7 @@ module VBlank
         return value unless test.game? && outer.none?(&:game?)
         return value unless value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
 
-        own = test.hidden_variable
+        own = test.hidden_variable(:promoted)
         own.mark_boolean! if [true, false].include?(value) || value.is_a?(Condition) || (value.is_a?(Value) && value.boolean?)
         own.unwritten = value.nil?
         own.start_truth_as_nil! if may_stay_nil && value.nil?
@@ -431,7 +431,19 @@ module VBlank
       end
 
       # A right side of `a, b = b, a`, kept before the writes reach what it reads.
-      def number_now(value) = value.is_a?(Value) ? value.hidden_copy : value
+      def number_now(value) = value.is_a?(Value) ? value.hidden_copy(:swap) : value
+
+      # What a name was given, kept as it is on this line, since something it was worked out from
+      # changes before it is read. A number needs no keeping.
+      def kept_answer(value)
+        return value.hidden_copy if value.is_a?(Value)
+        return value unless value.is_a?(Condition)
+
+        kept = value.hidden_variable(:copy)
+        kept.mark_boolean!
+        store_answer(kept, value)
+        kept
+      end
 
       # `old = hp`. While the game plays that must keep hp's number as it is now, where a plain
       # second name would follow hp when it changes.
@@ -467,7 +479,7 @@ module VBlank
         end
 
         def game? = true
-        def hidden_variable = @condition.hidden_variable
+        def hidden_variable(why) = @condition.hidden_variable(why)
 
         def open_yes_side
           @if_node = @condition.open_branch
@@ -492,7 +504,7 @@ module VBlank
                                    "or between `true` and `false`. This side is #{value.inspect}. A " \
                                    "game variable cannot hold that.")
           end
-          @kept ||= @condition.hidden_variable
+          @kept ||= @condition.hidden_variable(:picked)
           @kept.mark_boolean! if boolean || (value.is_a?(Value) && value.boolean?)
           PlainRubySteps.store_in_variable(@kept, value)
           @condition.close_branch
@@ -534,7 +546,7 @@ module VBlank
         end
 
         def game? = !@game_loop.nil?
-        def hidden_variable = @game_loop.hidden_variable
+        def hidden_variable(why) = @game_loop.hidden_variable(why)
 
         def refuse_jump!(word)
           PlainRubySteps.refuse_jump!(word) if @game_loop

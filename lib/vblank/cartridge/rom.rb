@@ -42,6 +42,12 @@ module VBlank
       # what "assembled straight from machine code" looks like.
       attr_reader :built
 
+      # The variables the build added that the author never declared (see
+      # Diagnostics::HiddenVariables). They are the builder's to know, not a console's.
+      attr_writer :hidden_variables
+
+      def hidden_variables = @hidden_variables || []
+
       # The things the record holds, read straight off it. Each is nil without a record,
       # and each is documented on {BuildRecord}: the IR program this cartridge was built from,
       # which routines it keeps in the console's quick memory, where its variables landed,

@@ -117,7 +117,7 @@ module VBlank
 
       attr_reader :truth
 
-      def keep_truth! = @truth = @builder.hidden_variable
+      def keep_truth! = @truth = @builder.hidden_variable(:truth)
 
       # A name given nothing yet starts as nil, and that start is one statement. If what it is
       # given turns out to be something made while building, no number is kept and it goes.
@@ -129,12 +129,14 @@ module VBlank
 
       def forget_truth!
         @builder.take_back_statement(*@truth_start) if @truth_start
+        @builder.forget_hidden_variable(@truth.name) if @truth
+        @builder.forget_hidden_variable(@name)
         @truth = nil
       end
 
       # The number and what it counts as, as they are now, on a hidden pair.
       def hidden_copy_with_truth
-        kept = @builder.hidden_variable
+        kept = @builder.hidden_variable(:copy)
         kept.keep_truth!
         kept.set!(self)
         kept.truth.set!(truth)
@@ -162,10 +164,10 @@ module VBlank
       end
 
       # A hidden variable holding this number as it is now, whatever changes it later.
-      def hidden_copy
+      def hidden_copy(why = :copy)
         return hidden_copy_with_truth if truth
 
-        kept = @builder.hidden_variable
+        kept = @builder.hidden_variable(why)
         kept.set!(self)
         kept.mark_boolean! if boolean?
         kept

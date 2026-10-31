@@ -952,6 +952,93 @@ class TestPlainRuby < Minitest::Test
     assert_equal 0, player[:seen]
   end
 
+  def test_a_worked_out_number_keeps_its_value_from_its_line
+    player = played do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        d = hp + 1
+        hp = 0
+        seen = d
+        halt
+      end
+    end
+
+    assert_equal 6, player[:seen]
+  end
+
+  def test_a_test_kept_in_a_name_keeps_its_answer_from_its_line
+    player = played do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        alive = hp > 0
+        hp = 0
+        seen = 1 if alive
+        halt
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_a_copy_made_in_setup_does_not_follow_what_it_came_from
+    player = played do
+      hp = var :hp, 5
+      first = hp
+      seen = 0
+      game_loop do
+        hp -= 1
+        seen = first
+      end
+    end
+
+    assert_equal [2, 5], [player[:hp], player[:seen]]
+  end
+
+  def test_a_worked_out_number_made_in_setup_keeps_its_value
+    player = played do
+      @hp = var :hp, 5
+      next_hp = @hp + 1
+      seen = 0
+      game_loop do
+        @hp -= 1
+        seen = next_hp
+      end
+    end
+
+    assert_equal 6, player[:seen]
+  end
+
+  def test_a_name_read_before_what_it_came_from_changes_costs_no_variable
+    builder = Builder.new
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(proc do
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        d = hp + 1
+        seen = d
+        hp = 0
+      end
+    end))
+    builder.finalize_program
+
+    assert_empty builder.hidden_variable_notes
+  end
+
+  def test_a_second_name_nothing_changes_costs_no_variable
+    builder = Builder.new
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(proc do
+      hp = var :hp, 5
+      first = hp
+      seen = 0
+      game_loop { seen = first }
+    end))
+    builder.finalize_program
+
+    assert_empty builder.hidden_variable_notes
+  end
+
   def test_an_ivar_made_by_var_copies_another_variable
     player = played do
       @a = var :a, 5

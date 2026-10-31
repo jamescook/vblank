@@ -73,6 +73,9 @@ module VBlank
       # Where the game gave an `estimate:`, which nothing reads.
       def estimate_lines = @builder.estimate_lines
 
+      # The variables normal Ruby needed that nobody declared (see Diagnostics::HiddenVariables).
+      def hidden_variable_notes = @builder.hidden_variable_notes
+
       # The software sprites, in the order they were declared — which on a bitmap screen is
       # the order they are painted in.
       def sprites = @builder.sprites

@@ -97,6 +97,9 @@ module VBlank
     # nodes as terse Build.set(...) calls.
     Build = IR::Build
 
+    # One variable the build added for the author: its name, the line that needed it, and why.
+    HiddenVariableNote = Data.define(:name, :source, :why)
+
     # @param options [Cartridge::Options] how the game is built; the Builder reads its frame
     #   pacing and the save memory it named
     # @param progress [VBlank::Messages::Progress] what a build says it is doing (see {#progress})
@@ -132,6 +135,7 @@ module VBlank
       @repeat_seq = 0          # counts repeat loops, to name each one's hidden index var
       @game_whiles = 0         # how many game `while` loops are open now
       @hidden_variables = 0    # counts the variables a picked value keeps its answer in
+      @hidden_variable_notes = []
       @boolean_variables = {}   # the variables started with `true` or `false`
       @timer_seq = 0           # counts every/after timers, to name each one's hidden counter var
       @rng_seq = 0             # counts anonymous random draws, to name each one's hidden var
@@ -945,12 +949,22 @@ module VBlank
     def inside_game_while? = @game_whiles.positive?
 
     # A variable of its own for a number the author never named: a value picked between two,
-    # or a number kept (see PlainRubySteps). Nothing reads it before something has set it.
-    def hidden_variable
+    # or a number kept (see PlainRubySteps). Nothing reads it before something has set it. +why+
+    # is which line of Diagnostics::HiddenVariables tells the author about it.
+    def hidden_variable(why)
       @hidden_variables += 1
       name = :"__kept_#{@hidden_variables}"
       ensure_var(name)
+      @hidden_variable_notes << HiddenVariableNote.new(name:, source: Messages::AuthorSource.author_source, why:)
       DSL::Value.new(self, Build.var_ref(name), name: name)
+    end
+
+    # What the build added for the author that the author never wrote, for `rom.profile`.
+    def hidden_variable_notes = @hidden_variable_notes
+
+    # A hidden variable nothing came to need, which then takes no memory and is not reported.
+    def forget_hidden_variable(name)
+      @variables.delete(name) if @hidden_variable_notes.reject! { |note| note.name == name }
     end
 
     # Is what is recorded now code the game runs as it plays, rather than setting up?
