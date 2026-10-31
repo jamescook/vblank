@@ -359,6 +359,20 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:hp]
   end
 
+  def test_a_lambda_a_test_hands_to_instance_exec_is_read_as_normal_ruby
+    extra = ->(hp) { hp += 1 if hp == 0 }
+    builder = Builder.new
+    builder.instance_eval do
+      hp = var :hp, 0
+      game_loop { instance_exec(hp, &extra) }
+    end
+    builder.finalize_program
+    player = game_player
+    player.run(builder.program, frames: 3)
+
+    assert_equal 1, player[:hp]
+  end
+
   def test_a_number_added_up_over_a_list_written_out_in_ruby_stays_a_number
     player = played(frames: 2) do
       shown = 0

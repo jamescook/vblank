@@ -38,23 +38,28 @@ module VBlank
       def rewrite(block, allow: [], checked: true)
         file, line = block.source_location
         rewriter = Rewriter.new(*source_and_block_of(block), outer_locals: block.binding.local_variables)
-        source = checked ? checked_source(rewriter, file, allow) : "proc #{rewriter.rewritten_block}"
+        code = callable_source(rewriter, block)
+        source = checked ? checked_source(rewriter, code, file, allow) : code
         eval(source, block.binding, file, line) # rubocop:disable Security/Eval
       end
 
-      def checked_source(rewriter, file, allow)
+      # A lambda stays one, since it checks what it is given and a proc does not. `->` has its
+      # arrow in its own text, and `lambda { }` does not.
+      def callable_source(rewriter, block)
+        return rewriter.rewritten_block if rewriter.block_node.is_a?(Prism::LambdaNode)
+
+        "#{block.lambda? ? 'lambda' : 'proc'} #{rewriter.rewritten_block}"
+      end
+
+      def checked_source(rewriter, code, file, allow)
         checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
         checks.refuse_outside_calls!
-        "proc { |*__plain_ruby_given| #{checks.constant_check}; " \
-          "(proc #{rewriter.rewritten_block}).call(*__plain_ruby_given) }"
+        "proc { |*__plain_ruby_given| #{checks.constant_check}; (#{code}).call(*__plain_ruby_given) }"
       end
 
       # Can +block+ be rewritten? It takes a file to read and a scope to run in, and a proc this
-      # module made already has no file of its own, which is how it is not rewritten twice. A
-      # lambda checks what it is given and a proc does not, so one is left as it was written.
+      # module made already has no file of its own, which is how it is not rewritten twice.
       def rewritable?(block)
-        return false if block.lambda?
-
         iseq = RubyVM::InstructionSequence.of(block)
         return false unless iseq&.absolute_path && File.file?(iseq.absolute_path)
 
@@ -74,7 +79,9 @@ module VBlank
         source, blocks = parsed_file(path)
         starting = blocks.fetch(line, [])
         found = starting.one? ? starting.first : node_at_column(starting, block)
-        raise ArgumentError, "No block starts at line #{line}, so this game cannot be read." unless found.is_a?(Prism::BlockNode)
+        unless found.is_a?(Prism::BlockNode) || found.is_a?(Prism::LambdaNode)
+          raise ArgumentError, "No block starts at line #{line}, so this game cannot be read."
+        end
 
         [source, found]
       end
@@ -102,8 +109,8 @@ module VBlank
         end
       end
 
-      # Lambdas and methods are listed too, since a proc made from one is not a block to rewrite,
-      # and must not be taken for a block beside it on the line.
+      # Methods are listed too, since a proc made from one is not a block to rewrite, and must not
+      # be taken for a block beside it on the line.
       def code_by_line(node, found)
         case node
         when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then found[node.location.start_line] << node
