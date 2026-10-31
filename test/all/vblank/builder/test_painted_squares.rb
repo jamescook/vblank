@@ -41,7 +41,7 @@ class TestPaintedSquares < Minitest::Test
         end
       end
       game_loop do
-        pressed(:a).then { state.set! 1 }
+        state = 1 if pressed(:a)
         case_var :state do
           when_val 0, :warm
           when_val 1, :cool
@@ -80,7 +80,7 @@ class TestPaintedSquares < Minitest::Test
         %i[green blue cyan].each_with_index { |color, i| fill_rect 40 + (i * 2), 40, 2, 8, color }
       end
       game_loop do
-        pressed(:a).then { state.set! 1 }
+        state = 1 if pressed(:a)
         case_var :state do
           when_val 0, :first
           when_val 1, :second
@@ -118,7 +118,7 @@ class TestPaintedSquares < Minitest::Test
         fill_rect 10, 16, 2, 8, :orange
       end
       game_loop { case_var(:state) { when_val 0, :outer } }
-      inner.set! 0
+      inner = 0
     end
     b.finalize_program
     b.program
@@ -143,7 +143,7 @@ class TestPaintedSquares < Minitest::Test
         clear_screen :black
         %i[red green blue].each_with_index { |color, i| fill_rect 8 + (i * 2), 16, 2, 4, color }
         draw_rect_at paddle, 130, 24, 4, :white
-        paddle.add! 1
+        paddle += 1
       end
     end
     b.finalize_program
@@ -168,7 +168,7 @@ class TestPaintedSquares < Minitest::Test
         clear_screen :black
         %i[red green blue].each_with_index { |color, i| fill_rect i * 8, 40, 8, 8, color }
         draw_rect_at ball, 42, 4, 4, :white
-        ball.add! 3
+        ball += 3
       end
     end
     b.finalize_program

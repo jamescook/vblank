@@ -28,8 +28,8 @@ module PlayThisFrameGames
       music = songs :music, [SONG]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == ASKED_ON).then { music.play 0, **options }
+        pass += 1
+        music.play 0, **options if pass == ASKED_ON
       end
     end
     b.finalize_program
@@ -49,8 +49,8 @@ module PlayThisFrameGames
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == ASKED_ON).then { play_song :later, **options }
+        pass += 1
+        play_song :later, **options if pass == ASKED_ON
       end
     end
     b.finalize_program
@@ -67,9 +67,9 @@ module PlayThisFrameGames
       sfx = sound_effects :sfx, effects
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == 1).then { sfx.play before } if before
-        (pass == ASKED_ON).then { sfx.play asks, **options }
+        sfx.play asks, **options if pass == ASKED_ON
       end
     end
     b.finalize_program

@@ -38,7 +38,7 @@ module ComputedTilemapGames
       hero.blocked_by room
       game_loop do
         wait_vblank
-        held(:right).then { hero.move :right, by: 2 }
+        hero.move :right, by: 2 if held(:right)
       end
     end
     b.finalize_program

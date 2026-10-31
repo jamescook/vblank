@@ -137,7 +137,7 @@ class TestTiledColorLists < Minitest::Test
         board = background :board, tiles: :set0, map: map
         game_loop do
           board.draw_with(lists.call(0), showing: step)
-          (step < steps - 1).then { step.add! 1 }
+          step += 1 if step < steps - 1
         end
       else
         scenes.times do |k|
@@ -150,11 +150,11 @@ class TestTiledColorLists < Minitest::Test
         state = var :state, 0
         tick = var :tick, 0
         game_loop do
-          tick.add! 1
-          (step < steps - 1).then { step.add! 1 }
+          tick += 1
+          step += 1 if step < steps - 1
           (tick == switch).then do
-            state.set! 1
-            step.set! 0
+            state = 1
+            step = 0
           end
           (tick == bare_at).then { state.set! scenes } if bare_at
           case_var(:state) do
@@ -212,8 +212,8 @@ class TestTiledColorLists < Minitest::Test
         board.draw_with((0...7).to_h { |n| [:"own#{n}", :"dusk#{n}"] })
       end
       game_loop do
-        tick.add! 1
-        (tick == 5).then { state.set! 0 }
+        tick += 1
+        state = 0 if tick == 5
         case_var(:state) { when_val 0, :board }
       end
     end
@@ -241,8 +241,8 @@ class TestTiledColorLists < Minitest::Test
       scene(:dim) { background(:dim, tiles: :set, map: ["0"]).draw_with :dusk }
       scene(:plain) { background :plain, tiles: :set, map: ["0"] }
       game_loop do
-        tick.add! 1
-        state.set!((tick / 4) % 2)
+        tick += 1
+        state = (tick / 4) % 2
         case_var(:state) do
           when_val 0, :dim
           when_val 1, :plain
@@ -275,11 +275,11 @@ class TestTiledColorLists < Minitest::Test
       scene(:dim) { background(:dim, tiles: :set, map: ["0"]).draw_with :dusk }
       scene(:plain) do
         plain = background :plain, tiles: :set, map: ["0"]
-        (never == 1).then { plain.draw_with :dusk }
+        plain.draw_with :dusk if never == 1
       end
       game_loop do
-        tick.add! 1
-        state.set!((tick / 4) % 2)
+        tick += 1
+        state = (tick / 4) % 2
         case_var(:state) do
           when_val 0, :dim
           when_val 1, :plain

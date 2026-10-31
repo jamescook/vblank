@@ -23,9 +23,9 @@ module CameraShakeGames
       fill_rect 100, 70, 40, 20, :red
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 3).then { shake_screen intensity: intensity, frames: length }
-        (frame >= frames).then { halt }
+        frame += 1
+        shake_screen intensity: intensity, frames: length if frame == 3
+        halt if frame >= frames
       end
     end
   end

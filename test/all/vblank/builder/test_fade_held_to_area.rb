@@ -65,9 +65,9 @@ class TestFadeHeldToArea < Minitest::Test
       fill_rect 0, 128, 240, 32, :blue
       step = var :step, 0
       game_loop do
-        step.add! 1
-        (step == 2).then { fade_out frames: 6, inside: [0, 0, 240, 128] }
-        (step == 12).then { fade_in }
+        step += 1
+        fade_out frames: 6, inside: [0, 0, 240, 128] if step == 2
+        fade_in if step == 12
       end
     end
   end

@@ -23,7 +23,7 @@ module DrawColumnAtTearFreeGames
         clear_screen :gray
         draw_column_at :bars, slice: 0, x: 10, top: 0, height: 8  # an even column...
         draw_column_at :bars, slice: 0, x: 11, top: 0, height: 8  # ...and an odd one
-        at.set! 31 # a column whose evenness cannot be proved while building
+        at = 31 # a column whose evenness cannot be proved while building
         draw_column_at :bars, slice: 1, x: at, top: 10, height: 12
         repeat(4) { |c| draw_column_at :bars, slice: 0, x: (c * 2) + 60, top: 0, height: 6 }
         draw_column_at :ghost, slice: 0, x: 100, top: 0, height: 8
@@ -43,7 +43,7 @@ module DrawColumnAtTearFreeGames
         draw_column_at :ghost, slice: 0, x: 180, top: 20, height: 12, width: 3
         draw_column_at :bars, slice: 0, x: 237, top: 20, height: 12, width: 5
         draw_column_at :bars, slice: 0, x: -2, top: 20, height: 12, width: 5
-        at.set! 200
+        at = 200
         draw_column_at :bars, slice: 0, x: at, top: 100, height: 12, width: 3
       end
     end
@@ -185,7 +185,7 @@ class TestDrawColumnAtSeeThrough < Minitest::Test
       game_loop do
         clear_screen :gray if tear_free
         HEIGHTS.each_with_index do |height, n|
-          tall.set! height
+          tall = height
           4.times do |slice|
             # Above the screen, on it, and running off the bottom.
             draw_column_at :lamp, slice: slice, x: (n * 4) + slice, top: 0, height: tall
@@ -240,7 +240,7 @@ class TestDrawColumnAtSeeThrough < Minitest::Test
       tall = var :tall, 0
       game_loop do
         clear_screen :gray
-        tall.set! TALL_ROWS
+        tall = TALL_ROWS
         # Drawn 1:1 with the bottom of the picture pulled onto the screen, so the last rows
         # are the ones being looked at.
         2.times { |slice| draw_column_at :tall, slice: slice, x: 20 + slice, top: -200, height: tall }

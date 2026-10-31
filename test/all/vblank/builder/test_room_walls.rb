@@ -40,9 +40,9 @@ module RoomWallsGames
       moved = var :moved, 0
       game_loop do
         wait_vblank
-        pressed(:a).then { room.show_map 1 }
+        room.show_map 1 if pressed(:a)
         hero.move :right, by: 1
-        moved.set! hero.x
+        moved = hero.x
       end
     end
     builder.finalize_program

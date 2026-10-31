@@ -61,7 +61,7 @@ class TestTimer < Minitest::Test
         add! :fc, 1
         (fc == stop_at).then { beat.stop } if stop_at
         set! :snap, beat.ticks
-        (fc == stop_frame).then { halt }
+        halt if fc == stop_frame
       end
     end
     game_player.run(b.program, frames: stop_frame + 1)
@@ -176,7 +176,7 @@ class TestTimer < Minitest::Test
         wait_vblank
         add! :fc, 1
         (fc == stop_at).then { beat.stop } if stop_at
-        (fc == stop_frame).then { halt }
+        halt if fc == stop_frame
       end
     end
     game_player.run(b.program)
@@ -217,7 +217,7 @@ class TestTimer < Minitest::Test
       hits = var :hits, 0
       beat = timer :beat, per_second: 30
       beat.on_tick do
-        hits.add! 1
+        hits += 1
         draw_number :hits, 8, 8, :white, digits: 2
       end
       game_loop { wait_vblank }
@@ -250,8 +250,8 @@ class TestTimer < Minitest::Test
       presses = var :presses, 0
       beat = timer :beat, per_second: 60
       beat.on_tick do
-        held(:a).then { downs.add! 1 }
-        pressed(:a).then { presses.add! 1 }
+        downs += 1 if held(:a)
+        presses += 1 if pressed(:a)
       end
       game_loop { wait_vblank }
     end

@@ -14,8 +14,8 @@ class TestRumble < Minitest::Test
       screen :tiled
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 2).then { rumble frames: frames, pattern: pattern }
+        pass += 1
+        rumble frames: frames, pattern: pattern if pass == 2
         (pass == halt).then { self.halt } if halt
       end
     end

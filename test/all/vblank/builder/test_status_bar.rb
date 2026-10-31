@@ -125,9 +125,9 @@ class TestStatusBar < Minitest::Test
       scene(:play) { instance_exec(tick, &bar_scene) }
       scene(:pause) {}
       game_loop do
-        tick.add! 1
-        (tick == 5).then { state.set! 1 }
-        (tick == 8).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == 5
+        state = 0 if tick == 8
         case_var(:state) do
           when_val 0, :play
           when_val 1, :pause
@@ -153,8 +153,8 @@ class TestStatusBar < Minitest::Test
       scene(:one) { background :one, tiles: :red_tiles, map: Array.new(32) { "#" * 32 } }
       scene(:two) { background :two, tiles: :blue_tiles, map: Array.new(32) { "#" * 32 } }
       game_loop do
-        tick.add! 1
-        (tick == 4).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick == 4
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -186,8 +186,8 @@ class TestStatusBar < Minitest::Test
   def test_a_scene_that_comes_back_puts_its_bar_up_as_declared
     prog = scene_leaves_and_comes_back do |tick|
       bar = status_bar :score, tiles: :bar_tiles, map: ["#" * 32, "#" * 32], top: screen_height - 16
-      (tick == 2).then { bar.move_to 40 }
-      (tick == 3).then { bar.set_tile 1, 0, "o" }
+      bar.move_to 40 if tick == 2
+      bar.set_tile 1, 0, "o" if tick == 3
     end
 
     assert_equal GREEN, picture(prog, 4).pixel(20, 44), "moved up"

@@ -27,11 +27,11 @@ module RepeatStopWhenGames
       hit = var :hit, 0
       steps = var :steps, 0
       game_loop do
-        hit.set! 0
-        steps.set! 0
+        hit = 0
+        steps = 0
         repeat(20, stop_when: hit == 1) do
-          steps.add! 1
-          (steps >= 5).then { hit.set! 1 }
+          steps += 1
+          hit = 1 if steps >= 5
         end
       end
     end

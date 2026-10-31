@@ -14,7 +14,7 @@ module GameLoopGames
       screen :bitmap
       frames = var :frames, 0
       game_loop do
-        (frames < count).then { add! :frames, 1 }
+        add! :frames, 1 if frames < count
       end
     end
     builder.finalize_program

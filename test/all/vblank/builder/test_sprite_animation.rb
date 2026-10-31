@@ -30,8 +30,8 @@ module SpriteAnimationGames
       f = var :f, 0
       declare = -> { sprite :blink, at: [40, 40], frames: %i[on off], rate: rate }
       count = lambda do
-        f.add! 1
-        (f >= run).then { halt }
+        f += 1
+        halt if f >= run
       end
       if in_scene
         var :state, 0

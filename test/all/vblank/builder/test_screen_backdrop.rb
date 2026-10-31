@@ -24,8 +24,8 @@ class TestScreenBackdrop < Minitest::Test
       tick = var :tick, 0
       scene(:corner) { background :field, tiles: :corner_set, map: ["c"] }
       game_loop do
-        (tick == up_at).then { state.set! 0 }
-        tick.add! 1
+        state = 0 if tick == up_at
+        tick += 1
         case_var(:state) { when_val 0, :corner }
       end
     end

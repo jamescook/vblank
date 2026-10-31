@@ -54,9 +54,9 @@ class TestColorsInUse < Minitest::Test
       room = var :room, 0
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == 3).then do
-          room.set! 1
+          room = 1
           things.each { |thing| thing.kind.add! PER_ROOM }
         end
         colors_in_use room_lists, showing: room if say_which
@@ -98,8 +98,8 @@ class TestColorsInUse < Minitest::Test
       PER_ROOM.times { |n| things.spawn x: 40 + (n * 20), y: 40, kind: n }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass > 3).then { colors_in_use room_lists, showing: 0 }
+        pass += 1
+        colors_in_use room_lists, showing: 0 if pass > 3
         things.each { |thing| thing.draw_with names, showing: thing.kind }
       end
     end
@@ -119,9 +119,9 @@ class TestColorsInUse < Minitest::Test
       pass = var :pass, 0
       room = var :room, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == 3).then do
-          room.set! 1
+          room = 1
           things.each { |thing| thing.kind.add! 1 }
         end
         colors_in_use [%i[set0 set1], %i[set1 set2], %i[set2 set0]], showing: room
@@ -144,8 +144,8 @@ class TestColorsInUse < Minitest::Test
       dot = sprite :dot, at: [80, 40]
       room = var :room, 0
       game_loop do
-        (ship.x < 100).then { ship.x.add! 1 }
-        (ship.x > 42).then { room.set! 1 }
+        ship.x += 1 if ship.x < 100
+        room = 1 if ship.x > 42
         ship.draw_with :set0
         dot.draw_with :short
         colors_in_use [[:set0], [:short]], showing: room
@@ -180,9 +180,9 @@ class TestColorsInUse < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > 3).then { state.set! 1 }
-        (tick > 6).then { state.set! 2 }
+        tick += 1
+        state = 1 if tick > 3
+        state = 2 if tick > 6
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

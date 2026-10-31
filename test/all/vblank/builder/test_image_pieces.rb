@@ -123,8 +123,8 @@ class TestImagePieces < Minitest::Test
       ticks = var :ticks, 0
       pick = var :pick, from
       game_loop do
-        ticks.add! 1
-        (ticks == 3).then { pick.set! to }
+        ticks += 1
+        pick = to if ticks == 3
         shape.face %i[medium large small], showing: pick
       end
     end
@@ -179,10 +179,14 @@ class TestImagePieces < Minitest::Test
       touched_large = var :touched_large, 0
       touched_small = var :touched_small, 0
       game_loop do
-        ticks.add! 1
-        (ticks == 2).then { shape.overlaps?(block).then { touched_large.set! 1 } }
-        (ticks == 3).then { shape.face :small }
-        (ticks == 5).then { shape.overlaps?(block).then { touched_small.set! 1 } }
+        ticks += 1
+        if ticks == 2
+          shape.overlaps?(block).then { touched_large.set! 1 }
+        end
+        shape.face :small if ticks == 3
+        if ticks == 5
+          shape.overlaps?(block).then { touched_small.set! 1 }
+        end
       end
     end
     b.finalize_program

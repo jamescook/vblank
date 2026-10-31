@@ -138,8 +138,8 @@ module LayerTransparencyGames
       end
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick == FLASH_AT).then { flash_screen :black, frames: 6 }
+        tick += 1
+        flash_screen :black, frames: 6 if tick == FLASH_AT
       end
     end
   end
@@ -171,7 +171,7 @@ module LayerTransparencyGames
       end
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
+        tick += 1
         clear.approach! 0, 2
         (tick > FLASH_AT).then { fade :black, 0 } if lifting
       end
@@ -207,8 +207,8 @@ module LayerTransparencyGames
 
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { set! :state, 1 }
+        tick += 1
+        set! :state, 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play

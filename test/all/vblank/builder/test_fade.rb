@@ -154,10 +154,10 @@ class TestFade < Minitest::Test
       level = var :level, 0
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         level.approach! 100, 25
         fade :black, level
-        (frame >= 4).then { halt }
+        halt if frame >= 4
       end
     end)
 
@@ -308,7 +308,7 @@ class TestFade < Minitest::Test
       background :wall, tiles: :wall, map: Array.new(20) { "#" * 30 }
       level = var :level, 0.0
       game_loop do
-        level.set! 800.5
+        level = 800.5
         fade :black, level
       end
     end, frames: 3).screen.pixel(8, 8)

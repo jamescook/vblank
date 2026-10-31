@@ -35,15 +35,18 @@ class TestTileRuns < Minitest::Test
       scene(:talking) do
         box = tiles :box, from: canvas, count: 2, colors: :ink
         background :front, tiles: :box, map: [[1, 2]]
-        (frame == 2).then { canvas[0] = 0x01; box.changed }
-        (frame == 5).then { state.set! 1 }
+        if frame == 2
+          canvas[0] = 0x01
+          box.changed
+        end
+        state = 1 if frame == 5
       end
       scene(:walking) do
-        (frame == 7).then { canvas[0] = 0x00 }
-        (frame == 9).then { state.set! 0 }
+        canvas[0] = 0x00 if frame == 7
+        state = 0 if frame == 9
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :talking; when_val 1, :walking }
       end
     end
@@ -74,11 +77,14 @@ class TestTileRuns < Minitest::Test
         repeat(64) { canvas.push 0 }
         box = tiles :box, from: canvas, count: 2, colors: :ink
         background :front, tiles: :box, map: [[1, 2]]
-        (frame == 2).then { canvas[0] = 0x01; box.changed }
+        if frame == 2
+          canvas[0] = 0x01
+          box.changed
+        end
       end
       var :state, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :talking }
       end
     end
@@ -110,7 +116,7 @@ class TestTileRuns < Minitest::Test
       frame = var :frame, 0
       scene(:house) do
         background :house_box, tiles: :box, map: [[1, 2]]
-        (frame == 3).then { state.set! 1 }
+        state = 1 if frame == 3
       end
       scene(:road) do
         tiles :road, "#" => :red_tile
@@ -118,7 +124,7 @@ class TestTileRuns < Minitest::Test
         box.changed
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :house; when_val 1, :road }
       end
     end
@@ -172,7 +178,7 @@ class TestTileRuns < Minitest::Test
       sprite :tag, at: [40, 20]
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         instance_exec(canvas, tag, frame, &body)
       end
     end
@@ -194,7 +200,7 @@ class TestTileRuns < Minitest::Test
       sprite :tag, at: [40, 20]
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         (frame == 2).then do
           canvas[32 * 3] = 0x01 # the second row's right tile, its top-left pixel
           canvas[32 * 4] = 0x01 # the third row's left tile
@@ -258,7 +264,7 @@ class TestTileRuns < Minitest::Test
       letter = image :letter, from: canvas, width: 8, height: 8, colors: :ink
       tag = sprite :letter, at: [40, 20]
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           canvas[0] = 0x01
           letter.changed now: true
           tag.move_to 80, 20
@@ -311,8 +317,11 @@ class TestTileRuns < Minitest::Test
       background :front, tiles: :box, map: [[1, 2]]
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 3).then { canvas[32] = 0x01; box.changed now: true }
+        frame += 1
+        if frame == 3
+          canvas[32] = 0x01
+          box.changed now: true
+        end
       end
     end
     b.finalize_program
@@ -349,15 +358,18 @@ class TestTileRuns < Minitest::Test
       scene(:talking) do
         tag = image :tag, from: canvas, width: 8, height: 8, colors: :ink
         sprite :tag, at: [0, 0]
-        (frame == 2).then { canvas[0] = 0x01; tag.changed }
-        (frame == 5).then { state.set! 1 }
+        if frame == 2
+          canvas[0] = 0x01
+          tag.changed
+        end
+        state = 1 if frame == 5
       end
       scene(:walking) do
-        (frame == 7).then { canvas[0] = 0x00 }
-        (frame == 9).then { state.set! 0 }
+        canvas[0] = 0x00 if frame == 7
+        state = 0 if frame == 9
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :talking; when_val 1, :walking }
       end
     end
@@ -387,17 +399,23 @@ class TestTileRuns < Minitest::Test
       frame = var :frame, 0
       scene(:house) do
         sprite :tag, at: [0, 0]
-        (frame == 2).then { canvas[0] = 0x01; tag.changed }
-        (frame == 5).then { state.set! 1 }
+        if frame == 2
+          canvas[0] = 0x01
+          tag.changed
+        end
+        state = 1 if frame == 5
       end
       scene(:shop) do
         sprite :coin, at: [40, 40]
         sprite :tag, at: [0, 0]
-        (frame == 8).then { canvas[1] = 0x10; tag.changed }
-        (frame == 11).then { state.set! 0 }
+        if frame == 8
+          canvas[1] = 0x10
+          tag.changed
+        end
+        state = 0 if frame == 11
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :house; when_val 1, :shop }
       end
     end

@@ -37,7 +37,7 @@ module TintGames
       clear_screen :green
       level = var :level, 0
       game_loop do
-        level.set! 50
+        level = 50
         tint :red, level
       end
     end
@@ -75,7 +75,7 @@ module TintGames
       sprite :body, at: [64, 64]
       level = var :level, 0
       game_loop do
-        level.set! amount
+        level = amount
         tint :red, level
       end
     end
@@ -105,7 +105,7 @@ module TintGames
       level = var :level, 0
       game_loop do
         clear_screen :green
-        level.set! 50
+        level = 50
         tint :red, level
       end
     end
@@ -151,10 +151,13 @@ module TintGames
         sprite :dot, at: [200, 140]
       end
       game_loop do
-        frames.add! 1
-        state.set! 0
-        (frames > 2).then { state.set! 1 }
-        (frames > 5).then { state.set! 0; level.set! 0 }
+        frames += 1
+        state = 0
+        state = 1 if frames > 2
+        if frames > 5
+          state = 0
+          level = 0
+        end
         case_var :state do
           when_val 0, :field
           when_val 1, :away
@@ -223,7 +226,7 @@ class TestTint < Minitest::Test
       screen :bitmap
       clear_screen :green
       level = var :level, 0
-      level.set! 50
+      level = 50
       tint :red, level
       halt
     end
@@ -252,7 +255,7 @@ class TestTint < Minitest::Test
       level = var :level, 0.0
       game_loop do
         if worked_out
-          level.set! amount
+          level = amount
           tint toward, level
         else
           tint toward, amount

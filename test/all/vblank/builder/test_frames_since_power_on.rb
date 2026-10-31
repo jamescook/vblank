@@ -20,9 +20,9 @@ module FramesSincePowerOnGames
       now = var :now, -1
       repeat(busy) { spin.add! 1 } if busy.positive?
       game_loop do
-        (passes == 0).then { first.set! frames_since_power_on }
-        now.set! frames_since_power_on
-        passes.add! 1
+        first = frames_since_power_on if passes == 0
+        now = frames_since_power_on
+        passes += 1
       end
     end
     b.finalize_program

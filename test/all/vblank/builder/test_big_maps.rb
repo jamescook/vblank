@@ -60,12 +60,12 @@ module BigMapsGames
         ground.scroll_to 40, 24
       end
       game_loop do
-        pass.add! 1
+        pass += 1
         case_var(:mode) do
           when_val 0, :menu
           when_val 1, :playing
         end
-        (pass == 10).then { set! :mode, 1 }
+        set! :mode, 1 if pass == 10
       end
     end
   end
@@ -87,8 +87,8 @@ class TestBigMaps < Minitest::Test
       x = var :view_x, start[0].to_f
       y = var :view_y, start[1].to_f
       game_loop do
-        x.add! step_x.to_f
-        y.add! step_y.to_f
+        x += step_x.to_f
+        y += step_y.to_f
         ground.scroll_to x.to_i, y.to_i
       end
     end
@@ -133,8 +133,11 @@ class TestBigMaps < Minitest::Test
       x = var :view_x, 0
       y = var :view_y, 0
       game_loop do
-        pass.add! 1
-        (pass == 4).then { x.set! 700; y.set! 600 }
+        pass += 1
+        if pass == 4
+          x = 700
+          y = 600
+        end
         ground.scroll_to x, y
       end
     end
@@ -161,9 +164,16 @@ class TestBigMaps < Minitest::Test
       x = var :view_x, 0
       y = var :view_y, 0
       game_loop do
-        pass.add! 1
-        (pass == 4).then { room.set! 1; x.set! 400; y.set! 300 }
-        (pass > 4).then { x.sub! 3; y.sub! 2 }
+        pass += 1
+        if pass == 4
+          room = 1
+          x = 400
+          y = 300
+        end
+        if pass > 4
+          x -= 3
+          y -= 2
+        end
         ground.show_map room
         ground.scroll_to x, y
       end
@@ -209,9 +219,16 @@ class TestBigMaps < Minitest::Test
       x = var :view_x, 0
       y = var :view_y, 0
       game_loop do
-        pass.add! 1
-        (pass == 3).then { room.set! 1; x.set! 600; y.set! 700 }
-        (pass > 3).then { x.add! 4; y.add! 1 }
+        pass += 1
+        if pass == 3
+          room = 1
+          x = 600
+          y = 700
+        end
+        if pass > 3
+          x += 4
+          y += 1
+        end
         ground.show_map room
         ground.scroll_to x, y
       end
@@ -234,14 +251,14 @@ class TestBigMaps < Minitest::Test
       scene(:outside) do
         ground = background :ground, tiles: :ground, map: test.scrambled(100, 90)
         x = var :view_x, start
-        x.add! 5
+        x += 5
         ground.scroll_to x, x
       end
       scene(:inside) { nil }
       game_loop do
-        pass.add! 1
-        (pass == 6).then { set! :mode, 1 }
-        (pass == 8).then { set! :mode, 0 }
+        pass += 1
+        set! :mode, 1 if pass == 6
+        set! :mode, 0 if pass == 8
         case_var(:mode) do
           when_val 0, :outside
           when_val 1, :inside
@@ -286,10 +303,10 @@ class TestBigMaps < Minitest::Test
         end
       end
       game_loop do
-        pass.add! 1
-        x.add! 6
-        (pass == 6).then { set! :mode, 1 }
-        (pass == 12).then { set! :mode, 0 }
+        pass += 1
+        x += 6
+        set! :mode, 1 if pass == 6
+        set! :mode, 0 if pass == 12
         case_var(:mode) do
           when_val 0, :forest
           when_val 1, :swamp
@@ -335,7 +352,7 @@ class TestBigMaps < Minitest::Test
       stood = var :stood, 0
       game_loop do
         hero.move :right, by: 2
-        stood.set! hero.x
+        stood = hero.x
         marker.move_to hero.x - 500, 40
         ground.scroll_to (70 * 8) - 120, (80 * 8) - 80
       end

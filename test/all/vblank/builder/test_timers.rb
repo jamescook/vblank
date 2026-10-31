@@ -18,9 +18,9 @@ module TimersGames
         wait_vblank
         clear_screen :white
         after(2) { shown.set! 1 } # turn the marker on after 2 frames
-        (shown == 1).then { dma_fill_rect 100, 80, 8, 8, :red }
-        f.add! 1
-        (f >= frames).then { halt }
+        dma_fill_rect 100, 80, 8, 8, :red if shown == 1
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program

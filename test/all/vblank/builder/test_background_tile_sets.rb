@@ -81,8 +81,8 @@ class TestBackgroundTileSets < Minitest::Test
       pass = var :pass, 0
       tint :blue, 50
       game_loop do
-        pass.add! 1
-        (pass == 4).then { fade :black, 0 }
+        pass += 1
+        fade :black, 0 if pass == 4
         ground.show_map where
       end
     end
@@ -111,12 +111,12 @@ class TestBackgroundTileSets < Minitest::Test
       scene(:play) do
         ground = background :ground, tiles: { shrine: :shrine, clearing: :clearing },
                                      map: { shrine: { hall: grid }, clearing: { glade: grid } }
-        (pass == 2).then { ground.show_map 1 }
+        ground.show_map 1 if pass == 2
       end
       game_loop do
-        pass.add! 1
-        (pass == 4).then { set! :mode, 0 }
-        (pass == 6).then { set! :mode, 1 }
+        pass += 1
+        set! :mode, 0 if pass == 4
+        set! :mode, 1 if pass == 6
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :play
@@ -156,7 +156,7 @@ class TestBackgroundTileSets < Minitest::Test
       stood = var :stood, 0
       game_loop do
         hero.move :right, by: 2
-        stood.set! hero.x
+        stood = hero.x
       end
     end
   end
@@ -335,9 +335,9 @@ class TestBackgroundTileSets < Minitest::Test
       tick = var :tick, 0
       where = var :room, 0
       game_loop do
-        tick.add! 1
-        (tick == test.class::WALK_AT).then { where.set! 1 }
-        (tick == test.class::WALK_AT * 2).then { where.set! 0 }
+        tick += 1
+        where = 1 if tick == test.class::WALK_AT
+        where = 0 if tick == test.class::WALK_AT * 2
         ground.show_map where
       end
     end
@@ -385,15 +385,15 @@ class TestBackgroundTileSets < Minitest::Test
                           map: { cave: { tunnel: grid }, meadow: { field: grid } }).show_map where
       end
       game_loop do
-        tick.add! 1
-        (tick == 3).then { where.set! 1 }
+        tick += 1
+        where = 1 if tick == 3
         (tick == 6).then do
-          state.set! 1
-          where.set! 0
+          state = 1
+          where = 0
         end
-        (tick == 8).then { where.set! 1 }
-        (tick == 10).then { state.set! 0 }
-        (tick == 12).then { where.set! 0 }
+        where = 1 if tick == 8
+        state = 0 if tick == 10
+        where = 0 if tick == 12
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

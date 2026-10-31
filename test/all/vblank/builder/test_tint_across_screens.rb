@@ -106,9 +106,9 @@ class TestTintAcrossScreens < Minitest::Test
         background :floor, tiles: :grass, map: Array.new(20) { "#" * 30 }
       end
       game_loop do
-        ticks.add! 1
-        (ticks == 3).then { state.set! 1 }
-        (ticks == 8).then { flash_screen :red, frames: 12 }
+        ticks += 1
+        state = 1 if ticks == 3
+        flash_screen :red, frames: 12 if ticks == 8
         case_var(:state) do
           when_val 0, :painted
           when_val 1, :tiles

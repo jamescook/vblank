@@ -34,9 +34,13 @@ module TiledTextGames
       screen :tiled
       blink = var :blink, 1
       draw_text "A", 100, 20, :white                       # always on: the control
-      (blink == 1).then { draw_text "B", 140, 20, :white }  # only while blink is 1
+      draw_text "B", 140, 20, :white if blink == 1  # only while blink is 1
       game_loop do
-        (blink == 1).then { blink.set! 0 }.else { blink.set! 1 }
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
       end
     end
     b.finalize_program
@@ -171,9 +175,17 @@ class TestTiledText < Minitest::Test
     b.instance_eval do
       screen :tiled
       blink = var :blink, 1
-      (blink == 1).then { draw_text "A", 100, 20, :white }.else { draw_text "B", 140, 20, :white }
+      if blink == 1
+        draw_text "A", 100, 20, :white
+      else
+        draw_text "B", 140, 20, :white
+      end
       game_loop do
-        (blink == 1).then { blink.set! 0 }.else { blink.set! 1 }
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
       end
     end
     b.finalize_program
