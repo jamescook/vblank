@@ -53,8 +53,8 @@ module VBlank
 
         # --- numbers and logic ---
         var: works, save_var: works, save_data: works, clock: works, saves_keep_everything: works,
-        set: works, set!: works, add: works, add!: works, add_var: works, add_var!: works,
-        sub: works, sub!: works, sub_var: works, sub_var!: works, copy: works, copy!: works,
+        set: works, add: works, add_var: works,
+        sub: works, sub_var: works, copy: works,
         negate: works, negate!: works, flip: works, flip!: works, abs: works, abs!: works,
         negate_abs: works, negate_abs!: works, clamp: works, clamp!: works,
         approach: works, approach!: works,

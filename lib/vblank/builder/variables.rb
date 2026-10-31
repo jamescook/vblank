@@ -18,7 +18,7 @@ module VBlank
       # @param name [Symbol] variable name
       # @param value [Integer] value to store
       # @return [Value] a handle to the variable
-      def set!(name, value)
+      def store!(name, value)
         record(Build.set(name, stored_node(name, value)))
         ensure_var(name)
         mirror_save(name)
@@ -99,26 +99,24 @@ module VBlank
       #
       # @param name [Symbol] variable name
       # @param operand [Integer, Symbol] value to add
-      def add!(name, operand)
+      def increase!(name, operand)
         record(Build.add(name, DSL::Value.node_for(operand)))
         ensure_var(name)
         ensure_var(operand)
         mirror_save(name)
       end
-      alias add_var! add!
 
       # Subtract from a variable: var -= operand.
       # Operand can be an immediate (Integer) or another variable (Symbol).
       #
       # @param name [Symbol] variable name
       # @param operand [Integer, Symbol] value to subtract
-      def sub!(name, operand)
+      def decrease!(name, operand)
         record(Build.sub(name, DSL::Value.node_for(operand)))
         ensure_var(name)
         ensure_var(operand)
         mirror_save(name)
       end
-      alias sub_var! sub!
 
       # Flip a variable's sign: var = -var.
       # Useful for reversing direction vectors.
@@ -133,7 +131,7 @@ module VBlank
       #
       # @param dest [Symbol] destination variable
       # @param src [Symbol] source variable
-      def copy!(dest, src)
+      def copy_variable!(dest, src)
         record(Build.copy(dest, src))
         ensure_var(dest)
         ensure_var(src)
@@ -166,6 +164,9 @@ module VBlank
       CHANGING_HANDLE_WORDS = { abs: :abs, negate_abs: :negate_abs, negate: :flip, flip: :flip,
                                 clamp: :clamp, approach: :approach }.freeze
       CHANGING_OPERATOR_WORDS = { add: :+, sub: :-, add_var: :+, sub_var: :- }.freeze
+
+      # The words plain Ruby has an operator for, which is what a game writes.
+      PLAIN_RUBY_OPERATORS = { set: "=", copy: "=", add: "+=", add_var: "+=", sub: "-=", sub_var: "-=" }.freeze
 
       # Written out as source rather than made from a block, so another Ractor can call them —
       # see {IR::Node.operands} for why a block-backed method cannot be.
@@ -248,14 +249,29 @@ module VBlank
 
       private
 
-      # What one of those says: the line as it was written, the word that changes the variable,
-      # and where the same number comes from instead.
+      # What one of those says: the line as it was written, what changes the variable, and where
+      # the same number comes from instead.
       def changing_verb_message(verb, name, rest)
         written = DSL::ChangingWord.arguments_text([name, *rest])
         said = written.empty? ? "" : " #{written}"
-        DSL::ChangingWord.refusal(written: "#{verb}#{said}", bang: "#{verb}!#{said}",
-                                  instead: new_number_advice(verb, name, rest),
-                                  at: Messages::AuthorSource.at_author_line)
+        at = Messages::AuthorSource.at_author_line
+        operator = PLAIN_RUBY_OPERATORS[verb]
+        instead = new_number_advice(verb, name, rest)
+        return DSL::ChangingWord.refusal(written: "#{verb}#{said}", bang: "#{verb}!#{said}", instead: instead, at: at) unless operator
+
+        fix = [name, operator, rest.first || 1].map { |part| DSL::ChangingWord.as_source_text(part) || "1" }.join(" ")
+        DSL::ChangingWord.plain_ruby_refusal(written: "#{verb}#{said}", fix: fix, instead: instead, at: at)
+      end
+
+      # The words a game used to change a variable with, kept private so that the sentence
+      # reaches a line in a game block, where they need no receiver.
+      %i[set! add! add_var! sub! sub_var! copy!].each do |word|
+        class_eval <<~REFUSAL, __FILE__, __LINE__ + 1
+          def #{word}(*)
+            raise DSL::PlainRuby::Refused, DSL::ChangingWord.old_verb_refusal(:#{word}, at: Messages::AuthorSource.at_author_line)
+          end
+          private :#{word}
+        REFUSAL
       end
 
       def new_number_advice(verb, name, rest)

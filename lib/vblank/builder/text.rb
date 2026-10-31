@@ -345,20 +345,20 @@ module VBlank
       # glyph-by-index draw op would collapse each column to a single blit.
       def draw_live_number(value, x, y, color, digits, font)
         source = next_number_var
-        set!(source, value)
+        store!(source, value)
         digit = next_number_var
         started = next_number_var
-        set!(started, 0)
+        store!(started, 0)
 
         cell = IR::FontTable.of(@program).get(font).cell_w
         digits.times do |i|
           place = 10**(digits - 1 - i)
-          set!(digit, digit_at(source, place))
+          store!(digit, digit_at(source, place))
           col_x = x + i * cell
           if i == digits - 1
             draw_glyph(digit, col_x, y, color, font) # the ones column always shows
           else
-            if_ne(digit, 0) { set!(started, 1) }
+            if_ne(digit, 0) { store!(started, 1) }
             if_eq(started, 1) { draw_glyph(digit, col_x, y, color, font) }
           end
         end

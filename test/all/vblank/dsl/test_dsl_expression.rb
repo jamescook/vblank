@@ -5,7 +5,7 @@ require "differential"
 
 # The expression DSL: `var` hands back a Value handle you compare with ordinary
 # Ruby operators to get a Condition, branch on with .then / .else, compose with
-# & / |, and change a variable with .set! / .add! / .sub! / .clamp! / .abs! / ....
+# & / |, and change a variable with .store! / .increase! / .decrease! / .clamp! / .abs! / ....
 #
 # These tests assert BEHAVIOR, not tree shape: a tiny program is built through
 # the DSL, run on the reference backend's fake screen, and checked by the pixels
@@ -115,10 +115,10 @@ class TestDSLExpression < Minitest::Test
       v = 5
       v += 3
       v -= 1
-      copy! :w, :v
-      add! :w, 10
-      sub! :w, 2
-      set! :z, 1
+      copy_variable! :w, :v
+      increase! :w, 10
+      decrease! :w, 2
+      store! :z, 1
       draw_rect_at :v, 20, 2, 2, :green # 7
       draw_rect_at :w, 30, 2, 2, :white # 15
       draw_rect_at :z, 40, 2, 2, :blue  # 1
@@ -139,7 +139,7 @@ class TestDSLExpression < Minitest::Test
         err = assert_raises(ArgumentError) { tree { var(:v, 0).public_send(:#{word}, #{amount}) } }
 
         assert_match(/`v\\.#{word}` does not change a variable/, err.message)
-        assert_match(/write `v\\.#{word}!`/, err.message)
+        assert_match(/write `v [-+]?= #{amount}`/, err.message)
       end
     TEST
   end
@@ -148,7 +148,7 @@ class TestDSLExpression < Minitest::Test
     err = assert_raises(ArgumentError) { tree { copy :w, :v } }
 
     assert_match(/`copy :w, :v` does not change a variable/, err.message)
-    assert_match(/write `copy! :w, :v`/, err.message)
+    assert_match(/write `w = v`/, err.message)
   end
 
   # `add` and `sub` have a Ruby operator that makes a new number, so the message offers it.
@@ -178,8 +178,8 @@ class TestDSLExpression < Minitest::Test
     worked_out = assert_raises(ArgumentError) { tree { v = var(:v, 0); v.add(v + 1) } }
     nothing = assert_raises(ArgumentError) { tree { add :v } }
 
-    assert_match(/write `v\.add!`\.\z/, worked_out.message.sub(/ \(at .*\)\z/, ""))
-    assert_match(/write `add! :v`\.\z/, nothing.message.sub(/ \(at .*\)\z/, ""))
+    assert_match(/write `v \+= 1`\.\z/, worked_out.message.sub(/ \(at .*\)\z/, ""))
+    assert_match(/write `v \+= 1`\.\z/, nothing.message.sub(/ \(at .*\)\z/, ""))
   end
 
   # A flat verb handed a number worked out on the spot has no name to write that number by,
@@ -189,7 +189,7 @@ class TestDSLExpression < Minitest::Test
       err = assert_raises(ArgumentError) { tree { v = var(:v, 0); public_send(verb, :w, v + 1) } }
 
       assert_match(/`#{verb} :w, \.\.\.` does not change a variable/, err.message)
-      assert_match(/write `#{verb}! :w, \.\.\.`/, err.message)
+      assert_match(/write `w [-+]?= 1`/, err.message)
       refute_match(/#</, err.message)
       assert_operator err.message.length, :<, 300
     end
@@ -221,7 +221,7 @@ class TestDSLExpression < Minitest::Test
     end
 
     assert_match(/`x\.add` does not change a variable/, err.message)
-    assert_match(/write `x\.add!`/, err.message)
+    assert_match(/write `x \+= 1`/, err.message)
     assert_match(/`x \+ 1`/, err.message)
   end
 
@@ -520,7 +520,7 @@ class TestDSLExpression < Minitest::Test
     err = assert_raises(ArgumentError) do
       tree do
         x = var :x, 0
-        (x + 1).add! 2 # (x + 1) is an expression, not a variable — can't mutate it
+        (x + 1).increase! 2 # (x + 1) is an expression, not a variable — can't mutate it
       end
     end
     assert_match(/variable/, err.message)

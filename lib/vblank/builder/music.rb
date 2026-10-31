@@ -109,9 +109,9 @@ module VBlank
           # screen's interrupt, which can land between any two statements, and a level stored
           # before it was held in range would sound for a frame at whatever came out.
           wanted = value_handle_for(:__music_level_wanted)
-          wanted.set! amount * full / 100
+          wanted.store! amount * full / 100
           wanted.clamp! 0, full
-          @music_level.set! wanted # one variable taking the other's number, where `=` would move the name
+          @music_level.store! wanted # one variable taking the other's number, where `=` would move the name
         end
         nil
       end

@@ -35,7 +35,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
   def test_a_comparison_used_with_then_is_not_orphaned
     orphans = orphans_for do
       x = var :x, 5
-      set! :y, 1 if x > 3
+      store! :y, 1 if x > 3
     end
 
     assert_empty orphans
@@ -45,9 +45,9 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     orphans = orphans_for do
       x = var :x, 5
       if x > 3
-        set! :y, 1
+        store! :y, 1
       else
-        set! :y, 0
+        store! :y, 0
       end
     end
 
@@ -58,7 +58,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     orphans = orphans_for do
       x = var :x, 5
       y = var :y, 2
-      set! :z, 1 if x > 3 && y < 10
+      store! :z, 1 if x > 3 && y < 10
     end
 
     assert_empty orphans, "both operands are folded in by `&`, and the result is `.then`-ed"
@@ -145,7 +145,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
     VBlank.build("GUARD", console: :gba, code: "BGRD", maker: "01", out: StringIO.new, err: err) do
       screen :bitmap
       x = var :x, 5
-      set! :y, 1 if x > 3
+      store! :y, 1 if x > 3
       halt
     end
 

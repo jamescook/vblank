@@ -54,7 +54,9 @@ module DslVerbs
   # keep_walls_changeable, kept_walls_of, every_kept_walls, record_wall_change and
   # record_walls_brought_up are the hooks behind `set_tile` changing a cell's wall, which a
   # Background asks of the build; the reference documents `set_tile` and `solid:` on `tiles`.
+  # store!, increase!, decrease! and copy_variable! are what a variable's own handle calls.
   SKIP = %i[variables debug_halted? make_object_rotatable make_object_scalable
+            store! increase! decrease! copy_variable!
             keep_walls_changeable kept_walls_of every_kept_walls record_wall_change record_walls_brought_up
             remember_sprite_recolors remember_background_draws_with
             remember_boolean_variable boolean_variable?

@@ -232,7 +232,7 @@ class TestSceneHandoverScenarios < Minitest::Test
     def two_scene_loop(tick, first, second)
       instance_eval do
         game_loop do
-          tick.add! 1
+          tick.increase! 1
           case_var(:state) do
             when_val 0, first
             when_val 1, second
@@ -368,7 +368,7 @@ class TestSceneHandoverScenarios < Minitest::Test
       scene(:walk) { nil }
       across_a_bitmap_screen(tiled: -> { background :field, tiles: :set, map: Array.new(20) { "#" * 30 } },
                              third: :walk) do |tick, state|
-        state.set! 2 if tick == LEAVE_AFTER_BITMAP
+        state.store! 2 if tick == LEAVE_AFTER_BITMAP
       end
     end
   end

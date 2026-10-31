@@ -26,9 +26,6 @@ module VBlank
         # ...and what gets round the checks whatever it is called on.
         INDIRECT_CALLS = %i[__send__ class_eval const_get instance_eval public_send send].freeze
 
-        # What a variable used to be changed with, which plain Ruby says better.
-        OLD_CHANGING_VERBS = %i[set! add! sub! add_var! sub_var! copy! when_true].freeze
-
         # What only game code calls, so a file holding one is game code. These need a block, since
         # `scene` or `func` alone could be a method of the file's own. `var` needs a name instead.
         GAME_BLOCK_VERBS = %i[game_loop scene func each_pass once_a_frame on_tick].freeze
@@ -163,10 +160,6 @@ module VBlank
         end
 
         def refuse_outside_call!(node)
-          if OLD_CHANGING_VERBS.include?(node.name)
-            refuse!("A game does not need `#{node.name}`. To fix this, change the variable with " \
-                    "plain Ruby: `hp = 5`, `hp += 1`, `hp -= 1`.", node)
-          end
           return unless INDIRECT_CALLS.include?(node.name) || (node.receiver.nil? && OUTSIDE_CALLS.include?(node.name))
 
           refuse!("`#{node.name}` reaches outside the game, so this block cannot use it. If you need " \

@@ -56,7 +56,7 @@ class TestFractionType < Minitest::Test
     b = VBlank::Builder.new
     b.instance_eval { var :speed, 1.5 }
 
-    assert_predicate b.instance_eval { set! :speed, 2.0 }, :fraction?
+    assert_predicate b.instance_eval { store! :speed, 2.0 }, :fraction?
   end
 
   # --- arithmetic that carries the fraction ---

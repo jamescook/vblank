@@ -63,7 +63,7 @@ class TestSpotlightShape < Minitest::Test
     error = assert_raises(ArgumentError) do
       lit_room do |light|
         kept = var :kept, 0
-        light.shape { |_row| copy! :kept, :__spotlight_x; 20 }
+        light.shape { |_row| copy_variable! :kept, :__spotlight_x; 20 }
       end
     end
 

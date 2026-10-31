@@ -78,8 +78,8 @@ Integer is a literal, a `Value` (from `var`) is an expression. Handles (`Value`,
 
 - `hp = 10` — a game variable, if game code changes it. `var :name, init` → `Value`; `var :mode, :title` holds a name, and `call mode` runs it.
 - `save_var :name, default`; `save_data :file do keep … end` → save records; `saves_keep_everything except:`.
-- `x = 5`, `x += 1`, `x -= 1`, `flags |= 4` — change a variable (the verbs behind them: `set!`, `add!`/`add_var!`, `sub!`/`sub_var!`).
-- `copy!`, `negate!`/`flip!`, `abs!`, `negate_abs!`, `clamp!`, `approach!` — words of their own that change a variable.
+- `x = 5`, `x += 1`, `x -= 1`, `flags |= 4`, `x = y` — change a variable.
+- `negate!`/`flip!`, `abs!`, `negate_abs!`, `clamp!`, `approach!` — words of their own that change a variable.
 - Without `!` nothing changes: on a Value (`abs`, `clamp`, `approach`, `flip`, `negate_abs`) a new number; flat (`set`, `add`, `sub`, `add_var`, `sub_var`, `copy`, `negate`) a friendly error.
 - On a Value: `+ - * / %`, comparisons → `Condition`, `&&`/`||`, `if`/`else`, bits; a Float makes a fraction. `estimate:` only warns.
 

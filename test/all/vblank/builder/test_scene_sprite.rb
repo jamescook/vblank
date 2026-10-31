@@ -131,7 +131,7 @@ class TestSceneSprite < Minitest::Test
     prog = scenes_program do |state, step|
       scene(:play) do
         sprite(:block, at: START).move :right, by: 4
-        state.set! REST if step == 3
+        state.store! REST if step == 3
       end
       scene(:rest) {}
     end
@@ -145,7 +145,7 @@ class TestSceneSprite < Minitest::Test
   # The state changed at the top of the pass, after the sprite was drawn for that frame and
   # before the next scene's first pass.
   def test_it_comes_off_when_the_state_changes_before_the_scene_is_picked
-    leave = proc { |state, step| state.set! REST if step == 3 }
+    leave = proc { |state, step| state.store! REST if step == 3 }
     prog = scenes_program(first: leave) do |_state, _step|
       scene(:play) { sprite(:block, at: START).move :right, by: 4 }
       scene(:rest) {}
@@ -161,9 +161,9 @@ class TestSceneSprite < Minitest::Test
     prog = scenes_program do |state, step|
       scene(:play) do
         sprite(:block, at: START).move :right, by: 4
-        state.set! REST if step == 3
+        state.store! REST if step == 3
       end
-      scene(:rest) { state.set! PLAY if step == 6 }
+      scene(:rest) { state.store! PLAY if step == 6 }
     end
 
     seen = colors_after(prog, 12)
@@ -178,11 +178,11 @@ class TestSceneSprite < Minitest::Test
     prog = scenes_program do |state, step|
       scene(:play) do
         sprite :block, at: START
-        state.set! REST if step == 3
+        state.store! REST if step == 3
       end
       scene(:rest) do
         sprite(:other, at: START).move :down, by: 2
-        state.set! PLAY if step == 7
+        state.store! PLAY if step == 7
       end
     end
 
@@ -268,7 +268,7 @@ class TestSceneSprite < Minitest::Test
   # picture before that, or it remembers the last scene's field and puts a square of it back.
   def test_a_scene_paints_its_field_before_its_sprite_is_drawn
     prog = scenes_program do |state, step|
-      scene(:play) { state.set! REST if step == 3 }
+      scene(:play) { state.store! REST if step == 3 }
       scene(:rest) do
         clear_screen :green if step == 4
         sprite(:block, at: START).move :right, by: 4
@@ -285,7 +285,7 @@ class TestSceneSprite < Minitest::Test
   # The same hand-over the other way round: the state changes at the top of the pass, so the
   # leaving scene's sprite was drawn for that frame, and the new scene paints over it.
   def test_a_scene_paints_its_field_over_the_last_scenes_sprite
-    leave = proc { |state, step| state.set! REST if step == 3 }
+    leave = proc { |state, step| state.store! REST if step == 3 }
     prog = scenes_program(first: leave) do |_state, step|
       scene(:play) { sprite :block, at: START }
       scene(:rest) { clear_screen :green if step == 3 }

@@ -794,7 +794,7 @@ module VBlank
     # The Value / Condition / Branch / List classes call these back into the
     # builder to record their statements at the current build point.
 
-    # The hook behind Condition#when_true: record an `if`
+    # The hook behind Condition#record_branch: record an `if`
     # node from an already-built condition node and gather the block's statements
     # into it, returning the node so an `else` can attach to it. A {Condition}
     # calls this; a game writes `if`, not this.
@@ -883,7 +883,7 @@ module VBlank
     end
 
     # The hook behind Branch#else: gather the else block's statements
-    # into an `else` node and attach it to the if node Condition#when_true produced.
+    # into an `else` node and attach it to the if node Condition#record_branch produced.
     def record_else(if_node, &block)
       else_node = Build.else_
       @container_stack.push(else_node)

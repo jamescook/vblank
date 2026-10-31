@@ -20,6 +20,17 @@ module VBlank
           "To change it, write `#{bang}`.#{instead}#{at}"
       end
 
+      # The same slip for a word plain Ruby has an operator for: +fix+ is that line, `hp += 1`.
+      def plain_ruby_refusal(written:, fix:, instead: "", at: "")
+        "`#{written}` does not change a variable. To change it, write `#{fix}`.#{instead}#{at}"
+      end
+
+      # A word the library keeps for itself. A game says these in plain Ruby.
+      def old_verb_refusal(word, at: "")
+        "A game does not need `#{word}`. To fix this, change the variable with plain Ruby: " \
+          "`hp = 5`, `hp += 1`, `hp -= 1`.#{at}"
+      end
+
       # ...and that advice, for a word whose new-number form is an operator: `hp + 1`. The two
       # sides are named the way the author would write them, and a side with no name to give — an
       # expression worked out on the spot — leaves the advice out rather than describing itself.

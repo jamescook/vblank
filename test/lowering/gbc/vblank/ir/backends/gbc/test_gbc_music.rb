@@ -52,7 +52,7 @@ class TestGBCMusic < Minitest::Test
     program = long_songs do |tick|
       play_song :tune1
       game_loop do
-        tick.add! 1
+        tick.increase! 1
         play_song :tune2 if tick == 20
       end
     end
@@ -72,7 +72,7 @@ class TestGBCMusic < Minitest::Test
         voice(:lead) { |v| PITCHES.first(4).each { |pitch| v.note pitch, :sixteenth } }
       end
       play_song :short
-      game_loop { tick.add! 1 }
+      game_loop { tick.increase! 1 }
     end
 
     assert_operator voice_entries(program, 40), :>=, 9
@@ -83,7 +83,7 @@ class TestGBCMusic < Minitest::Test
   def test_a_song_kept_in_a_bank_starts_on_the_frame_it_is_named
     program = long_songs do |tick|
       game_loop do
-        tick.add! 1
+        tick.increase! 1
         play_song :tune1, this_frame: true if tick == 5
       end
     end
@@ -100,7 +100,7 @@ class TestGBCMusic < Minitest::Test
       sfx = sound_effects :sfx, { zap: zap }
       play_song :tune0
       game_loop do
-        tick.add! 1
+        tick.increase! 1
         sfx.play :zap if tick == 10
       end
     end

@@ -125,7 +125,7 @@ module VBlank
       # given turns out to be something made while building, no number is kept and it goes.
       def start_truth_as_nil!
         keep_truth!
-        @truth.set!(NIL_HELD)
+        @truth.store!(NIL_HELD)
         @truth_start = @builder.last_statement_place
       end
 
@@ -140,8 +140,8 @@ module VBlank
       def hidden_copy_with_truth
         kept = @builder.hidden_variable(:copy)
         kept.keep_truth!
-        kept.set!(self)
-        kept.truth.set!(truth)
+        kept.store!(self)
+        kept.truth.store!(truth)
         kept
       end
 
@@ -170,7 +170,7 @@ module VBlank
         return hidden_copy_with_truth if truth
 
         kept = @builder.hidden_variable(why, like: self)
-        kept.set!(self)
+        kept.store!(self)
         kept.mark_boolean! if boolean?
         kept
       end
@@ -452,18 +452,18 @@ module VBlank
 
       # Assign a new value: a number, another variable, or an expression Value. A variable
       # that holds a fraction takes one, and a number written here is converted to match.
-      def set!(value)
-        mutate { @builder.set!(@name, align!(value, "assign")) }
+      def store!(value)
+        mutate { @builder.store!(@name, align!(value, "assign")) }
       end
 
       # Add to the variable (a number or another Value).
-      def add!(amount)
-        mutate { @builder.add!(@name, align!(amount, "add")) }
+      def increase!(amount)
+        mutate { @builder.increase!(@name, align!(amount, "add")) }
       end
 
       # Subtract from the variable (a number or another Value).
-      def sub!(amount)
-        mutate { @builder.sub!(@name, align!(amount, "subtract")) }
+      def decrease!(amount)
+        mutate { @builder.decrease!(@name, align!(amount, "subtract")) }
       end
 
       # THE SAME THREE WITHOUT THE `!`. These three have no new-number meaning of their own —
@@ -471,15 +471,26 @@ module VBlank
       # so each says which word to write instead (see {ChangingWord}).
       # Written out as source rather than made from a block, so another Ractor can call them —
       # see {IR::Node.operands} for why a block-backed method cannot be.
-      { set: nil, add: :+, sub: :- }.each do |word, operator|
+      { set: [nil, "="], add: [:+, "+="], sub: [:-, "-="] }.each do |word, (operator, written)|
         class_eval <<~REFUSAL, __FILE__, __LINE__ + 1
           def #{word}(amount = nil)
             raise ArgumentError, NOT_A_VARIABLE + at_dsl_line unless handle?
 
+            fix = "\#{name_as_written} #{written} \#{ChangingWord.as_source_text(amount) || '1'}"
             raise ArgumentError,
-                  ChangingWord.refusal(written: "\#{name_as_written}.#{word}", bang: "\#{name_as_written}.#{word}!",
-                                       instead: ChangingWord.operator_advice(name_as_written, #{operator.inspect}, amount),
-                                       at: at_dsl_line)
+                  ChangingWord.plain_ruby_refusal(written: "\#{name_as_written}.#{word}", fix: fix,
+                                                  instead: ChangingWord.operator_advice(name_as_written, #{operator.inspect}, amount),
+                                                  at: at_dsl_line)
+          end
+        REFUSAL
+      end
+
+      # The words a game used to change a variable with, which plain Ruby says better. The library
+      # has #store!, #increase! and #decrease!.
+      %i[set! add! sub!].each do |word|
+        class_eval <<~REFUSAL, __FILE__, __LINE__ + 1
+          def #{word}(*)
+            raise PlainRuby::Refused, ChangingWord.old_verb_refusal(:#{word}, at: Messages::AuthorSource.at_author_line)
           end
         REFUSAL
       end

@@ -1736,7 +1736,7 @@ class TestPlainRuby < Minitest::Test
   end
 
   def test_a_block_a_test_hands_to_instance_exec_is_read_as_normal_ruby
-    extra = proc { |hp| hp.add! 1 if hp == 0 }
+    extra = proc { |hp| hp.increase! 1 if hp == 0 }
     builder = Builder.new
     builder.instance_eval do
       hp = var :hp, 0
@@ -1750,7 +1750,7 @@ class TestPlainRuby < Minitest::Test
   end
 
   def test_a_lambda_a_test_hands_to_instance_exec_is_read_as_normal_ruby
-    extra = ->(hp) { hp.add! 1 if hp == 0 }
+    extra = ->(hp) { hp.increase! 1 if hp == 0 }
     builder = Builder.new
     builder.instance_eval do
       hp = var :hp, 0

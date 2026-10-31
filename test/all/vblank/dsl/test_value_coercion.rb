@@ -89,13 +89,13 @@ class TestValueCoercion < Minitest::Test
       var :x, 10
       var :y, 20
       var :d, 2
-      set! :x, :d           # value operand: a symbol
-      add! :x, :d
-      sub! :y, 3
+      store! :x, :d           # value operand: a symbol
+      increase! :x, :d
+      decrease! :y, 3
       draw_rect_at :x, :y, 4, 4, :white
       blit :ball, :x, :y
       if_gt :x, :y do
-        set! :y, 0
+        store! :y, 0
       end
       halt
     end
@@ -120,7 +120,7 @@ class TestValueCoercion < Minitest::Test
 
   def test_passing_an_unrepresentable_value_to_a_verb_errors_at_the_boundary
     b = Builder.new
-    err = assert_raises(ArgumentError) { b.set!(:x, "half") }
+    err = assert_raises(ArgumentError) { b.store!(:x, "half") }
     assert_match(/value/i, err.message)
   end
 
@@ -128,7 +128,7 @@ class TestValueCoercion < Minitest::Test
   # fraction. It is stored multiplied up, and the handle remembers by how much.
   def test_a_float_declares_a_variable_that_holds_a_fraction
     b = Builder.new
-    handle = b.set!(:x, 1.5)
+    handle = b.store!(:x, 1.5)
 
     assert_predicate handle, :fraction?
     assert_equal 16, handle.fraction_bits

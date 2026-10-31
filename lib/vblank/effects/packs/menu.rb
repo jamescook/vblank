@@ -303,21 +303,21 @@ module VBlank
         # neither button is down, so the next tap moves at once however long you held
         # the last one.
         def menu_move(items, pick, wait, moved, repeat_every)
-          moved.set! 0
+          moved.store! 0
           if held(:up) || held(:down)
             if wait == 0
-              wait.set! repeat_every
-              moved.set! 1
+              wait.store! repeat_every
+              moved.store! 1
               if held(:down)
                 menu_step(items, pick, 1)
               else
                 menu_step(items, pick, -1)
               end
             else
-              wait.sub! 1
+              wait.decrease! 1
             end
           else
-            wait.set! 0
+            wait.store! 0
           end
         end
 
@@ -346,7 +346,7 @@ module VBlank
           items.each_index do |i|
             next if items[i].enabled
 
-            pick.set! menu_next_pickable(items, i, direction) if pick == i
+            pick.store! menu_next_pickable(items, i, direction) if pick == i
           end
         end
 
@@ -354,11 +354,11 @@ module VBlank
         def menu_wrap(items, pick, direction)
           last = items.length - 1
           if direction.positive?
-            pick.add! 1
-            pick.set! 0 if pick > last
+            pick.increase! 1
+            pick.store! 0 if pick > last
           else
-            pick.sub! 1
-            pick.set! last if pick < 0
+            pick.decrease! 1
+            pick.store! last if pick < 0
           end
         end
 

@@ -103,7 +103,7 @@ class TestVariables < Minitest::Test
 
   def test_set_auto_declares_variable
     builder = build_with_builder do
-      set! :counter, 42
+      store! :counter, 42
     end
 
     assert_equal [:counter], builder.variables
@@ -111,8 +111,8 @@ class TestVariables < Minitest::Test
 
   def test_set_then_set_is_one_variable
     builder = build_with_builder do
-      set! :x, 10
-      set! :x, 20
+      store! :x, 10
+      store! :x, 20
     end
 
     assert_equal [:x], builder.variables
@@ -124,7 +124,7 @@ class TestVariables < Minitest::Test
 
   def test_add_var_auto_declares
     builder = build_with_builder do
-      add_var! :nope, 1
+      increase! :nope, 1
     end
 
     assert_includes builder.variables, :nope
@@ -132,7 +132,7 @@ class TestVariables < Minitest::Test
 
   def test_sub_var_auto_declares
     builder = build_with_builder do
-      sub_var! :nope, 1
+      decrease! :nope, 1
     end
 
     assert_includes builder.variables, :nope
@@ -142,7 +142,7 @@ class TestVariables < Minitest::Test
   # even if it was first mentioned here.
   def test_add_var_declares_a_variable_operand
     builder = build_with_builder do
-      add_var! :counter, :step
+      increase! :counter, :step
     end
 
     assert_includes builder.variables, :counter

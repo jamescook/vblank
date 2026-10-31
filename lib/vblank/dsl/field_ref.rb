@@ -72,15 +72,15 @@ module VBlank
       # --- mutation: write back into this instance's slot ---
 
       # Each value on its way into the slot is checked against what the field holds.
-      def set!(value)
+      def store!(value)
         write(node_matching(value, "hold"))
       end
 
-      def add!(amount)
+      def increase!(amount)
         write(Build.binop(:+, read, node_matching(amount, "add")))
       end
 
-      def sub!(amount)
+      def decrease!(amount)
         write(Build.binop(:-, read, node_matching(amount, "subtract")))
       end
 

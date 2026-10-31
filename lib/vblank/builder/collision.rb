@@ -92,8 +92,8 @@ module VBlank
       def record_wall_change(kept, col, row, wall:)
         cells = kept.cells
         [WALL_COL, WALL_ROW].each { |var| ensure_var(var) }
-        set!(WALL_COL, DSL::Value.node_for(col))
-        set!(WALL_ROW, DSL::Value.node_for(row))
+        store!(WALL_COL, DSL::Value.node_for(col))
+        store!(WALL_ROW, DSL::Value.node_for(row))
         record_walls_brought_up(kept)
         at = ->(var) { DSL::Value.new(self, Build.var_ref(var), name: var) }
         inside = at.call(WALL_COL) >= 0 && at.call(WALL_COL) < cells.cols &&
@@ -107,7 +107,7 @@ module VBlank
         if fresh == 0
           base = map_base_for(kept.cells)
           kept.list.copy_from(kept.cells.table, at: base.nil? ? 0 : base, count: kept.cells.cells_per_map)
-          fresh.set! 1
+          fresh.store! 1
         end
       end
 
@@ -149,7 +149,7 @@ module VBlank
           # to that map's grid is the same for all nine. That is what keeps a background
           # with two hundred rooms the same nine reads as a background with one.
           base = kept ? nil : map_base_for(cells)
-          clear.set! 1
+          clear.store! 1
           down.each do |dy|
             py = top + dy
             across.each do |dx|
@@ -161,7 +161,7 @@ module VBlank
               inside = px >= 0 && px < width && py >= 0 && py < height
               cell = ((py / cells.tile_h) * cells.cols) + (px / cells.tile_w)
               solid = kept ? kept.list[cell] : cells.table[base.nil? ? cell : base + cell]
-              clear.set! 0 if inside && solid == 1
+              clear.store! 0 if inside && solid == 1
             end
           end
         end

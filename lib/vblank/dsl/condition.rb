@@ -47,6 +47,10 @@ module VBlank
         compose(:!=, other)
       end
 
+      def when_true(*)
+        raise PlainRuby::Refused, ChangingWord.old_verb_refusal(:when_true, at: Messages::AuthorSource.at_author_line)
+      end
+
       # Every Ruby object has `then`, which would run the block while the game is built and
       # record its body with no test around it. A test is branched on with `if`.
       def then(*)
@@ -56,7 +60,7 @@ module VBlank
 
       # The library's own branch on a test, for code recording statements by hand. Records an
       # `if` node carrying the block and returns a {Branch} for the other side.
-      def when_true(&block)
+      def record_branch(&block)
         @builder.consume_condition(self)
         Branch.new(@builder, @builder.record_conditional(@node, &block))
       end

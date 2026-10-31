@@ -25,7 +25,7 @@ class TestNativeLogic < Minitest::Test
       x = 4
       game_loop do
         x += 3
-        copy! :x, :x
+        copy_variable! :x, :x
         x = x
       end
     end

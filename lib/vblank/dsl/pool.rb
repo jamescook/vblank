@@ -929,11 +929,11 @@ module VBlank
           var = field(axis)
           cells = @pool.solid_cells
           if cells.nil?
-            var.add! delta
+            var.increase! delta
           else
             target_x = axis == :x ? field(:x) + delta : field(:x)
             target_y = axis == :y ? field(:y) + delta : field(:y)
-            var.add! delta if emit_tile_check(cells, target_x, target_y)
+            var.increase! delta if emit_tile_check(cells, target_x, target_y)
           end
         end
 
@@ -944,8 +944,8 @@ module VBlank
           hit_x, hit_y, hit_w, hit_h = require_box!
           builder = @pool.builder
           routine = builder.tile_collision_routine(cells, hit_x, hit_y, hit_w, hit_h)
-          builder.set!(routine[:x], Value.node_for(target_x))
-          builder.set!(routine[:y], Value.node_for(target_y))
+          builder.store!(routine[:x], Value.node_for(target_x))
+          builder.store!(routine[:y], Value.node_for(target_y))
           builder.call(routine[:name])
           Value.new(builder, IR::Build.var_ref(routine[:clear]), name: routine[:clear]) == 1
         end

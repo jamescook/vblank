@@ -64,11 +64,11 @@ module VBlank
       # +choice+ is the game's own variable.
       def write_choice(choice, names, showing)
         if names.nil?
-          choice.set! IR::Build::NO_RECOLOR
+          choice.store! IR::Build::NO_RECOLOR
         else
           start = list_offset_for(names)
           if showing.nil?
-            choice.set! start
+            choice.store! start
           else
             write_picked_list(choice, count: names.length, start: start, showing: showing)
           end

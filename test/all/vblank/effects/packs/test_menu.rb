@@ -191,7 +191,7 @@ class TestMenu < Minitest::Test
   # raced down the list one row a frame can land on the right row by coincidence, and
   # in a three-row walk it often does.
   private def counting_moves(repeat_every:)
-    menu_program(repeat_every: repeat_every) { |m, chose| chose.add! 1 if m.moved }
+    menu_program(repeat_every: repeat_every) { |m, chose| chose.increase! 1 if m.moved }
   end
 
   def test_holding_a_button_walks_the_list_instead_of_racing_down_it
@@ -246,14 +246,14 @@ class TestMenu < Minitest::Test
   end
 
   def test_a_menu_can_be_read_and_moved_by_the_game
-    program = menu_program { |m, chose| chose.set! 99 if m.picked == 2 }
+    program = menu_program { |m, chose| chose.store! 99 if m.picked == 2 }
     i = walk(program, frames: 3) { |f| f == 1 ? [:down] : [] }
 
     assert_equal 99, i[:chose], "the game read which row the cursor is on"
   end
 
   def test_moved_is_true_only_on_the_frame_the_cursor_changed_rows
-    program = menu_program { |m, chose| chose.add! 1 if m.moved }
+    program = menu_program { |m, chose| chose.increase! 1 if m.moved }
     i = walk(program, frames: 10) { |f| f == 1 ? [:down] : [] }
 
     assert_equal 1, i[:chose], "one move in ten frames is one `moved`"
@@ -605,7 +605,7 @@ class TestMenu < Minitest::Test
   end
 
   def test_a_tiled_menu_holds_its_repeat_the_same_way
-    program = tiled_menu(repeat_every: 60) { |m, chose| chose.add! 1 if m.moved }
+    program = tiled_menu(repeat_every: 60) { |m, chose| chose.increase! 1 if m.moved }
     i = walk(program, frames: 30) { |_f| [:down] }
 
     assert_equal 1, i[:chose], "one move, and the wait swallows the other 29 frames"

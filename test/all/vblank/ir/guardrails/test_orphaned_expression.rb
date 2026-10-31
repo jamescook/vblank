@@ -240,7 +240,7 @@ class TestOrphanedExpression < Minitest::Test
       findings_for do
         screen :bitmap
         things = pool :things, x: 0, y: 0, capacity: 2
-        things.func(:thing_jumps) { |thing| thing.index.set! 1 }
+        things.func(:thing_jumps) { |thing| thing.index.store! 1 }
         game_loop { things.each { call :thing_jumps } }
       end
     end

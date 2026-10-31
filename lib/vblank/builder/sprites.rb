@@ -267,7 +267,7 @@ module VBlank
         start = layer_choice_offset(nodes, names)
         choice = DSL::Value.new(self, Build.var_ref(layer_var), name: layer_var)
         if showing.nil?
-          choice.set! start
+          choice.store! start
         else
           write_picked_choice(choice, count: names.length, start: start, showing: showing,
                                       outside: Build::DECLARED_LAYER, subject: subject, verb: "put_in_layer a layer")
@@ -331,17 +331,17 @@ module VBlank
       def write_picked_choice(choice, count:, start:, showing:, outside:, subject:, verb:)
         fixed = DSL::Value.fixed_number(showing)
         if fixed
-          choice.set!(fixed.between?(0, count - 1) ? start + fixed : outside)
+          choice.store!(fixed.between?(0, count - 1) ? start + fixed : outside)
         else
           step = picked_step!(showing, subject, verb)
           if always_within?(step, count)
-            choice.set! step + start
+            choice.store! step + start
           else
             step = kept_step(step)
             if step >= 0 && step < count
-              choice.set! step + start
+              choice.store! step + start
             else
-              choice.set! outside
+              choice.store! outside
             end
           end
         end

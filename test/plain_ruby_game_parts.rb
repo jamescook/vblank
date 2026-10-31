@@ -47,7 +47,7 @@ class TallyPart
     builder = @builder
     tally = 3
     builder.func(:tally_tick) { tally += 1 }
-    builder.func(:tally_show) { builder.var(:tally_seen, 0).set!(tally) }
+    builder.func(:tally_show) { builder.var(:tally_seen, 0).store!(tally) }
   end
 end
 

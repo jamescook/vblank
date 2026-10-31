@@ -11,7 +11,7 @@ module VBlank
 
         # What `+=` and its relatives are on a game variable, where one exists. Any other
         # operator is the variable set to the sum.
-        CHANGING_VERBS = { :+ => :add!, :- => :sub! }.freeze
+        CHANGING_VERBS = { :+ => :increase!, :- => :decrease! }.freeze
 
         # Bits on numbers, and on tests a join with both sides worked out.
         BIT_JOINS = %i[& | ^].freeze
@@ -172,7 +172,7 @@ module VBlank
           store_truthiness(answer, right)
           condition.close_branch
           condition.open_other_branch(if_node)
-          answer.set!(otherwise)
+          answer.store!(otherwise)
           condition.close_branch
           answer
         end
@@ -182,7 +182,7 @@ module VBlank
           return store_in_variable(target, as_condition(value)) if game_test?(value)
 
           forget_value(value)
-          target.set!(value ? 1 : 0)
+          target.store!(value ? 1 : 0)
         end
 
         def forget_value(value)
@@ -219,20 +219,20 @@ module VBlank
           return store_with_truth(target, value) if target.truth
 
           case value
-          when true then target.set!(1)
-          when false, nil then target.set!(0)
+          when true then target.store!(1)
+          when false, nil then target.store!(0)
           when Condition then store_answer(target, value)
           else
             refuse_number_in_boolean!(target) if target.boolean? && value.is_a?(Value) && !value.boolean?
-            target.set!(value)
+            target.store!(value)
           end
         end
 
         # The same, on a name that keeps what it holds (see Value#truth).
         def store_with_truth(target, value)
           case value
-          when nil then target.truth.set!(Value::NIL_HELD)
-          when false then target.truth.set!(Value::FALSE_HELD)
+          when nil then target.truth.store!(Value::NIL_HELD)
+          when false then target.truth.store!(Value::FALSE_HELD)
           when true then store_truthy(target, 1)
           when Condition then store_truth_of_test(target, value)
           when Value then store_value_with_truth(target, value)
@@ -241,8 +241,8 @@ module VBlank
         end
 
         def store_truthy(target, number)
-          target.set!(number)
-          target.truth.set!(Value::TRUTHY_HELD)
+          target.store!(number)
+          target.truth.store!(Value::TRUTHY_HELD)
         end
 
         def store_truth_of_test(target, condition)
@@ -258,8 +258,8 @@ module VBlank
         def store_value_with_truth(target, value)
           return store_truthy(target, value) unless value.truth
 
-          target.set!(value)
-          target.truth.set!(value.truth)
+          target.store!(value)
+          target.truth.store!(value.truth)
         end
 
         # The first line of a name that can hold nil or false as well as a number.
@@ -275,10 +275,10 @@ module VBlank
         def store_answer(target, condition)
           answer = GameTest.new(condition)
           answer.open_yes_side
-          target.set!(1)
+          target.store!(1)
           answer.close_side(nil)
           answer.open_no_side
-          target.set!(0)
+          target.store!(0)
           answer.close_side(nil)
         end
 
@@ -439,7 +439,7 @@ module VBlank
           return assign(target, bits(target, operator, amount)) if game_test?(target) && BIT_JOINS.include?(operator)
 
           verb = CHANGING_VERBS[operator]
-          verb ? target.public_send(verb, amount) : target.set!(target.public_send(operator, amount))
+          verb ? target.public_send(verb, amount) : target.store!(target.public_send(operator, amount))
           target
         end
 

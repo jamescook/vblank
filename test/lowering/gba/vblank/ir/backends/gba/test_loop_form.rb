@@ -228,7 +228,7 @@ class TestLoopForm < Minitest::Test
         set: ->(_i) { n = 3 },
         add: ->(_i) { n += 1 },
         sub: ->(_i) { n -= 1 },
-        copy: ->(_i) { b.copy! :n, :other },
+        copy: ->(_i) { b.copy_variable! :n, :other },
         negate: ->(_i) { n.flip! },
         abs: ->(_i) { n.abs! },
         clamp: ->(_i) { n.clamp! 0, 9 },
@@ -253,12 +253,12 @@ class TestLoopForm < Minitest::Test
       game_loop do
         bodies.each do |kind, body|
           count = counts[kind]
-          count.set! 0
+          count.store! 0
           # The loop runs the statement and counts its own pass. A statement that landed on the
           # counter leaves this reading something other than SWEEP_PASSES.
           b.repeat(SWEEP_PASSES) do |i|
             body.call(i)
-            count.add! 1
+            count.increase! 1
           end
         end
       end
