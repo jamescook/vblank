@@ -191,6 +191,26 @@ class TestIRGuardrailIwramBudget < Minitest::Test
     assert_match(/fewer variables/, message)
   end
 
+  def test_running_out_of_memory_names_the_variables_with_no_var_line
+    err = StringIO.new
+    assert_raises(VBlank::ROMError) do
+      VBlank.build("FULL", console: :gbc, out: StringIO.new, err: err) do
+        lives = 3
+        a = 1
+        b = 2
+        2200.times { |i| var :"filler#{i}", 0 }
+        game_loop do
+          lives -= 1
+          a, b = b, a
+        end
+      end
+    end
+
+    assert_includes err.string, "`lives`"
+    assert_includes err.string, "1 hidden variable"
+    refute_includes err.string, "`filler0`"
+  end
+
   def test_a_color_program_within_the_colors_memory_is_not_flagged
     prog = program(
       screen(:tiled),

@@ -362,13 +362,13 @@ module VBlank
         def declaration(node)
           name = @names.variable_name_of(node)
           if @names.keeps_truth?(node)
-            return "#{STEPS}.start_with_truth(#{value_text(node.value)}) { |start| var(:#{name}, start) }"
+            return "#{STEPS}.start_with_truth(#{value_text(node.value)}) { |start| #{made_variable_text(name, 'start')} }"
           end
-          return "var(:#{name}, false)" if node.value.is_a?(Prism::NilNode)
-          return "var(:#{name}, #{rewritten_text(node.value)})" if LocalNames.number?(node)
+          return made_variable_text(name, "false") if node.value.is_a?(Prism::NilNode)
+          return made_variable_text(name, rewritten_text(node.value)) if LocalNames.number?(node)
 
           start = "__plain_ruby_#{@answers += 1}"
-          "(#{start} = #{value_text(node.value)}; #{STEPS}.start_name(#{start}) { |start| var(:#{name}, start) })"
+          "(#{start} = #{value_text(node.value)}; #{STEPS}.start_name(#{start}) { |start| #{made_variable_text(name, 'start')} })"
         end
 
         def kept_value_text(value, write = nil)
@@ -469,11 +469,13 @@ module VBlank
 
           case @names.action_for(target)
           when :declare, :start
-            "#{name} = #{STEPS}.start_name(#{value}) { |start| var(:#{@names.variable_name_of(target)}, start) }"
+            "#{name} = #{STEPS}.start_name(#{value}) { |start| #{made_variable_text(@names.variable_name_of(target), 'start')} }"
           when :assign then "#{name} = #{assign_text(name, value)}"
           else "#{name} = #{value}"
           end
         end
+
+        def made_variable_text(name, start) = "#{STEPS}.made_with_no_var_line(var(:#{name}, #{start}))"
 
         # A name that turns out to hold an object cannot follow a test the game makes, so under an
         # open test the step looks.

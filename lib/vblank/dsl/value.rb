@@ -105,6 +105,8 @@ module VBlank
       # A hidden variable for a name nothing had set yet (see PlainRubySteps.promote).
       attr_accessor :unwritten
 
+      def note_made_with_no_var_line = @builder.note_variable_with_no_var_line(@name)
+
       # Was this variable made for the instance variable holding it (see PlainRubySteps.reassign)?
       attr_accessor :own_to_its_name
 

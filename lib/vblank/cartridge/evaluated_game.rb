@@ -76,6 +76,8 @@ module VBlank
       # The variables normal Ruby needed that nobody declared (see Diagnostics::HiddenVariables).
       def hidden_variable_notes = @builder.hidden_variable_notes
 
+      def variables_with_no_var_line = @builder.variables_with_no_var_line
+
       # The software sprites, in the order they were declared — which on a bitmap screen is
       # the order they are painted in.
       def sprites = @builder.sprites

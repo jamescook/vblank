@@ -41,6 +41,17 @@ module VBlank
           # not so many the message becomes a memory dump.
           TOP_USERS = 3
 
+          # How many names of variables made with no `var` line to give.
+          NAMES_SHOWN = 6
+
+          # The same check, knowing which variables came from no line of the author's: names
+          # normal Ruby made variables of, and how many hidden ones. A game can fill the memory
+          # with variables it never declared, and "2205 variables" would not help it look.
+          def told_of(names, hidden)
+            dup.tap { |check| check.instance_variable_set(:@made_names, names) }
+               .tap { |check| check.instance_variable_set(:@hidden_count, hidden) }
+          end
+
           def detect(program)
             console = program.described_console
             users = contributors(program)
@@ -161,7 +172,21 @@ module VBlank
             "This program reserves about #{human_size(total)} of memory for its data. But " \
               "#{memory_message(console)} The biggest users are #{top_users(users)}. To fix this, use a " \
               "smaller capacity for a pool or a list. Or use fewer fields. Or use narrower items " \
-              "(`width: :byte`).#{variables_advice(console)}#{save_record_advice(users)} Then it all fits."
+              "(`width: :byte`).#{variables_advice(console)}#{save_record_advice(users)} Then it all " \
+              "fits.#{made_variables_message}"
+          end
+
+          # What the author can look for, since no line of theirs says `var` for these.
+          def made_variables_message
+            names = @made_names.to_a
+            hidden = @hidden_count.to_i
+            return "" if names.empty? && hidden.zero?
+
+            shown = names.first(NAMES_SHOWN).map { |name| "`#{name}`" }.join(", ")
+            more = names.length > NAMES_SHOWN ? " and #{names.length - NAMES_SHOWN} more" : ""
+            made = names.empty? ? "" : " These names are variables with no `var` line: #{shown}#{more}."
+            kept = hidden.zero? ? "" : " The build also made #{pluralize(hidden, 'hidden variable')}."
+            "#{made}#{kept}"
           end
 
           # What memory the console has, said the way that console has it: two memories, or one.
@@ -201,7 +226,7 @@ module VBlank
               "and the framework's own state. A list or a pool can move to the roomier memory; a variable " \
               "cannot, because a variable is reached by its distance from the start of the quick one. The " \
               "biggest users are #{top_users(users.reject { |u| u[:movable] })}. To fix this, use fewer " \
-              "variables. Or keep the same numbers in a list, which can move."
+              "variables. Or keep the same numbers in a list, which can move.#{made_variables_message}"
           end
 
           def top_users(users)

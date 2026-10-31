@@ -136,6 +136,7 @@ module VBlank
       @game_whiles = 0         # how many game `while` loops are open now
       @hidden_variables = 0    # counts the variables a picked value keeps its answer in
       @hidden_variable_notes = []
+      @variables_with_no_var_line = []
       @boolean_variables = {}   # the variables started with `true` or `false`
       @timer_seq = 0           # counts every/after timers, to name each one's hidden counter var
       @rng_seq = 0             # counts anonymous random draws, to name each one's hidden var
@@ -962,6 +963,11 @@ module VBlank
 
     # What the build added for the author that the author never wrote, for `rom.profile`.
     def hidden_variable_notes = @hidden_variable_notes
+
+    # The names normal Ruby made variables of with no `var` line.
+    attr_reader :variables_with_no_var_line
+
+    def note_variable_with_no_var_line(name) = @variables_with_no_var_line |= [name]
 
     # A hidden variable nothing came to need, which then takes no memory and is not reported.
     def forget_hidden_variable(name)

@@ -362,6 +362,12 @@ module VBlank
                           "keep a number and pick with it.")
       end
 
+      # A variable the author never wrote `var` for, which the out-of-memory error names.
+      def made_with_no_var_line(variable)
+        variable.note_made_with_no_var_line
+        variable
+      end
+
       def number_kept?(value) = value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)
 
       # `x = value` where x is a game variable. On a name started as nil, something made while

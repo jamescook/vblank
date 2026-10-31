@@ -14,7 +14,7 @@ class TestPlainRubyRewrite < Minitest::Test
       game_loop { hp -= 1 }
     end
 
-    assert_includes source, "hp = var(:hp, 5)"
+    assert_includes source, "var(:hp, 5)"
   end
 
   def test_a_number_never_changed_stays_a_plain_number
@@ -77,7 +77,7 @@ class TestPlainRubyRewrite < Minitest::Test
       game_loop { menu(:main, at: [40, 40]) { |rows| rows.item("GO") { picked = 1 } } }
     end
 
-    assert_includes source, "picked = var(:picked, 0)"
+    assert_includes source, "var(:picked, 0)"
   end
 
   def test_every_line_keeps_its_number
