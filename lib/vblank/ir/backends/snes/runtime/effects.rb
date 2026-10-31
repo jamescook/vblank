@@ -67,7 +67,7 @@ module VBlank
             RUNNING = 6
             FRAME = 8
             CURSORS = 10
-            STATE_BYTES = 32
+            STATE_BYTES = 64 # past CURSORS and a word for each of the most parts an effect has
 
             CHANNELS = (1..4).freeze
 
@@ -84,12 +84,14 @@ module VBlank
             # +count+ is how many effects the game has; +level_at+ where its music volume is, if it
             # sets one, since an effect taking a voice takes the tune's note there out of those a new
             # level reaches.
-            def emit(asm, memory, count, level_at)
+            # +recorded+ when a song or effect has a part that plays a recording.
+            def emit(asm, memory, count, level_at, recorded: false)
               at = ->(name, plus = 0) { asm.abs(memory[name], plus) }
               emit_game_side(asm, at, memory, count)
               emit_passes(asm, at, memory, count)
-              emit_frame(asm, at, memory, level_at)
-              emit_finish(asm, at, memory)
+              emit_frame(asm, at, memory, level_at, recorded)
+              emit_finish(asm, at, memory, recorded)
+              emit_recorded_parts(asm, at) if recorded
               emit_claim_routine(asm, at, memory)
               emit_select(asm, at, memory)
             end
@@ -314,7 +316,7 @@ module VBlank
             # Cut off, it stops first; asked for, it starts from its first note; at its end, it lets
             # go of its voices; sounding, each part plays its note whose frame has come, on the voice
             # its rank lets it take.
-            def emit_frame(asm, at, memory, level_at)
+            def emit_frame(asm, at, memory, level_at, recorded)
               m = SNES::Music
               state = ->(field) { asm.abs_y(memory[STATES], field) }
               asm.label("rt_sfx_frame")
@@ -331,7 +333,7 @@ module VBlank
               asm.sta(state.call(RUNNING))
               asm.lda(0)
               asm.sta(state.call(FRAME))
-              SNES::Music::CONSOLE_PARTS.times { |p| asm.sta(state.call(CURSORS + (p * 2))) }
+              SNES::Music::PARTS.times { |p| asm.sta(state.call(CURSORS + (p * 2))) }
               asm.ldx(at.call(RECORD))
               asm.lda(asm.long_x("music_data", m::EFFECT_START_LOG))
               asm.tax
@@ -383,6 +385,15 @@ module VBlank
               asm.adc(at.call(STATE))
               asm.tax
               asm.inc(asm.abs_x(memory[STATES], CURSORS))
+              if recorded # a part that plays a recording: its note in Recordings' places
+                asm.ldx(at.call(ENTRY))
+                asm.lda(asm.long_x("music_data", m::CHANNEL))
+                asm.cmp(m::RECORDED_CHANNEL)
+                asm.bcc("rt_sfx_frame_console")
+                asm.jsr(asm.abs("rt_sfx_recorded_note"))
+                asm.brl("rt_sfx_frame_next")
+                asm.label("rt_sfx_frame_console")
+              end
               asm.ldx(at.call(RECORD))
               asm.lda(asm.long_x("music_data", m::EFFECT_RANK))
               emit_claim_call(asm, memory, entry: ENTRY, note: NOTE)
@@ -424,8 +435,9 @@ module VBlank
 
             # rt_sfx_finish: the effect selected over (Reference::Player#finish_effect): not sounding,
             # and every voice it still holds free and quiet, in the order the voices were first held,
-            # each through its part's group for letting the voice go.
-            def emit_finish(asm, at, memory)
+            # each through its part's group for letting the voice go; then, with +recorded+, each part
+            # that plays a recording gives back the place it still sounds a note in.
+            def emit_finish(asm, at, memory, recorded)
               m = SNES::Music
               asm.label("rt_sfx_finish")
               asm.ldy(at.call(STATE))
@@ -474,6 +486,88 @@ module VBlank
               asm.inc(at.call(RELEASE_WALK))
               asm.bra("rt_sfx_finish_next")
               asm.label("rt_sfx_finish_done")
+              asm.jmp(asm.abs("rt_sfx_release_recorded")) if recorded
+              asm.rts
+            end
+
+            # rt_sfx_recorded_note: the note at NOTE of the selected effect's part that plays a
+            # recording, A its channel (SNES::Music::RECORDED_CHANNEL on), in a place the effect owns
+            # (Recordings::EFFECT_OWNER): a note takes a place at the effect's rank and logs itself if
+            # it found one; a note that sounds nothing gives the part's place back, and logs itself
+            # only if the part had one (Reference::Player#play_effect_frame).
+            #
+            # rt_sfx_release_recorded: each of the selected effect's parts that plays a recording gives
+            # back the place it still sounds a note in, logging its end through its release group if
+            # it had one (Reference::Player#finish_effect).
+            #
+            # rt_sfx_owner: R1 = the owner number of the effect's part on channel A.
+            def emit_recorded_parts(asm, at)
+              m = SNES::Music
+              asm.label("rt_sfx_recorded_note")
+              asm.jsr(asm.abs("rt_sfx_owner"))
+              asm.ldx(at.call(NOTE))
+              asm.lda(asm.long_x("music_data", m::NOTE_RECORDING))
+              asm.bne("rt_sfx_recorded_note_plays")
+              asm.lda(asm.direct(Sound::R1))
+              asm.sta(asm.direct(Sound::R0))
+              asm.jsl(asm.long("rt_recordings_note_release"))
+              asm.bra("rt_sfx_recorded_note_heard")
+              asm.label("rt_sfx_recorded_note_plays")
+              asm.dec
+              asm.sta(asm.direct(Sound::R0))
+              asm.ldx(at.call(RECORD))
+              asm.lda(asm.long_x("music_data", m::EFFECT_RANK))
+              asm.inc # above the game's own sounds, at nought
+              asm.sta(asm.direct(Sound::R2))
+              asm.jsl(asm.long("rt_recordings_note"))
+              asm.label("rt_sfx_recorded_note_heard")
+              asm.cmp(0)
+              asm.beq("rt_sfx_recorded_note_done")
+              asm.ldx(at.call(NOTE))
+              asm.lda(asm.long_x("music_data", m::NOTE_HEAD))
+              asm.tax
+              asm.jsr(asm.abs("rt_sound_group"))
+              asm.label("rt_sfx_recorded_note_done")
+              asm.rts
+
+              asm.label("rt_sfx_release_recorded")
+              asm.ldx(at.call(RECORD))
+              asm.lda(asm.long_x("music_data", m::EFFECT_PART_COUNT))
+              asm.sta(at.call(PARTS))
+              asm.stz(at.call(PART))
+              asm.label("rt_sfx_release_recorded_part")
+              asm.lda(at.call(PART))
+              asm.cmp(at.call(PARTS))
+              asm.bcs("rt_sfx_release_recorded_done")
+              asm.jsr(asm.abs("rt_sfx_entry"))
+              asm.lda(asm.long_x("music_data", m::CHANNEL))
+              asm.cmp(m::RECORDED_CHANNEL)
+              asm.bcc("rt_sfx_release_recorded_next") # a voice of the console's own, let go above
+              asm.jsr(asm.abs("rt_sfx_owner"))
+              asm.lda(asm.direct(Sound::R1))
+              asm.sta(asm.direct(Sound::R0))
+              asm.jsl(asm.long("rt_recordings_note_release"))
+              asm.cmp(0)
+              asm.beq("rt_sfx_release_recorded_next")
+              asm.ldx(at.call(ENTRY))
+              asm.lda(asm.long_x("music_data", m::EFFECT_RELEASE))
+              asm.tax
+              asm.jsr(asm.abs("rt_sound_group"))
+              asm.label("rt_sfx_release_recorded_next")
+              asm.inc(at.call(PART))
+              asm.bra("rt_sfx_release_recorded_part")
+              asm.label("rt_sfx_release_recorded_done")
+              asm.rts
+
+              asm.label("rt_sfx_owner")
+              asm.sec
+              asm.sbc(m::RECORDED_CHANNEL - 1) # the part's place among the effect's recorded parts, one up
+              asm.sta(asm.direct(Sound::R1))
+              asm.lda(at.call(EFFECT))
+              asm.inc
+              asm.xba # the effect's number, one up, in the high byte
+              asm.ora(asm.direct(Sound::R1))
+              asm.sta(asm.direct(Sound::R1))
               asm.rts
             end
 

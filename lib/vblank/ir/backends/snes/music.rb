@@ -100,8 +100,8 @@ module VBlank
           # The most parts a song has: one on each of the voices the Advance plays itself, and one for each
           # recording the Super Nintendo sounds at once.
           RECORDED_PARTS = Console::SUPER_NINTENDO.recordings_at_once
-          CONSOLE_PARTS = 4 # ...the most a sound effect has, which plays no recording
-          PARTS = CONSOLE_PARTS + RECORDED_PARTS
+          CONSOLE_PARTS = 4
+          PARTS = CONSOLE_PARTS + RECORDED_PARTS # ...and a sound effect, the same
 
           # A RECORDED PART'S CHANNEL: past the console voices' channels, this and its place among the
           # song's recorded parts. Its notes are played in Runtime::Recordings' places, the part's own
@@ -358,13 +358,15 @@ module VBlank
           # A NOTE OF A PART THAT PLAYS A RECORDING (Reference::Player#play_recorded_note): its head logs
           # [:note ...] once the note has a place (Runtime::Recordings), and nothing is written to a
           # voice of the console's own; its row of "recording_plays" (#recording_row, one up), nought
-          # for a rest.
+          # for a note that sounds nothing — a rest, or one at a volume of nought — which gives the
+          # part's place back as a rest does.
           def recorded_note_layout(song, part, event, &number_of)
             frame, frequency, instrument, volume, envelope = event
             volume ||= part.volume
+            sounds = IR::Tunes.note_sounds?(:recorded, frequency, volume, nil)
             head = keep_group([[GROUP_LOG, number_of.call([:note, song.name, frequency]), 0]])
-            row = frequency.zero? ? 0 : @recording_row.call(instrument || part.instrument, frequency, volume, envelope || part.envelope) + 1
-            [frame, head, keep_group([]), frequency.zero? ? 0 : volume, frequency.positive?, row]
+            row = sounds ? @recording_row.call(instrument || part.instrument, frequency, volume, envelope || part.envelope) + 1 : 0
+            [frame, head, keep_group([]), frequency.zero? ? 0 : volume, sounds, row]
           end
 
           # What the table holds for one sound effect (Reference::Player#play_effect_frame): its rank,
@@ -374,14 +376,22 @@ module VBlank
           def effect_layout(song, voicing, &number_of)
             order = @effect_names.index(song.name)
             parts = channels_of(song).map do |part, channel|
-              release = [[:note, song.name, 0], [:voice, channel, song.name, 0, 0]] + release_entries(channel)
               { notes: part.events.map { |event| note_layout(song, part, channel, event, [], voicing, &number_of) },
-                channel: channel,
-                release: keep_group(entry_commands(release, voicing, song.name, &number_of).flatten(1)) }
+                channel: channel, release: effect_release_group(song, channel, voicing, &number_of) }
             end
             { rank: IR::Tunes.effect_rank(song, order), group: group_number(song.group), priority: song.priority || 0,
               length: song.total_frames, parts: parts,
               start_log: keep_group([[GROUP_LOG, yield([:sound_effect, song.name]), 0]]) }
+          end
+
+          # What an effect's part logs and writes as the effect ends and lets its voice go: its note
+          # over, and a voice of the console's own silenced. A part that plays a recording gives its
+          # place back (Runtime::Recordings), and only logs that its note is over.
+          def effect_release_group(song, channel, voicing, &number_of)
+            return keep_group([[GROUP_LOG, number_of.call([:note, song.name, 0]), 0]]) if self.class.recorded?(channel)
+
+            release = [[:note, song.name, 0], [:voice, channel, song.name, 0, 0]] + release_entries(channel)
+            keep_group(entry_commands(release, voicing, song.name, &number_of).flatten(1))
           end
 
           # What letting go of the wave or noise voice also logs at an effect's end.
@@ -461,14 +471,13 @@ module VBlank
                                  "square parts, one wave part and one noise part. To fix this, remove the extra parts."
           end
 
-          # A PART THAT PLAYS A RECORDING, where the build does not make it yet: in a sound effect, in a
-          # game that sets its music volume, or more of them in a song than recordings sound at once.
+          # A PART THAT PLAYS A RECORDING, where the build does not make it yet: in a game that sets its
+          # music volume, or more of them in a song than recordings sound at once.
           def refuse_unmade_recorded_parts!(song)
             recorded = song.voices.select { |part| IR::Tunes.part_kind(part) == :recorded }
             return if recorded.empty?
 
-            unmade = if @effect_names.include?(song.name) then "a sound effect part that plays a recording"
-                     elsif follows_level? then "a part that plays a recording in a game that sets its music volume"
+            unmade = if follows_level? then "a part that plays a recording in a game that sets its music volume"
                      elsif recorded.size > RECORDED_PARTS then "more than #{RECORDED_PARTS} parts that play recordings"
                      end
             return unless unmade

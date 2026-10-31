@@ -98,6 +98,11 @@ module VBlank
           # for one with no shape. Nil when none sounds it.
           def level_of(name) = (@sounding || []).find { |sounding, _| sounding == name }&.last
 
+          # Whose each place sounding a recording was as the run ended, in the order of the places
+          # (Reference#sound_owners): :game for the game's own, [:song, part] for a song's recorded
+          # part (its place among the song's recorded parts), [effect, part] for a sound effect's.
+          def sound_owners = @owners || []
+
           # The plays and notes that found every place busy, and the most places songs held at one of
           # those moments (Reference#sound_drops), as the cartridge had counted them at the moment the
           # run ended or a watching block asks at.
@@ -162,6 +167,7 @@ module VBlank
             @apu_ram = nil
             @sounding = nil
             @drops = nil
+            @owners = nil
             @loudest_each_frame = []
             @black_each_frame = []
             @picture_each_frame = []
@@ -228,6 +234,7 @@ module VBlank
             @apu_ram = @core.apu_ram if frame == :end && sound?
             @sounding = recordings_at(frame)
             @drops = drops_now
+            @owners = owners_now if frame == :end
             @moments << Moment.new(frame: frame, variables: variables, picture: HeadlessRun.moment_picture(picture.shown, @near),
                                    sounds: @sounds, sprites: @sprites, collections: game_state.except(:vars),
                                    sounding: active_samples.map { |name| [name, level_of(name)] })
@@ -269,6 +276,25 @@ module VBlank
                      Array.new(recordings::PLACES) { |place| [byte(names + place), byte(levels + place)] }
                    end
             held.reject { |number, _| number.zero? }.map { |number, level| [@places.recording_names.fetch(number - 1), level] }
+          end
+
+          # Whose each held place is now, in the interpreter's words (#sound_owners), from each place's
+          # OWNER (Runtime::Recordings: nought, a song's part one up, or a sound effect's number one up
+          # in the high byte over its part one up).
+          def owners_now
+            recordings = Runtime::Recordings
+            return [] unless @places.runtime.key?(recordings::PLACES_STATE)
+
+            state = runtime_place(recordings::PLACES_STATE)
+            Array.new(recordings::PLACES) { |place| state + (place * recordings::PLACE_BYTES) }
+                 .reject { |at| half(at + recordings::HELD).zero? }
+                 .map do |at|
+                   owner = half(at + recordings::OWNER)
+                   if owner.zero? then :game
+                   elsif owner < recordings::EFFECT_OWNER then [:song, owner - 1]
+                   else [@places.sound_voicing.effects.fetch((owner >> 8) - 1), (owner & 0xFF) - 1]
+                   end
+                 end
           end
 
           # The cartridge's count of drops now (Runtime::Recordings::DROPS and DROPS_MUSIC); none for a

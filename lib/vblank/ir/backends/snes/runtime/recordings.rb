@@ -65,13 +65,17 @@ module VBlank
             PLACE_ADVANCE = 16
             PLACE_ADVANCE_FRACTION = 20
             PLACE_LOGGED = 22
-            # ...and whose it is: nought for the game's own, a part's OWNER number for a song's; the
-            # rank it holds the place at, the song's rank's place one up (nought for the game's own,
-            # which rank below every song); and for the game's own, its TICKET — LOOPS set for one that
-            # loops, and how many the game had started before it — which orders who gives way first.
+            # ...and whose it is: nought for the game's own, a part's OWNER number for a song's — its
+            # place among the song's recorded parts, one up — and for a sound effect's the same in the
+            # low byte under the effect's number, one up, in the high (EFFECT_OWNER and over); the
+            # rank it holds the place at, the song's or effect's rank's place one up (nought for the
+            # game's own, which rank below every song); and for the game's own, its TICKET — LOOPS set
+            # for one that loops, and how many the game had started before it — which orders who
+            # gives way first.
             OWNER = 24
             RANK = 26
             TICKET = 28
+            EFFECT_OWNER = 0x100
             # ...and its SHAPE (Reference::Mixer#step_envelopes): the row's two words of it, its level
             # (out of Audio::Envelope::FULL), which part of the shape it is in (PLAIN for a note with
             # none), and its volume as the row says it, which the level scales.
@@ -361,9 +365,10 @@ module VBlank
             end
 
             # rt_recordings_note_release(owner): the place +owner+'s part sounds a note in, if it has
-            # one, freed and its voice let go (Reference::Mixer#release_music).
+            # one, freed and its voice let go (Reference::Mixer#release_music); A = 1 when it had one,
+            # nought when not.
             # rt_recordings_release_music: every place a song's part holds freed so
-            # (Reference::Mixer#release_all_music).
+            # (Reference::Mixer#release_all_music); a sound effect's are the effect's.
             def emit_note_release(asm, at, memory)
               place = place_field(asm, memory)
               asm.label("rt_recordings_note_release")
@@ -372,7 +377,10 @@ module VBlank
               asm.jsr(asm.abs("rt_recordings_sounding"))
               asm.bcs("rt_recordings_note_release_none")
               asm.jsr(asm.abs("rt_recordings_end_note"))
+              asm.lda(1)
+              asm.rtl
               asm.label("rt_recordings_note_release_none")
+              asm.lda(0)
               asm.rtl
 
               asm.label("rt_recordings_release_music")
@@ -381,6 +389,8 @@ module VBlank
                 asm.beq(next_place)
                 asm.lda(place.call(OWNER))
                 asm.beq(next_place) # the game's own
+                asm.cmp(EFFECT_OWNER)
+                asm.bcs(next_place) # a sound effect's
                 asm.lda(place.call(PHASE))
                 asm.cmp(FALLING)
                 asm.bcs(next_place) # falling already: it carries on as it was

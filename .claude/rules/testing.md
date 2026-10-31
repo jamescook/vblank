@@ -92,6 +92,7 @@ rows), `many_rooms_game.rb` (a scene of many rooms with sprite pictures grouped 
 `clock_tests.rb` (the clock's tests, played by each console that has one),
 `song_instrument_tests.rb` (a song part playing a recorded instrument, played by each console that mixes them),
 `note_envelope_tests.rb` (recorded notes with a loudness shape falling away on their voices, played by each console that mixes them),
+`sound_effect_recording_tests.rb` (sound effects whose parts play a recording, sharing the voices by rank, played by each console that mixes them),
 `screen_backdrop_games.rb` (small tiled games for `screen ... backdrop:`),
 `first_pass_presses.rb` (presses counted from a game's first pass, for a game that sets up save
 records first),
