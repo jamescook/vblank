@@ -929,11 +929,11 @@ module VBlank
           var = field(axis)
           cells = @pool.solid_cells
           if cells.nil?
-            var += delta
+            var.add! delta
           else
             target_x = axis == :x ? field(:x) + delta : field(:x)
             target_y = axis == :y ? field(:y) + delta : field(:y)
-            var += delta if emit_tile_check(cells, target_x, target_y)
+            var.add! delta if emit_tile_check(cells, target_x, target_y)
           end
         end
 

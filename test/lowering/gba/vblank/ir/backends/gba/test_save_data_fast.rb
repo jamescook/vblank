@@ -44,7 +44,7 @@ class TestSaveDataFast < Minitest::Test
         files.copy 0, to: 1 if asks.include?(:copy) && pressed(:r)
         files.reset if asks.include?(:reset) && pressed(:select)
         written += 1 if files.finished?
-        best.each { |one| one += 1 if pressed(:start) }
+        best.each { |one| one.add! 1 if pressed(:start) }
         repeat(work) { spin += 1 } if work.positive?
         hearts += 1
       end

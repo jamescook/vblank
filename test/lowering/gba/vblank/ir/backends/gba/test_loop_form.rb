@@ -253,12 +253,12 @@ class TestLoopForm < Minitest::Test
       game_loop do
         bodies.each do |kind, body|
           count = counts[kind]
-          count = 0
+          count.set! 0
           # The loop runs the statement and counts its own pass. A statement that landed on the
           # counter leaves this reading something other than SWEEP_PASSES.
           b.repeat(SWEEP_PASSES) do |i|
             body.call(i)
-            count += 1
+            count.add! 1
           end
         end
       end

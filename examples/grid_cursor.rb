@@ -37,6 +37,7 @@ module GridCursor
     cx = var :cx, cols / 2
     cy = var :cy, rows / 2
     board.set_cell cx, cy, :cyan
+    cursor = { x: cx, y: cy }
 
     game_loop do
       # Move one cell per tap. Each step is the incremental dance: rub out the cell
@@ -44,15 +45,15 @@ module GridCursor
       # land on. Two cells change and the picture never tears.
       step = proc do |axis, delta, last|
         board.clear_cell cx, cy
-        axis += delta
-        axis.clamp! 0, last
+        cursor[axis] += delta
+        cursor[axis].clamp! 0, last
         board.set_cell cx, cy, :cyan
       end
 
-      step.call(cx, -1, cols - 1) if pressed(:left)
-      step.call(cx,  1, cols - 1) if pressed(:right)
-      step.call(cy, -1, rows - 1) if pressed(:up)
-      step.call(cy,  1, rows - 1) if pressed(:down)
+      step.call(:x, -1, cols - 1) if pressed(:left)
+      step.call(:x,  1, cols - 1) if pressed(:right)
+      step.call(:y, -1, rows - 1) if pressed(:up)
+      step.call(:y,  1, rows - 1) if pressed(:down)
     end
   end
 

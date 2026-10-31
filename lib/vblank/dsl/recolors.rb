@@ -61,14 +61,14 @@ module VBlank
       end
 
       # The same, for names already checked: nil for the own colours, or the names in order.
-      # +choice+ is the game's own variable, so a number written to the name is written to it.
+      # +choice+ is the game's own variable.
       def write_choice(choice, names, showing)
         if names.nil?
-          choice = IR::Build::NO_RECOLOR
+          choice.set! IR::Build::NO_RECOLOR
         else
           start = list_offset_for(names)
           if showing.nil?
-            choice = start
+            choice.set! start
           else
             write_picked_list(choice, count: names.length, start: start, showing: showing)
           end

@@ -139,7 +139,7 @@ class TestSpriteClearedField < Minitest::Test
     prog = scenes_program do |_hero, state, step|
       if step == 3
         clear_screen :blue
-        state = REST
+        state.set! REST
       end
     end
 

@@ -234,24 +234,22 @@ class TestPlainRuby < Minitest::Test
   # the last, as in any Ruby.
   def test_nil_and_a_yes_or_no_are_three_answers
     player = played(frames: 2) do
-      def mark(left_out, yes, no, tested = nil)
+      def mark(tally, tested = nil)
         if tested.nil?
-          left_out += 1
+          tally[:left_out] += 1
         elsif tested
-          yes += 1
+          tally[:yes] += 1
         else
-          no += 1
+          tally[:no] += 1
         end
       end
-      left_out = var :left_out, 0
-      yes = var :yes, 0
-      no = var :no, 0
+      tally = { left_out: var(:left_out, 0), yes: var(:yes, 0), no: var(:no, 0) }
       on = true
       off = false
       game_loop do
-        mark(left_out, yes, no)
-        mark(left_out, yes, no, on)
-        mark(left_out, yes, no, off)
+        mark(tally)
+        mark(tally, on)
+        mark(tally, off)
         on = true
         off = false
       end
@@ -515,12 +513,12 @@ class TestPlainRuby < Minitest::Test
 
   def test_a_number_handed_in_is_truthy_even_at_zero
     player = played(frames: 2) do
-      def count_if_there(count, by)
-        count += 1 if by
+      def count_if_there(tally, by)
+        tally[:seen] += 1 if by
       end
       zero = var :zero, 0
-      seen = var :seen, 0
-      game_loop { count_if_there(seen, zero) }
+      tally = { seen: var(:seen, 0) }
+      game_loop { count_if_there(tally, zero) }
     end
 
     assert_operator player[:seen], :>=, 1
@@ -774,7 +772,7 @@ class TestPlainRuby < Minitest::Test
   end
 
   def test_a_block_a_test_hands_to_instance_exec_is_read_as_normal_ruby
-    extra = proc { |hp| hp += 1 if hp == 0 }
+    extra = proc { |hp| hp.add! 1 if hp == 0 }
     builder = Builder.new
     builder.instance_eval do
       hp = var :hp, 0
@@ -788,7 +786,7 @@ class TestPlainRuby < Minitest::Test
   end
 
   def test_a_lambda_a_test_hands_to_instance_exec_is_read_as_normal_ruby
-    extra = ->(hp) { hp += 1 if hp == 0 }
+    extra = ->(hp) { hp.add! 1 if hp == 0 }
     builder = Builder.new
     builder.instance_eval do
       hp = var :hp, 0
@@ -865,41 +863,146 @@ class TestPlainRuby < Minitest::Test
     assert_equal [0, 1], [player[:lost], player[:held]]
   end
 
-  def test_a_number_given_to_a_methods_argument_changes_the_game_variable
+  def test_a_number_given_to_a_methods_argument_leaves_the_caller_alone
     player = played do
-      def set_to_nine(hp) = hp = 9
+      def set_to_nine(hp)
+        hp = 9
+        hp
+      end
       hp = var :hp, 0
-      game_loop { set_to_nine(hp) }
-    end
-
-    assert_equal 9, player[:hp]
-  end
-
-  def test_a_number_given_to_a_name_taken_from_a_hash_changes_the_game_variable
-    player = played do
-      ball = { hp: var(:hp, 5) }
+      seen = 0
       game_loop do
-        hp = ball[:hp]
-        hp = 2
+        seen = set_to_nine(hp)
       end
     end
 
-    assert_equal 2, player[:hp]
+    assert_equal [0, 9], [player[:hp], player[:seen]]
+  end
+
+  def test_adding_to_a_methods_argument_leaves_the_caller_alone
+    player = played do
+      def plus_ten(hp)
+        hp += 10
+        hp
+      end
+      hp = var :hp, 5
+      seen = 0
+      game_loop do
+        seen = plus_ten(hp)
+      end
+    end
+
+    assert_equal [5, 15], [player[:hp], player[:seen]]
+  end
+
+  def test_a_number_given_to_a_name_taken_from_a_hash_leaves_the_hash_alone
+    player = played do
+      ball = { hp: var(:hp, 5) }
+      seen = 0
+      game_loop do
+        hp = ball[:hp]
+        hp = 2
+        seen = hp
+      end
+    end
+
+    assert_equal [5, 2], [player[:hp], player[:seen]]
+  end
+
+  def test_adding_to_a_name_taken_from_a_hash_leaves_the_hash_alone
+    player = played do
+      ball = { hx: var(:hx, 5) }
+      seen = 0
+      game_loop do
+        nx = ball[:hx]
+        nx += 10
+        seen = nx
+      end
+    end
+
+    assert_equal [5, 15], [player[:hx], player[:seen]]
+  end
+
+  def test_a_name_started_from_another_local_is_a_game_variable
+    player = played do
+      start = 10
+      x = start
+      game_loop { x += 1 }
+    end
+
+    assert_equal 13, player[:x]
+  end
+
+  SIZES = [4, 8].freeze
+
+  def test_a_name_started_from_a_method_or_a_list_is_a_game_variable
+    player = played do
+      def worked_out_start = 20
+      from_method = worked_out_start
+      from_list = SIZES[1]
+      half = screen_width / 2
+      game_loop do
+        from_method += 1
+        from_list += 1
+        half += 1
+      end
+    end
+
+    assert_equal [23, 11, 123], [player[:from_method], player[:from_list], player[:half]]
+  end
+
+  def test_a_start_with_an_effect_runs_once
+    player = played do
+      count = [0]
+      def next_start(count) = count[0] += 1
+      x = next_start(count)
+      runs = count[0]
+      seen = 0
+      game_loop do
+        x += 1
+        seen = runs
+      end
+    end
+
+    assert_equal [4, 1], [player[:x], player[:seen]]
+  end
+
+  def test_a_name_started_from_a_variable_and_changed_is_its_own_variable
+    player = played do
+      hp = var :hp, 5
+      other = hp
+      game_loop { other += 1 }
+    end
+
+    assert_equal [5, 8], [player[:hp], player[:other]]
+  end
+
+  def test_a_name_started_from_a_test_and_changed_keeps_a_yes_or_no
+    player = played do
+      hp = var :hp, 5
+      alive = hp > 0
+      seen = 0
+      game_loop do
+        alive = false
+        seen = 1 if alive
+      end
+    end
+
+    assert_equal 0, player[:seen]
   end
 
   # `if by` on an option asks what Ruby asks, whether it was given, even when what was given is a
   # game variable holding 0.
   def test_an_option_in_an_if_asks_whether_it_was_given
     player = played(frames: 2) do
-      def count_if_given(count, by: nil)
-        count += 1 if by
+      def count_if_given(tally, key, by: nil)
+        tally[key] += 1 if by
       end
       zero = var :zero, 0
-      given = var :given, 0
-      left_out = var :left_out, 0
+      tally = { given: var(:given, 0), left_out: var(:left_out, 0) }
       game_loop do
-        count_if_given(given, by: zero)
-        count_if_given(left_out)
+        count_if_given(tally, :given, by: zero)
+        count_if_given(tally, :left_out)
       end
     end
 

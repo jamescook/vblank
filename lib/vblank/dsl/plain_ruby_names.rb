@@ -46,10 +46,21 @@ module VBlank
           def made_by_var? = !first_write.nil? && LocalNames.var_call?(first_write.node)
 
           def auto_variable?
-            return false if parameter? || !LocalNames.starts_from_value?(first_write.node)
+            return false if parameter? || !starts_variable?
 
             @writes.drop(1).any?(&:in_game_code)
           end
+
+          # In setting up, whatever a name is given is looked at as the line runs, so any start
+          # will do. In game code a worked-out start stays a working-out, which Ruby's arithmetic
+          # carries down the lines and which costs no memory.
+          def starts_variable?
+            return true if LocalNames.starts_from_value?(first_write.node)
+
+            first_write.node.is_a?(Prism::LocalVariableWriteNode) && !first_write.in_game_code
+          end
+
+          def plain_name? = parameter? || !variable?
 
           def variable? = auto_variable? || made_by_var?
         end
@@ -94,17 +105,19 @@ module VBlank
 
         # What a rewritten `x = ...` does: nil to leave it, :declare for the line that makes a
         # variable while setting up, :start for one that makes it in game code and so sets it
-        # every pass, :assign to change the variable, :reassign for a name that may hold a variable
-        # it did not make, a method's argument among them.
+        # every pass, :assign to change the variable. A method's argument is its own value, as in
+        # Ruby, so a write to one changes nothing the caller holds.
         def action_for(write)
           local = @locals_by_node[write]
-          return unless local
-          return :reassign if local.parameter?
+          return if local.nil? || local.parameter?
           return first_write_action(local) if local.first_write_of?(write)
-          return :reassign unless local.variable?
+          return unless local.variable?
 
           LocalNames.var_call?(write) ? nil : :assign
         end
+
+        # Does this write only change what a name holds, as any Ruby name does?
+        def plain_name_write?(write) = @locals_by_node[write]&.plain_name? || false
 
         def variable_name_of(write)
           local = @locals_by_node.fetch(write)

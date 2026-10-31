@@ -70,28 +70,26 @@ module FloatingDigits
       clear_screen :black
 
       movers.each do |m|
-        x = m[:x]
-        y = m[:y]
         dx = m[:dx]
         dy = m[:dy]
 
-        x += dx
-        y += dy
+        m[:x] += dx
+        m[:y] += dy
 
         # Bounce off each wall: pin the digit to the edge and reverse its direction.
-        if x < 0
+        if m[:x] < 0
           m[:x] = 0
           dx.flip!
         end
-        if x > max_x
+        if m[:x] > max_x
           m[:x] = max_x
           dx.flip!
         end
-        if y < 0
+        if m[:y] < 0
           m[:y] = 0
           dy.flip!
         end
-        if y > max_y
+        if m[:y] > max_y
           m[:y] = max_y
           dy.flip!
         end

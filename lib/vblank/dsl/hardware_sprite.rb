@@ -421,11 +421,11 @@ module VBlank
       def step(axis, delta)
         var = axis == :x ? x : y
         if @solid_cells.nil? && (@walls.nil? || @walls.empty?)
-          var += delta
+          var.add! delta
         else
           target_x = axis == :x ? x + delta : x
           target_y = axis == :y ? y + delta : y
-          var += delta if clear_of_walls(target_x, target_y)
+          var.add! delta if clear_of_walls(target_x, target_y)
         end
       end
 

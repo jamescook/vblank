@@ -152,9 +152,27 @@ module VBlank
         target
       end
 
-      # `x = value` where x was not made by `var` but may hold a game variable anyway: a method's
-      # argument, or `x = m[:x]`. Given another variable, the name moves to it. Given a number, the
-      # game's variable takes it, as the same line does on a name made by `var`.
+      # The first line of a name the game changes later. A number starts a variable. A variable or
+      # a working-out gives it a variable of its own holding that number now, since a Ruby name
+      # holds a value and never another name. Anything else stays what it is.
+      def start_name(value)
+        return yield(value) if game_value?(value)
+
+        case value
+        when Condition then assign(yield(false), value)
+        when Value then assign(own_variable(value) { |start| yield(start) }, value)
+        else value
+        end
+      end
+
+      def own_variable(value)
+        own = yield(value.fraction? ? 0.0 : 0)
+        own.yes_no! if value.yes_no?
+        own
+      end
+
+      # `@x = value`. A part of a game keeps its variables in these. Given another variable, the
+      # name moves to it. Given a number, the game's variable takes it.
       def reassign(target, value)
         return value if !variable?(target) || variable?(value)
 

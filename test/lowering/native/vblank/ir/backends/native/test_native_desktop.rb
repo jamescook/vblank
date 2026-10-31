@@ -204,7 +204,7 @@ class TestNativeDesktop < Minitest::Test
       game_loop do
         clear_screen :black
         frames += 1
-        counters.each { |name, counter| counter += 1 if held(name) }
+        counters.each { |name, counter| counter.add! 1 if held(name) }
       end
     end
   end

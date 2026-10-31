@@ -434,7 +434,7 @@ module SaveDataGames
       game_loop do
         if pressed(:a)
           records.each do |kept, record, number|
-            kept = number
+            kept.set! number
             record[0].save
           end
         end

@@ -174,16 +174,6 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_empty game.program.children
   end
 
-  def test_changing_a_method_argument_with_plus_equals_is_clear_enough_to_work
-    builder = built do
-      def hurt(hp) = (hp -= 1)
-      hurt(var(:hp, 5))
-      game_loop { wait_vblank }
-    end
-
-    assert_kind_of Builder, builder
-  end
-
   def test_a_list_read_on_the_right_of_and_is_refused
     assert_refused("reads a list") do
       things = list :things, capacity: 4

@@ -45,14 +45,14 @@ class TestPoolFieldMutation < Minitest::Test
   # --- the mutators that write one expression back into the slot ---
 
   def test_set_replaces_the_rows_own_value
-    changed, untouched = mutating(50) { |v| v = 100 }
+    changed, untouched = mutating(50) { |v| v.set! 100 }
 
     assert_equal 100, changed
     assert_equal 50, untouched, "the other live row keeps its own value"
   end
 
   def test_sub_takes_the_amount_off_the_rows_own_value
-    changed, untouched = mutating(50) { |v| v -= 30 }
+    changed, untouched = mutating(50) { |v| v.sub! 30 }
 
     assert_equal 20, changed
     assert_equal 50, untouched, "the other live row keeps its own value"
@@ -98,7 +98,7 @@ class TestPoolFieldMutation < Minitest::Test
   # `row.v.abs` leaves the row's own value negative.
   def test_a_fields_abs_in_a_comparison_leaves_the_row_alone
     changed, = mutating(-25) do |v|
-      v += 100 if v.abs == 25
+      v.add! 100 if v.abs == 25
     end
 
     assert_equal 75, changed, "the comparison held, and v was still -25 when 100 was added"

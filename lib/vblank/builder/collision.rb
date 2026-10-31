@@ -107,7 +107,7 @@ module VBlank
         if fresh == 0
           base = map_base_for(kept.cells)
           kept.list.copy_from(kept.cells.table, at: base.nil? ? 0 : base, count: kept.cells.cells_per_map)
-          fresh = 1
+          fresh.set! 1
         end
       end
 
@@ -149,7 +149,7 @@ module VBlank
           # to that map's grid is the same for all nine. That is what keeps a background
           # with two hundred rooms the same nine reads as a background with one.
           base = kept ? nil : map_base_for(cells)
-          clear = 1
+          clear.set! 1
           down.each do |dy|
             py = top + dy
             across.each do |dx|
@@ -161,7 +161,7 @@ module VBlank
               inside = px >= 0 && px < width && py >= 0 && py < height
               cell = ((py / cells.tile_h) * cells.cols) + (px / cells.tile_w)
               solid = kept ? kept.list[cell] : cells.table[base.nil? ? cell : base + cell]
-              clear = 0 if inside && solid == 1
+              clear.set! 0 if inside && solid == 1
             end
           end
         end

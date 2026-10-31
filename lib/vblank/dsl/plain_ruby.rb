@@ -306,17 +306,18 @@ module VBlank
           # The line that makes a variable in game code sets it on every pass, as Ruby would.
           when :start then "#{prefix}#{STEPS}.assign(#{declaration(node)}, #{rewritten_text(node.value)})"
           when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
-          when :reassign then "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value_text(node.value)}))"
           else "#{prefix}#{kept_value_text(node.value)}"
           end
         end
 
-        # A constant can hold anything, so whether it starts a variable is asked as the line runs.
+        # Anything but a number written out can hold anything, so what it starts is asked as the
+        # line runs. Its value is kept in a local of its own, so the right side runs once.
         def declaration(node)
-          made = "var(:#{@names.variable_name_of(node)}, #{rewritten_text(node.value)})"
-          return made if LocalNames.number?(node)
+          name = @names.variable_name_of(node)
+          return "var(:#{name}, #{rewritten_text(node.value)})" if LocalNames.number?(node)
 
-          "(#{STEPS}.game_value?(#{rewritten_text(node.value)}) ? #{made} : #{rewritten_text(node.value)})"
+          start = "__plain_ruby_#{@answers += 1}"
+          "(#{start} = #{value_text(node.value)}; #{STEPS}.start_name(#{start}) { |start| var(:#{name}, start) })"
         end
 
         def kept_value_text(value)
@@ -341,6 +342,8 @@ module VBlank
         end
 
         def change_text(node)
+          return copied_text(node) if @names.plain_name_write?(node)
+
           "#{node.name} = #{STEPS}.change(#{node.name}, :#{node.binary_operator}, #{argument(node.value)})"
         end
 
