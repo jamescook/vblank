@@ -51,7 +51,7 @@ class TestNameVariables < Minitest::Test
       b.func(:playing) { ran.set! 2 }
       game_loop do
         b.call mode
-        mode.set! :playing
+        mode = :playing
       end
     end
 
@@ -67,8 +67,8 @@ class TestNameVariables < Minitest::Test
       b = self
       b.func(:title) { b.halt }
       game_loop do
-        (mode == :title).then { saw.set! 1 }
-        (mode != :title).then { saw.set! 2 }
+        saw = 1 if mode == :title
+        saw = 2 if mode != :title
         b.halt
       end
     end
@@ -134,7 +134,7 @@ class TestNameVariables < Minitest::Test
       guards.spawn(x: 0)
       game_loop do
         guards.each do |g|
-          (g.state == :idle).then { g.state.set! :chase }
+          g.state = :chase if g.state == :idle
           b.call g.state
         end
       end
@@ -156,7 +156,7 @@ class TestNameVariables < Minitest::Test
       b.func(:over) { b.fill_rect 190, 10, 40, 40, :blue }
       game_loop do
         b.call mode
-        mode.set! :playing
+        mode = :playing
       end
     end
 
@@ -187,7 +187,7 @@ class TestNameVariables < Minitest::Test
         b.func(:title) { b.halt }
         game_loop do
           b.call mode
-          mode.set! :paused          # a state, but nothing to run for it
+          mode = :paused          # a state, but nothing to run for it
         end
       end
     end
@@ -245,7 +245,7 @@ class TestNameVariables < Minitest::Test
         b.scene(:title) { b.halt }
         b.func(:tick) { b.halt }
         game_loop do
-          pressed(:a).then { mode.set! :tick }
+          mode = :tick if pressed(:a)
           b.call mode
         end
       end
@@ -282,7 +282,7 @@ class TestNameVariables < Minitest::Test
         b.scene(:title) { pressed(:a).then { mode.set! :walk }.else { mode.set! :run } }
         b.func(:tick) { mode.set! :title }
         game_loop do
-          pressed(:b).then { mode.set! :tick }
+          mode = :tick if pressed(:b)
           b.call mode
         end
       end
@@ -334,7 +334,7 @@ class TestNameVariables < Minitest::Test
       b.func(:over) { ran.set! 3 }
       order.each { |state| (mode == state).then { ran.add! 0 } } # names them, changes nothing
       game_loop do
-        mode.set! :playing
+        mode = :playing
         b.call mode
         b.halt
       end

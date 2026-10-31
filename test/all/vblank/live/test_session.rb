@@ -267,8 +267,8 @@ class TestSession < Minitest::Test
       enable_sound
       x = var :x, 0
       game_loop do
-        (x == 2).then { beep 440, duty: :half, decay: :none, volume: 15 }
-        x.add! 1
+        beep 440, duty: :half, decay: :none, volume: 15 if x == 2
+        x += 1
       end
     end
     device = Headless.new(frames: 5)
@@ -290,9 +290,11 @@ class TestSession < Minitest::Test
       files = save_data(:file, copies: 1) { keep hearts }
       pass = var :pass, 0
       game_loop do
-        (pass == 0).then { files[0].save }
-        (pass == 2).then { files[0].good?.then { pixel 0, 0, :green } }
-        pass.add! 1
+        files[0].save if pass == 0
+        if pass == 2
+          files[0].good?.then { pixel 0, 0, :green }
+        end
+        pass += 1
       end
     end
     builder.finalize_program

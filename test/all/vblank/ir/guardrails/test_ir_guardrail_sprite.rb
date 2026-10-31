@@ -85,7 +85,11 @@ class TestSpriteGuardrails < Minitest::Test
       screen :bitmap
       image(:heart, "#" => :red) { "##\n##" }
       ready = var :ready, 1
-      (ready == 0).then { clear_screen :blue }.else { sprite :heart, at: [40, 40] }
+      if ready == 0
+        clear_screen :blue
+      else
+        sprite :heart, at: [40, 40]
+      end
       game_loop { wait_vblank }
     end
     assert_empty Manual.new.detect(prog)

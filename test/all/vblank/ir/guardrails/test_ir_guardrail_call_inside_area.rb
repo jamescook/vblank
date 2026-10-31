@@ -67,7 +67,7 @@ class TestIRGuardrailCallInsideArea < Minitest::Test
     drawn_in_else = program do
       screen :bitmap
       on = var :on, 0
-      func(:draw_something) { (on == 1).then { on.set! 0 }.else { fill_rect 0, 0, 240, 160, :red } }
+      func(:draw_something) { if on == 1 then on = 0 else fill_rect 0, 0, 240, 160, :red end }
       game_loop { inside(0, 0, 100, 100) { call :draw_something } }
     end
 

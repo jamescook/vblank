@@ -40,7 +40,7 @@ class TestLightCost < Minitest::Test
   def test_a_light_that_darkens_nothing_costs_next_to_nothing
     never = lambda {
       later = var :later, 0
-      (later == 1).then { iris_out from: 150, by: 4 }
+      iris_out from: 150, by: 4 if later == 1
     }
 
     assert_operator light_cost(each: never), :<, CHEAP
@@ -56,7 +56,7 @@ class TestLightCost < Minitest::Test
       light = spotlight at: [120, 80], radius: 40, dark: 75
       step = var :step, 0
       once_a_frame do
-        step.add! 1
+        step += 1
         light.move_to 100 + (step & 31), 80
       end
     }

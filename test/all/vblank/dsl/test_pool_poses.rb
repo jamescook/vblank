@@ -39,7 +39,7 @@ module PoolPosesGames
         placed = var :placed, 0
         (placed == 0).then do
           guards.spawn x: 20, y: 20
-          placed.set! 1
+          placed = 1
         end
       end
       game_loop { case_var(:state) { when_val 0, :play } }
@@ -109,7 +109,7 @@ class TestPoolPoses < Minitest::Test
         (turned == 0).then do
           guards.each { |g| g.face :right; g.remove }
           guards.spawn x: 20, y: 20
-          turned.set! 1
+          turned = 1
         end
       end
     end
@@ -172,8 +172,8 @@ class TestPoolPoses < Minitest::Test
       later = b.var :later, 0
       b.game_loop do
         b.wait_vblank
-        later.add! 1
-        (later == 2).then { guards.spawn x: 60, y: 20 }
+        later += 1
+        guards.spawn x: 60, y: 20 if later == 2
       end
     end
 
