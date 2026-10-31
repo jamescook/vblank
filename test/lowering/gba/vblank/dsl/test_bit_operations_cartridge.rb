@@ -44,8 +44,14 @@ class TestBitOperationsCartridge < Minitest::Test
   # costs the same either way round, which it would not if the build put both sides through the
   # stack just because the number was written first.
   def test_a_number_on_the_left_costs_what_it_costs_on_the_right
-    left = emitted { |value| set! :masked, 0x0F & value }
-    right = emitted { |value| set! :masked, value & 0x0F }
+    left = emitted do |value|
+      masked = var :masked, 0
+      masked = 0x0F & value
+    end
+    right = emitted do |value|
+      masked = var :masked, 0
+      masked = value & 0x0F
+    end
 
     assert_equal right, left, "a mask written on the left emitted more code than the same mask on the right"
   end

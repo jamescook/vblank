@@ -11,8 +11,8 @@ class TestVerifierRegisters < Minitest::Test
   private def counting_rom
     VBlank.build("REGS", console: :gba, code: "BREG", maker: "01", validate: false, out: StringIO.new, err: StringIO.new) do
       screen :bitmap
-      count = var :count, 0
-      func(:count_up) { count.add! 1 }
+      count = 0
+      func(:count_up) { count += 1 }
       game_loop { call :count_up }
     end
   end

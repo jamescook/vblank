@@ -18,12 +18,12 @@ class TestTickRateMeasured < Minitest::Test
   private def rom_for(rate:, work: 0, clears: 1, name: "TICK")
     VBlank.build(name, console: :gba, code: "TCKM", maker: "01", validate: false, out: nil, err: nil) do
       screen :bitmap
-      beats = var :beats, 0
-      spin = var :spin, 0
+      beats = 0
+      spin = 0
       t = timer :beat, per_second: rate
       t.on_tick do
         beats += 1
-        repeat(work) { spin.add! 1 } if work.positive?
+        repeat(work) { spin += 1 } if work.positive?
       end
       game_loop do
         clears.times { |i| clear_screen(i.even? ? :black : :blue) }

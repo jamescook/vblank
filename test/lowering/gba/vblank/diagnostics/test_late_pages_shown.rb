@@ -20,10 +20,10 @@ class TestLatePagesShown < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: true, late: late
-      done = var :done, 0
+      done = 0
       game_loop do
         clear_screen :gray
-        repeat(work) { done.add! 1 }
+        repeat(work) { done += 1 }
       end
     end
     b.finalize_program

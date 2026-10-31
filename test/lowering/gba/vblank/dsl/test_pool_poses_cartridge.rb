@@ -26,9 +26,11 @@ class TestPoolPosesCartridge < Minitest::Test
     prog = pool_program(facing: { left: :left1, right: :right1 }) do |b, guards|
       guards.spawn x: 20, y: 20
       guards.spawn x: 60, y: 20
-      b.game_loop do
-        b.wait_vblank
-        guards.each { |g| (g.x == 20).then { g.face :left }.else { g.face :right } }
+      b.instance_eval do
+        game_loop do
+          wait_vblank
+          guards.each { |g| if g.x == 20 then g.face :left else g.face :right end }
+        end
       end
     end
 

@@ -138,9 +138,9 @@ class TestNamedSprites < Minitest::Test
       screen :tiled
       image(:bullet, "#" => :white) { SOLID_TILE }
       shots = pool :shot, x: 0, y: 0, capacity: 8, image: :bullet
-      fired = var :fired, 0
+      fired = 0
       game_loop do
-        (fired == 0).then do
+        if fired == 0
           shots.spawn(x: 20, y: 30)
           shots.spawn(x: 60, y: 30)
           fired = 1
@@ -224,9 +224,9 @@ class TestNamedSprites < Minitest::Test
       screen :tiled
       image(:bullet, "#" => :white) { SOLID_TILE }
       shots = pool :shot, x: 0, y: 0, capacity: 8, image: :bullet
-      fired = var :fired, 0
+      fired = 0
       game_loop do
-        (fired == 0).then do
+        if fired == 0
           shots.spawn(x: 20, y: 30)
           shots.spawn(x: 60, y: 30)
           fired = 1

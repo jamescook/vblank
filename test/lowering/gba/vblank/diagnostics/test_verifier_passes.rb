@@ -23,8 +23,8 @@ class TestVerifierPasses < Minitest::Test
     VBlank.build("PASSES", console: :gba, validate: false, out: nil, err: nil) do
       screen :bitmap
       clear_screen :black
-      passes = var :passes, 0
-      game_loop { passes.add! 1 }
+      passes = 0
+      game_loop { passes += 1 }
     end
   end
 
@@ -33,7 +33,7 @@ class TestVerifierPasses < Minitest::Test
   private def overrunning_rom
     VBlank.build("HEAVY", console: :gba, validate: false, out: nil, err: nil) do
       screen :bitmap
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         repeat(40) { clear_screen :blue }
         passes += 1
@@ -74,8 +74,8 @@ class TestVerifierPasses < Minitest::Test
     rom = VBlank.build("SLOWMEM", console: :gba, validate: false, fast_code: false, out: nil, err: nil) do
       screen :bitmap
       clear_screen :black
-      passes = var :passes, 0
-      game_loop { passes.add! 1 }
+      passes = 0
+      game_loop { passes += 1 }
     end
     v = assert_emulator_loads_rom(rom, frames: 10, vars: rom.var_addresses, count_passes: true)
 
@@ -86,7 +86,7 @@ class TestVerifierPasses < Minitest::Test
   def test_a_heavy_loop_left_in_the_cartridge_is_counted_the_same
     rom = VBlank.build("SLOWHEAVY", console: :gba, validate: false, fast_code: false, out: nil, err: nil) do
       screen :bitmap
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         repeat(40) { clear_screen :blue }
         passes += 1
@@ -103,7 +103,7 @@ class TestVerifierPasses < Minitest::Test
     rom = VBlank.build("MANUAL", console: :gba, validate: false, frame_sync: :manual, out: nil, err: nil) do
       screen :bitmap
       clear_screen :black
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         wait_vblank
         passes += 1

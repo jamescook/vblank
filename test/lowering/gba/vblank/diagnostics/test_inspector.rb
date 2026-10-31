@@ -339,21 +339,22 @@ class TestInspector < Minitest::Test
 
   def test_no_unknown_instructions_in_pong
     rom = VBlank.build("PONG", console: :gba, code: "BPNG", maker: "01", validate: false, out: nil, err: nil) do
+      player_y = 0
       screen :bitmap
-      set! :state, 0
+      state = 0
       scene :title do
         clear_screen :black
         draw_text "HI", 100, 76, :white
         if_pressed :start do
-          set! :state, 1
+          state = 1
         end
       end
       scene :playing do
         clear_screen :blue
         if_held :up do
-          sub! :player_y, 2
+          player_y -= 2
         end
-        add! :player_y, 1
+        player_y += 1
         clamp! :player_y, 0, 136
         draw_rect_at 8, :player_y, 4, 24, :white
       end
@@ -386,8 +387,9 @@ class TestInspector < Minitest::Test
   def test_dump_func_prints_output
     out = StringIO.new
     VBlank.build("TEST", console: :gba, code: "BTST", maker: "01", validate: false, out: out, err: nil) do
+      x = 0
       func :my_func do
-        set! :x, 42
+        x = 42
       end
       dump_func :my_func
       halt
@@ -401,8 +403,9 @@ class TestInspector < Minitest::Test
   def test_dump_func_works_with_scene_name
     out = StringIO.new
     VBlank.build("TEST", console: :gba, code: "BTST", maker: "01", validate: false, out: out, err: nil) do
+      x = 0
       scene :title do
-        set! :x, 1
+        x = 1
       end
       dump_func :title
       halt
@@ -418,7 +421,8 @@ class TestInspector < Minitest::Test
   def test_dump_func_shows_a_number_table_as_numbers
     out = StringIO.new
     VBlank.build("TEST", console: :gba, validate: false, out: out, err: nil) do
-      func(:my_func, fast: true) { set! :x, 0x12345678 }
+      x = 0
+      func(:my_func, fast: true) { x = 0x12345678 }
       dump_func :my_func
       game_loop { call :my_func }
     end

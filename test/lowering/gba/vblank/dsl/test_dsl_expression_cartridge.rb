@@ -15,8 +15,8 @@ class TestDSLExpressionCartridge < Minitest::Test
       screen :bitmap
       clear_screen :black
       x = var :x, 5
-      (x > 3).then { pixel 10, 10, :red }
-      (x < 3).then { pixel 20, 20, :blue }
+      pixel 10, 10, :red if x > 3
+      pixel 20, 20, :blue if x < 3
       halt
     end
     v = assert_emulator_loads_rom(rom)
@@ -29,7 +29,11 @@ class TestDSLExpressionCartridge < Minitest::Test
       screen :bitmap
       clear_screen :black
       x = var :x, 5
-      ((x > 1) & (x < 9)).then { pixel 10, 10, :red }.else { pixel 20, 20, :blue }
+      if x > 1 && x < 9
+        pixel 10, 10, :red
+      else
+        pixel 20, 20, :blue
+      end
       halt
     end
     v = assert_emulator_loads_rom(rom)

@@ -17,10 +17,12 @@ class TestFullCollections < Minitest::Test
 
   # A list of four that can hold 448, each item +divides+ divides.
   def heavy_list(game, name = :xs, divides: 12)
-    xs = game.list name, capacity: 448
-    total = game.var :total, 0
-    4.times { |i| xs.push i }
-    -> { xs.each { |x| game.repeat(divides) { total.add!((x * 7) / (total + 3)) } } }
+    game.instance_eval do
+      xs = list name, capacity: 448
+      total = 0
+      4.times { |i| xs.push i }
+      -> { xs.each { |x| repeat(divides) { total += (x * 7) / (total + 3) } } }
+    end
   end
 
   def test_two_that_fall_behind_only_together_are_named_and_one_never_walked_is_not
@@ -60,9 +62,9 @@ class TestFullCollections < Minitest::Test
     rom = build do
       screen :bitmap
       sparks = pool :spark, x: 0, capacity: 64
-      total = var :total, 0
+      total = 0
       2.times { sparks.spawn(x: 1) }
-      game_loop { sparks.each { |s| repeat(60) { total.add!((s.x * 7) / (total + 3)) } } }
+      game_loop { sparks.each { |s| repeat(60) { total += (s.x * 7) / (total + 3) } } }
     end
 
     assert_equal [["pool :spark"]], growths(rom).map { |growth| growth.collections.map(&:label) }
@@ -74,7 +76,7 @@ class TestFullCollections < Minitest::Test
       screen :bitmap
       walk = helper.heavy_list(self)
       ys = list :ys, capacity: 448
-      count = var :count, 0
+      count = 0
       game_loop do
         walk.call
         count = ys.length
@@ -90,10 +92,11 @@ class TestFullCollections < Minitest::Test
   def test_a_scene_is_named_and_a_scene_without_the_walk_is_not
     helper = self
     rom = build do
+      total = 0
       screen :bitmap
       walk = helper.heavy_list(self)
       var :state, 0
-      scene(:title) { add! :total, 1 }
+      scene(:title) { total += 1 }
       scene(:playing) { walk.call }
       game_loop do
         case_var(:state) do
@@ -110,8 +113,8 @@ class TestFullCollections < Minitest::Test
     rom = build do
       screen :bitmap
       xs = list :xs, capacity: 16
-      total = var :total, 0
-      game_loop { xs.each { |x| total.add! x } }
+      total = 0
+      game_loop { xs.each { |x| total += x } }
     end
 
     assert_empty growths(rom)

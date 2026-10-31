@@ -31,9 +31,9 @@ class TestScrollTearing < Minitest::Test
       tiles :stripes, "R" => :red_t, "B" => :blue_t
       bg = background :field, tiles: :stripes,
                               map: Array.new(32) { (0...32).map { |c| c.even? ? "R" : "B" }.join }
-      x = var :x, 0
+      x = 0
       game_loop do
-        repeat(work) { add! :x, 0 } if work.positive?
+        repeat(work) { x += 0 } if work.positive?
         x += 8
         bg.scroll_to x, 0
       end
@@ -78,7 +78,7 @@ class TestScrollTearing < Minitest::Test
       tiles :field, "B" => :blue_t, "G" => :green_t
       map = Array.new(32) { |r| (0...32).map { |c| r == 5 && c == 5 ? "G" : "B" }.join }
       bg = background :world, tiles: :field, map: map
-      x = var :x, 0
+      x = 0
       game_loop do
         if held(:right)
           x += 4

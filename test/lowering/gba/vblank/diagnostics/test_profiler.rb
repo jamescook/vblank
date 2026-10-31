@@ -18,12 +18,12 @@ class TestProfiler < Minitest::Test
     VBlank.build("PROF", console: :gba, code: "PROF", maker: "01", err: nil) do
       screen :bitmap
       clear_screen :black
-      var :x, 0
-      var :y, 0
+      x = 0
+      y = 0
 
-      func(:the_hot_one) { repeat(2000) { add! :x, 1 } }
-      func(:the_cold_one) { add! :y, 1 }
-      func(:never_reached) { repeat(2000) { add! :y, 1 } }
+      func(:the_hot_one) { repeat(2000) { x += 1 } }
+      func(:the_cold_one) { y += 1 }
+      func(:never_reached) { repeat(2000) { y += 1 } }
 
       game_loop do
         call :the_hot_one
@@ -92,8 +92,8 @@ class TestProfiler < Minitest::Test
     game = VBlank.build("PHLD", console: :gba, code: "PHLD", maker: "01", out: nil, err: nil) do
       screen :bitmap
       clear_screen :black
-      var :x, 0
-      func(:only_while_held) { repeat(2000) { add! :x, 1 } }
+      x = 0
+      func(:only_while_held) { repeat(2000) { x += 1 } }
       game_loop { call :only_while_held if held(:left) }
     end
 
@@ -111,9 +111,9 @@ class TestProfiler < Minitest::Test
   def test_the_time_a_copy_takes_is_charged_to_the_routine_that_starts_it
     game = VBlank.build("PCPY", console: :gba, err: nil) do
       screen :bitmap
-      var :x, 0
+      x = 0
       func(:the_clear) { clear_screen :black }
-      func(:the_sums) { repeat(200) { add! :x, 1 } }
+      func(:the_sums) { repeat(200) { x += 1 } }
       game_loop do
         call :the_clear
         call :the_sums
@@ -141,10 +141,10 @@ class TestProfiler < Minitest::Test
     VBlank.build("PLIN", console: :gba, err: nil) do
       extend VBlank::Builder::Debug
       screen :bitmap
-      var :spin, 0
+      spin = 0
       game_loop do
-        repeat(100_000, stop_when: read_scanline < 160) { add! :spin, 1 }
-        repeat(100_000, stop_when: read_scanline >= line) { add! :spin, 1 }
+        repeat(100_000, stop_when: read_scanline < 160) { spin += 1 }
+        repeat(100_000, stop_when: read_scanline >= line) { spin += 1 }
       end
     end
   end
@@ -202,10 +202,10 @@ class TestProfiler < Minitest::Test
     VBlank.build("PPON", console: :gba, err: nil) do
       extend VBlank::Builder::Debug
       screen :bitmap
-      var :spin, 0
+      spin = 0
       [0, *lines].each_cons(2) do |before, line|
-        repeat(100_000, stop_when: read_scanline < 160) { add! :spin, 1 } if line < before
-        repeat(100_000, stop_when: read_scanline >= line) { add! :spin, 1 }
+        repeat(100_000, stop_when: read_scanline < 160) { spin += 1 } if line < before
+        repeat(100_000, stop_when: read_scanline >= line) { spin += 1 }
       end
       game_loop {}
     end
@@ -300,8 +300,8 @@ class TestProfiler < Minitest::Test
       screen :bitmap
       held = list :held, capacity: 2000
       repeat(2000) { held.push 1 }
-      var :x, 0
-      repeat(2000) { add! :x, 1 }
+      x = 0
+      repeat(2000) { x += 1 }
       game_loop {}
     end
     result = game.profile(out: StringIO.new, frames: 5, settle: 0)
@@ -325,11 +325,11 @@ class TestProfiler < Minitest::Test
       screen :bitmap
       clear_screen :black
       var :state, 0
-      var :x, 0
+      x = 0
 
-      scene(:title) { add! :x, 1 }
+      scene(:title) { x += 1 }
       scene(:playing) { call :the_work }
-      func(:the_work) { repeat(2000) { add! :x, 1 } }
+      func(:the_work) { repeat(2000) { x += 1 } }
 
       game_loop do
         case_var(:state) do
@@ -358,12 +358,12 @@ class TestProfiler < Minitest::Test
     rom = VBlank.build("PHLD2", console: :gba, code: "PHL2", maker: "01", out: nil, err: nil) do
       screen :bitmap
       clear_screen :black
-      var :state, 1
-      var :x, 0
+      state = 1
+      x = 0
 
-      scene(:busy) { call :the_work; set! :state, 2 } # leaves immediately
-      scene(:idle) { add! :x, 1 }
-      func(:the_work) { repeat(2000) { add! :x, 1 } }
+      scene(:busy) { call :the_work; state = 2 } # leaves immediately
+      scene(:idle) { x += 1 }
+      func(:the_work) { repeat(2000) { x += 1 } }
 
       game_loop do
         case_var(:state) do
@@ -395,11 +395,11 @@ class TestProfiler < Minitest::Test
   def test_a_game_that_draws_more_than_fits_is_seen_to_tear
     heavy = VBlank.build("PTER", console: :gba, code: "PTER", maker: "01", out: nil, err: nil) do
       screen :bitmap
-      var :x, 0
+      x = 0
       game_loop do
         clear_screen :black
         6.times { |i| fill_rect 0, i * 24, 240, 24, :red }
-        add! :x, 1
+        x += 1
       end
     end
     result = heavy.profile(out: StringIO.new, frames: 10)
@@ -411,8 +411,8 @@ class TestProfiler < Minitest::Test
   def test_a_game_that_keeps_up_is_seen_not_to_tear
     light = VBlank.build("PTEL", console: :gba, code: "PTEL", maker: "01", out: nil, err: nil) do
       screen :bitmap
-      var :x, 0
-      game_loop { fill_rect 0, 0, 8, 8, :red; add! :x, 1 }
+      x = 0
+      game_loop { fill_rect 0, 0, 8, 8, :red; x += 1 }
     end
     result = light.profile(out: StringIO.new, frames: 10)
 
@@ -424,8 +424,8 @@ class TestProfiler < Minitest::Test
   def test_a_screen_that_cannot_tear_reports_nothing_rather_than_no_tear
     buffered = VBlank.build("PTEB", console: :gba, code: "PTEB", maker: "01", out: nil, err: nil) do
       screen :bitmap, tear_free: true
-      var :x, 0
-      game_loop { clear_screen :black; add! :x, 1 }
+      x = 0
+      game_loop { clear_screen :black; x += 1 }
     end
     out = StringIO.new
     result = buffered.profile(out: out, frames: 10)
@@ -444,8 +444,8 @@ class TestProfiler < Minitest::Test
       screen :bitmap
       clear_screen :black
       armed = var :armed, 0
-      var :x, 0
-      func(:the_work) { repeat(2000) { add! :x, bump } }
+      x = 0
+      func(:the_work) { repeat(2000) { x += bump } }
       game_loop { call :the_work if armed == 1 }
     end
   end

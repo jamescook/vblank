@@ -17,10 +17,10 @@ class TestVerifierMemory < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       screen :bitmap
-      set! :answer, ANSWER
-      set! :doubled, 0
-      add! :doubled, :answer
-      add! :doubled, :answer # doubled = 2 * answer
+      answer = var :answer, ANSWER
+      doubled = var :doubled, 0
+      doubled += answer
+      doubled += answer # doubled = 2 * answer
       halt
     end
     builder.finalize_program
@@ -77,10 +77,10 @@ class TestVerifierMemory < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       screen :bitmap
-      var :hurt, 2
-      sub! :hurt, 3
-      var :cold, 0
-      sub! :cold, 40
+      hurt = var :hurt, 2
+      hurt -= 3
+      cold = var :cold, 0
+      cold -= 40
       halt
     end
     builder.finalize_program

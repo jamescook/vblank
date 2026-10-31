@@ -12,7 +12,7 @@ class TestFollowCameraCartridge < Minitest::Test
   # --- and on the console ---
 
   def test_the_world_scrolls_under_a_planted_character_on_the_console
-    prog = walking_game { |hero| held(:right).then { hero.move :right, by: 2 } }
+    prog = walking_game { |hero| hero.move :right, by: 2 if held(:right) }
     rom = VBlank::Cartridge::ROM.assemble(GBA.new.lower(prog), title: "FOLLOW", code: "BFLW", maker: "01")
 
     at_rest = assert_emulator_loads_rom(rom, frames: 4)

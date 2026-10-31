@@ -26,18 +26,18 @@ class TestHandOvers < Minitest::Test
         image(:"art#{n}", width: 64, height: 64, colors: colors, places: Array.new(64 * 64) { random.rand(16) })
       end
       var :state, 0
-      sum = var :sum, 0
+      sum = 0
       scene(:title) {}
       scene(:play, loads_first: loads_first) do
         pictures.times { |n| sprite :"art#{n}", at: [(n % 4) * 60, (n / 4) * 40] }
-        repeat(WORK) { |i| sum.set! sum + (i * 3) } if work_in == :scene
+        repeat(WORK) { |i| sum = sum + (i * 3) } if work_in == :scene
       end
       game_loop do
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
         end
-        repeat(WORK) { |i| sum.set! sum + (i * 3) } if work_in == :loop
+        repeat(WORK) { |i| sum = sum + (i * 3) } if work_in == :loop
       end
     end
   end

@@ -72,8 +72,8 @@ class TestSoundEffectsOnTheAdvanceCartridge < Minitest::Test
   # WHO GIVES WAY ON A FULL MIXER, on both backends: an effect over the song, a song over an
   # effect, and the game's own sound going first.
   def test_the_console_gives_a_voice_to_the_higher_rank_the_way_the_interpreter_does
-    over = game([recorded_hit(68)], tune: chord(16)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
-    under = game([recorded_hit(68)], tune: chord(16, priority: 80)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    over = game([recorded_hit(68)], tune: chord(16)) { |sfx, pass| sfx.play 0 if pass == 10 }
+    under = game([recorded_hit(68)], tune: chord(16, priority: 80)) { |sfx, pass| sfx.play 0 if pass == 10 }
     game_first = game([recorded_hit(68)], tune: chord(15)) do |sfx, pass|
       @piano.play(:G4) if pass == 1
       sfx.play 0 if pass == 10
@@ -100,11 +100,11 @@ class TestSoundEffectsOnTheAdvanceCartridge < Minitest::Test
     fading = game([recorded_hit(68)], tune: chord(16, length: 8, envelope: { release: 1.0 })) do |sfx, pass|
       sfx.play 0 if pass == 12
     end
-    again = game([recorded_hit(68)], tune: chord(16, at: [0, 60])) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    again = game([recorded_hit(68)], tune: chord(16, at: [0, 60])) { |sfx, pass| sfx.play 0 if pass == 10 }
     quiet = Score.new(tempo: 150, priority: 68, length: 60, parts: [Part.new(plays: :piano, notes: [
       Note.new(at: 0, key: :C5), Note.new(at: 10, key: :D5, volume: 0),
     ])])
-    silent = game([quiet], tune: chord(16)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    silent = game([quiet], tune: chord(16)) { |sfx, pass| sfx.play 0 if pass == 10 }
 
     [[fading, 18], [again, 30], [again, 72], [silent, 15], [silent, 27]].each do |program, frames|
       interpreted, console = owners_on_both(program, frames: frames)

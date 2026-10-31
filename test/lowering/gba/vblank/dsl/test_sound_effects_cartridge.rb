@@ -121,7 +121,7 @@ class TestSoundEffectsCartridge < Minitest::Test
     hit_notes = [Note.new(at: 0, key: :C5), Note.new(at: 5, key: :D5)]
     hit = Score.new(tempo: 150, priority: 68, parts: [Part.new(volume: 9, duty: :quarter, notes: hit_notes),
                                                       Part.new(plays: :noise, volume: 9, notes: hit_notes)])
-    program = game([hit], tune: tune) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
+    program = game([hit], tune: tune) { |sfx, pass| sfx.play 0 if pass == 10 }
 
     assert_backends_share_the_voice(program, SONG_TONES)
     assert_backends_share_the_voice(program, NOISE_TONES, channel: 4)
@@ -157,7 +157,7 @@ class TestSoundEffectsCartridge < Minitest::Test
   # The song starting over while an effect sounds leaves the effect's voice alone on the console
   # too.
   def test_the_console_keeps_an_effects_voice_when_the_song_starts_over
-    program = long_note_under_an_effect { |pass| (pass == 15).then { stop_music } }
+    program = long_note_under_an_effect { |pass| stop_music if pass == 15 }
 
     assert_backends_share_the_voice(program, SONG_TONES)
   end
@@ -165,7 +165,7 @@ class TestSoundEffectsCartridge < Minitest::Test
   # ...and a music volume moving while an effect sounds does not start the song's lost note again
   # over it, then or after the effect ends.
   def test_the_console_keeps_an_effects_voice_when_the_music_volume_moves
-    program = long_note_under_an_effect { |pass| (pass == 20).then { music_volume 50 } }
+    program = long_note_under_an_effect { |pass| music_volume 50 if pass == 20 }
 
     assert_backends_share_the_voice(program, SONG_TONES)
   end
@@ -225,7 +225,7 @@ class TestSoundEffectsCartridge < Minitest::Test
         sfx.play 1
       end
     end
-    twice_and_lower = game([cry(72), hurt(64)]) { |sfx, pass| (pass == 3).then { sfx.play 0; sfx.play 0; sfx.play 1 } }
+    twice_and_lower = game([cry(72), hurt(64)]) { |sfx, pass| if pass == 3 then sfx.play 0; sfx.play 0; sfx.play 1 end }
 
     [*together, again_and_lower, twice_and_lower].each { |program| assert_backends_share_both_voices(program) }
   end

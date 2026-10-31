@@ -143,8 +143,8 @@ class TestAddressRegister < Minitest::Test
       screen :bitmap
       a = var :a, 1
       b = var :b, 2
-      c = var :c, 3
-      func(:body) { c.set!(a + b) }
+      c = 3
+      func(:body) { c = a + b }
       game_loop { call :body }
     end
     assert_equal 1, loads, "three variables reached one after another want the base once"
@@ -154,7 +154,7 @@ class TestAddressRegister < Minitest::Test
     loads = base_loads_in(:body) do
       screen :bitmap
       a = var :a, 1
-      b = var :b, 2
+      b = 2
       func(:body) { if a > 0 then b = 1 else b = 2 end }
       game_loop { call :body }
     end
@@ -166,17 +166,17 @@ class TestAddressRegister < Minitest::Test
   def test_a_call_makes_what_follows_it_name_the_base_again
     with_call = base_loads_in(:body) do
       screen :bitmap
-      a = var :a, 1
-      b = var :b, 2
-      func(:bump) { a.add! 1 }
-      func(:body) { a.set! 1; call :bump; b.set! 2 }
+      a = 1
+      b = 2
+      func(:bump) { a += 1 }
+      func(:body) { a = 1; call :bump; b = 2 }
       game_loop { call :body }
     end
     without = base_loads_in(:body) do
       screen :bitmap
-      a = var :a, 1
-      b = var :b, 2
-      func(:body) { a.set! 1; b.set! 2 }
+      a = 1
+      b = 2
+      func(:body) { a = 1; b = 2 }
       game_loop { call :body }
     end
     assert_equal 1, without, "two writes in a row want the base once"
@@ -190,9 +190,9 @@ class TestAddressRegister < Minitest::Test
       screen :bitmap
       a = var :a, 5
       b = var :b, 7
-      c = var :c, 0
-      d = var :d, 0
-      func(:sums) { c.set!(a + b); d.set!(c * a); c.set!(d - b) }
+      c = 0
+      d = 0
+      func(:sums) { c = a + b; d = c * a; c = d - b }
       game_loop { call :sums; halt }
     end
     run = Reference.new.run(program)
@@ -276,8 +276,8 @@ class TestAddressRegister < Minitest::Test
       b.instance_eval do
         screen :bitmap
         xs = list :xs, capacity: 8
-        a = var :a, 1
-        func(:body) { a.set!(xs[0] + a); xs[1] = a }
+        a = 1
+        func(:body) { a = xs[0] + a; xs[1] = a }
         game_loop { call :body }
       end
     }
@@ -341,7 +341,7 @@ class TestAddressRegister < Minitest::Test
       func(:sums) do
         4.times { |k| xs << k + 1 }
         4.times { |k| ys << xs[k] * 2 }
-        4.times { |k| total.set!(total + xs[k] + ys[k]) }
+        4.times { |k| total = total + xs[k] + ys[k] }
       end
       game_loop { call :sums; halt }
     end

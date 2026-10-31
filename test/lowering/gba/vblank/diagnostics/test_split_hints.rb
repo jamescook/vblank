@@ -17,13 +17,13 @@ class TestSplitHints < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       x = var :x, 0
-      y = var :y, 0
+      y = 0
       game_loop do
         if x == 99_999
-          2400.times { x.add! 1 }
+          2400.times { x += 1 }
         end
         busy = __LINE__ + 1
-        repeat(300) { y.add! 1 }
+        repeat(300) { y += 1 }
       end
     end
     builder.finalize_program
@@ -60,7 +60,7 @@ class TestSplitHints < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       x = var :x, 0
-      game_loop { 2400.times { x.add! 1 } if x == 99_999 }
+      game_loop { 2400.times { x += 1 } if x == 99_999 }
     end
     builder.finalize_program
     result = VBlank::Diagnostics::Profiler.run(assemble_rom(builder.program, name: "IDLE"), frames: 10, picture: false)
@@ -92,8 +92,8 @@ class TestSplitHints < Minitest::Test
   def test_a_game_whose_routines_all_fit_gets_no_hint
     builder = Builder.new
     builder.instance_eval do
-      y = var :y, 0
-      game_loop { repeat(300) { y.add! 1 } }
+      y = 0
+      game_loop { repeat(300) { y += 1 } }
     end
     builder.finalize_program
     result = VBlank::Diagnostics::Profiler.run(assemble_rom(builder.program, name: "FITS"), frames: 10, picture: false)

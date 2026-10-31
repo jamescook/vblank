@@ -29,8 +29,8 @@ class TestCheckedBuild < Minitest::Test
   private def counting_game
     checked_cartridge do
       screen :bitmap
-      count = var :count, 0
-      game_loop { count.add! 1 }
+      count = 0
+      game_loop { count += 1 }
     end
   end
 
@@ -65,8 +65,8 @@ class TestCheckedBuild < Minitest::Test
       screen :bitmap
       items = list :items, capacity: 8
       3.times { |n| items.push n }
-      count = var :count, 0
-      seen = var :seen, 0
+      count = 0
+      seen = 0
       game_loop do
         count += 1
         seen = items[count + 2] if count == 3
