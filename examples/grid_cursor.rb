@@ -21,7 +21,7 @@ module GridCursor
 
   # The game as a block the builder runs, so a test can drive the exact program
   # that ships — the headless interpreter runs THIS, the console runs the ROM.
-  GAME = VBlank.game("GRIDCURS", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("GRIDCURS", consoles: %i[gba snes]) do
     screen :bitmap
     clear_screen :black
 
@@ -44,15 +44,15 @@ module GridCursor
       # land on. Two cells change and the picture never tears.
       step = proc do |axis, delta, last|
         board.clear_cell cx, cy
-        axis.add! delta
+        axis += delta
         axis.clamp! 0, last
         board.set_cell cx, cy, :cyan
       end
 
-      pressed(:left).then  { step.call(cx, -1, cols - 1) }
-      pressed(:right).then { step.call(cx,  1, cols - 1) }
-      pressed(:up).then    { step.call(cy, -1, rows - 1) }
-      pressed(:down).then  { step.call(cy,  1, rows - 1) }
+      step.call(cx, -1, cols - 1) if pressed(:left)
+      step.call(cx,  1, cols - 1) if pressed(:right)
+      step.call(cy, -1, rows - 1) if pressed(:up)
+      step.call(cy,  1, rows - 1) if pressed(:down)
     end
   end
 

@@ -84,7 +84,7 @@ module PongGBC
   NORMAL       = "NORMAL" # ...and its two rows
   HARD         = "HARD"
 
-  GAME = VBlank.game("PONG", consoles: %i[gbc]) do
+  GAME = VBlank.new_dsl("PONG", consoles: %i[gbc]) do
     screen :bitmap
     enable_sound
 
@@ -154,22 +154,22 @@ module PongGBC
     # --- Subroutines ---
 
     func :reset_ball do
-      ball_x.set! ball_start[0]
-      ball_y.set! ball_start[1]
+      ball_x = ball_start[0]
+      ball_y = ball_start[1]
       ball_dx.flip! # reverse horizontal direction
     end
 
     func :reset_game do
-      player_score.set! 0
-      cpu_score.set! 0
-      player_y.set! paddle_start
-      cpu_y.set! paddle_start.to_f
-      ball_dx.set! BALL_SPEED
-      ball_dy.set! BALL_SPEED
-      ball_x.set! ball_start[0]
-      ball_y.set! ball_start[1]
+      player_score = 0
+      cpu_score = 0
+      player_y = paddle_start
+      cpu_y = paddle_start.to_f
+      ball_dx = BALL_SPEED
+      ball_dy = BALL_SPEED
+      ball_x = ball_start[0]
+      ball_y = ball_start[1]
       fade_music_in     # the last game faded its music out; this one brings it up again
-      state.set! 1
+      state = 1
     end
 
     func :update_cpu do
@@ -185,17 +185,17 @@ module PongGBC
 
     func :update_ball do
       # Move ball
-      ball_x.add! ball_dx
-      ball_y.add! ball_dy
+      ball_x += ball_dx
+      ball_y += ball_dy
 
       # Bounce off top wall
-      (ball_y <= 0).then do
+      if ball_y <= 0
         ball_dy.abs!
         beep :wall_bounce
       end
 
       # Bounce off bottom wall
-      (ball_y >= height - BALL_SIZE).then do
+      if ball_y >= height - BALL_SIZE
         ball_dy.negate_abs!
         beep :wall_bounce
       end
@@ -210,23 +210,23 @@ module PongGBC
       player_pad = box(LEFT_X, player_y, PADDLE_W, PADDLE_H)
       cpu_pad    = box(right_x, cpu_y.to_i, PADDLE_W, PADDLE_H)
 
-      ball.overlaps?(player_pad).then do
+      if ball.overlaps?(player_pad)
         ball_dx.abs! # bounce right
         beep :paddle_hit
       end
 
       # The CPU tops out at CPU_SPEED, slower than the ball, so a fast diagonal can
       # leave it behind and let the player score.
-      ball.overlaps?(cpu_pad).then do
+      if ball.overlaps?(cpu_pad)
         ball_dx.negate_abs! # bounce left
         beep :paddle_hit
       end
 
       # Score: ball went off left edge — you just let one past, so the screen stings red.
-      (ball_x <= 0).then do
-        cpu_score.add! 1
-        (cpu_score >= WIN_SCORE).then do
-          state.set! 3
+      if ball_x <= 0
+        cpu_score += 1
+        if cpu_score >= WIN_SCORE
+          state = 3
           fade_music_out
         end
         beep :point
@@ -235,10 +235,10 @@ module PongGBC
       end
 
       # Score: ball went off right edge
-      (ball_x >= width).then do
-        player_score.add! 1
-        (player_score >= WIN_SCORE).then do
-          state.set! 2
+      if ball_x >= width
+        player_score += 1
+        if player_score >= WIN_SCORE
+          state = 2
           fade_music_out
         end
         beep :point
@@ -288,8 +288,8 @@ module PongGBC
       clear_screen :black
 
       # Input
-      held(:up).then   { player_y.sub! PADDLE_SPEED }
-      held(:down).then { player_y.add! PADDLE_SPEED }
+      player_y -= PADDLE_SPEED if held(:up)
+      player_y += PADDLE_SPEED if held(:down)
       player_y.clamp! 0, height - PADDLE_H
 
       # Update
@@ -309,7 +309,11 @@ module PongGBC
       draw_number cpu_score, :left, 8, :white, digits: 1, within: (net_x + SCORE_GAP)...width
 
       # Background music, unless it was turned off on the title screen.
-      (music_on == 1).then { play_song :gameplay }.else { stop_music }
+      if music_on == 1
+        play_song :gameplay
+      else
+        stop_music
+      end
     end
 
     # How hard the game is, on a screen of its own. Two rows and a cursor that opens on the
@@ -342,26 +346,26 @@ module PongGBC
     # `stop_music` with nothing playing does nothing at all.
     scene :player_wins do
       clear_screen :black
-      (music_volume == 0).then { stop_music }
+      stop_music if music_volume == 0
       draw_text "YOU WIN!", :center, 60, :white
       draw_text "PRESS START", :center, 100, :gray
 
       # Leaving before the fade is over stops the song there, so the next game starts it again.
-      pressed(:start).then do
+      if pressed(:start)
         stop_music
-        state.set! 0
+        state = 0
       end
     end
 
     scene :cpu_wins do
       clear_screen :black
-      (music_volume == 0).then { stop_music }
+      stop_music if music_volume == 0
       draw_text "GAME OVER", :center, 60, :white
       draw_text "PRESS START", :center, 100, :gray
 
-      pressed(:start).then do
+      if pressed(:start)
         stop_music
-        state.set! 0
+        state = 0
       end
     end
 

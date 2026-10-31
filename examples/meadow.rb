@@ -103,7 +103,7 @@ module Meadow
   INSIDE_DOOR = [(14 * 8), (19 * 8) - HERO - 12].freeze
   OUTSIDE_DOOR = [(53 * 8), (46 * 8) + 4].freeze
 
-  GAME = VBlank.game("MEADOW", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("MEADOW", consoles: %i[gba]) do
     screen :tiled
 
     # The picture, back to front. Naming the layers is what lets the door say where its
@@ -264,8 +264,11 @@ module Meadow
 
     # The room's name, in the corner. A test around the words says when each shows.
     layer :words do
-      (room == 0).then { draw_text "CABIN", 8, 8, :white }
-                 .else { draw_text "MEADOW", 8, 8, :white }
+      if room == 0
+        draw_text "CABIN", 8, 8, :white
+      else
+        draw_text "MEADOW", 8, 8, :white
+      end
     end
 
     x = var :hero_x, 112 # where the hero stands in the room, in the room's own pixels
@@ -277,20 +280,20 @@ module Meadow
 
     game_loop do
       # The hero walks, and can step into a door, only while he is not already in one.
-      (in_door == 0).then do
-        held(:left).then  { x.sub! SPEED }
-        held(:right).then { x.add! SPEED }
-        held(:up).then    { y.sub! SPEED }
-        held(:down).then  { y.add! SPEED }
+      if in_door == 0
+        x -= SPEED if held(:left)
+        x += SPEED if held(:right)
+        y -= SPEED if held(:up)
+        y += SPEED if held(:down)
         x.clamp! 0, widest
         y.clamp! 0, deepest
 
         # Down into the cabin door, or up into the cabin's door in the meadow: he stops
         # there and the picture starts to break up. The room is not swapped yet.
-        way_out = (room == 0) & (y >= deepest - 8) & (x >= (14 * 8) - 8) & (x <= 15 * 8)
-        way_in = (room == 1) & (y <= (46 * 8) - 4) & (x >= (53 * 8) - 8) & (x <= 54 * 8)
-        (way_out | way_in).then do
-          in_door.set! 1
+        way_out = room == 0 && y >= deepest - 8 && (x >= (14 * 8) - 8) && x <= 15 * 8
+        way_in = room == 1 && (y <= (46 * 8) - 4) && (x >= (53 * 8) - 8) && x <= 54 * 8
+        if way_out || way_in
+          in_door = 1
           pixelate_out frames: DOOR_FRAMES, under: :words
         end
       end
@@ -302,28 +305,28 @@ module Meadow
       # `in_door` is in the test because the size reads the biggest twice, on the old
       # room's last frame and on the new room's first. Without it the second reading
       # would swap the rooms straight back.
-      ((in_door == 1) & (pixelate_size == BIGGEST_BLOCK)).then do
-        (room == 0).then do
-          room.set! 1
-          x.set! OUTSIDE_DOOR[0]
-          y.set! OUTSIDE_DOOR[1]
-          widest.set! (COLS * 8) - HERO
-          deepest.set! (ROWS * 8) - HERO
-        end.else do
-          room.set! 0
-          x.set! INSIDE_DOOR[0]
-          y.set! INSIDE_DOOR[1]
-          widest.set! 240 - HERO
-          deepest.set! 160 - HERO
+      if in_door == 1 && pixelate_size == BIGGEST_BLOCK
+        if room == 0
+          room = 1
+          x = OUTSIDE_DOOR[0]
+          y = OUTSIDE_DOOR[1]
+          widest = (COLS * 8) - HERO
+          deepest = (ROWS * 8) - HERO
+        else
+          room = 0
+          x = INSIDE_DOOR[0]
+          y = INSIDE_DOOR[1]
+          widest = 240 - HERO
+          deepest = 160 - HERO
         end
-        in_door.set! 0
+        in_door = 0
         pixelate_in
       end
 
       # The view keeps the hero in the middle of the screen, and stops at the room's
       # edges: past them there is nothing to show.
-      view_x.set! x - (120 - (HERO / 2))
-      view_y.set! y - (80 - (HERO / 2))
+      view_x = x - (120 - (HERO / 2))
+      view_y = y - (80 - (HERO / 2))
       view_x.clamp! 0, widest + HERO - 240
       view_y.clamp! 0, deepest + HERO - 160
 

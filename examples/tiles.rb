@@ -38,7 +38,7 @@
 require_relative "../lib/vblank"
 
 module Tiles
-  GAME = VBlank.game("TILES", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("TILES", consoles: %i[gba snes]) do
     screen :tiled # tile mode: the console draws the background layer from tiles + a map
 
   # Four 8x8 tiles, hand-drawn like any other image. A second character in each
@@ -175,14 +175,14 @@ module Tiles
     # Which room you are in. `show_map` is given the number rather than a name here,
     # because that is the shape a game with a lot of rooms has: the room number IS the
     # map number, and walking is arithmetic on it.
-    where = var :where, 0
+    where = 0
 
     game_loop do
-      pressed(:a).then { room.set_tile door_col, door_row, "." }
-      pressed(:b).then { room.set_tile door_col, door_row, "#" }
+      room.set_tile door_col, door_row, "." if pressed(:a)
+      room.set_tile door_col, door_row, "#" if pressed(:b)
 
-      pressed(:right).then { where.add! 1 }
-      pressed(:left).then { where.sub! 1 }
+      where += 1 if pressed(:right)
+      where -= 1 if pressed(:left)
       where.clamp! 0, room.map_count - 1
       room.show_map where
     end

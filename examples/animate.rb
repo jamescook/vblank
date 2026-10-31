@@ -45,7 +45,7 @@ module Animate
 
   FRAMES = SPIN.each_index.map { |k| :"coin#{k}" }.freeze
 
-  GAME = VBlank.game("ANIMATE", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("ANIMATE", consoles: %i[gba snes]) do
     screen :bitmap
     clear_screen rgb(0, 0, 8) # a dark blue field
 
@@ -57,10 +57,10 @@ module Animate
 
     game_loop do
       # Steer it while it spins — animation and movement are independent.
-      held(:left).then  { coin.move :left,  by: SPEED }
-      held(:right).then { coin.move :right, by: SPEED }
-      held(:up).then    { coin.move :up,    by: SPEED }
-      held(:down).then  { coin.move :down,  by: SPEED }
+      coin.move :left,  by: SPEED if held(:left)
+      coin.move :right, by: SPEED if held(:right)
+      coin.move :up,    by: SPEED if held(:up)
+      coin.move :down,  by: SPEED if held(:down)
       coin.x.clamp! 0, screen_width - SIZE
       coin.y.clamp! 0, screen_height - SIZE
     end

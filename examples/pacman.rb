@@ -133,7 +133,7 @@ module Pacman
 
   # The game as a block the builder runs, so a test can drive the exact program that
   # ships — the headless interpreter runs THIS, the console runs the ROM.
-  GAME = VBlank.game("PACMAN", consoles: %i[gba gbc snes]) do
+  GAME = VBlank.new_dsl("PACMAN", consoles: %i[gba gbc snes]) do
     screen :tiled # tile mode: a background layer for the room + hardware sprites on top
     here = Layout.new(width: screen_width, height: screen_height)
 
@@ -218,10 +218,10 @@ module Pacman
 
     game_loop do
       # Hold a direction: Pac moves that way AND turns to face it — one call each.
-      held(:left).then  { pac.move :left,  by: SPEED }
-      held(:right).then { pac.move :right, by: SPEED }
-      held(:up).then    { pac.move :up,    by: SPEED }
-      held(:down).then  { pac.move :down,  by: SPEED }
+      pac.move :left,  by: SPEED if held(:left)
+      pac.move :right, by: SPEED if held(:right)
+      pac.move :up,    by: SPEED if held(:up)
+      pac.move :down,  by: SPEED if held(:down)
       pac.x.clamp! here.floor_x.min, here.floor_x.max # keep him inside the walls
       pac.y.clamp! here.floor_y.min, here.floor_y.max
 
@@ -229,36 +229,36 @@ module Pacman
       # no boxes: just ask whether they overlap. On a bite, count it, waka, and send
       # the pellet somewhere new on the floor.
       pellets.each do |pellet|
-        pac.overlaps?(pellet).then do
-          eaten.add! 1
+        if pac.overlaps?(pellet)
+          eaten += 1
           beep :waka
           pellet.move_to rand(here.floor_x), rand(here.floor_y)
         end
       end
 
       # The ghost creeps toward Pac each frame.
-      (ghost.x < pac.x).then { ghost.move :right }
-      (ghost.x > pac.x).then { ghost.move :left }
-      (ghost.y < pac.y).then { ghost.move :down }
-      (ghost.y > pac.y).then { ghost.move :up }
+      ghost.move :right if ghost.x < pac.x
+      ghost.move :left if ghost.x > pac.x
+      ghost.move :down if ghost.y < pac.y
+      ghost.move :up if ghost.y > pac.y
 
       # Caught! Buzz, count it, and reset the chase — Pac back to the middle and the
       # ghost back to its corner, so it doesn't sit on top of Pac buzzing every frame.
-      ghost.overlaps?(pac).then do
+      if ghost.overlaps?(pac)
         beep :caught
-        caught.add! 1
+        caught += 1
         pac.move_to(*here.start)
         ghost.move_to(*GHOST_START)
-        stunned.set! 48
+        stunned = 48
       end
 
       # Just caught: Pac blinks, white for four frames and yellow for four, until the
       # count runs out. `showing:` picks from the list by number, and 1 is past its end,
       # which draws him in his own colours.
-      (stunned > 0).then do
-        stunned.sub! 1
+      if stunned > 0
+        stunned -= 1
         pac.draw_with [:flash], showing: (stunned >> 2) & 1
-      end.else do
+      else
         pac.draw_with :own
       end
     end

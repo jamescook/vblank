@@ -110,7 +110,7 @@ module Snake
   # The whole game, as a block the builder runs. Keeping it in one place means the
   # test drives the exact program that ships: the headless interpreter runs THIS to
   # check the game plays without crashing, and the console runs the ROM built from it.
-  GAME = VBlank.game("SNAKE", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("SNAKE", consoles: %i[gba snes]) do
     screen :bitmap
     enable_sound
     here = Layout.new(width: screen_width, height: screen_height)
@@ -165,13 +165,13 @@ module Snake
     func :spawn_food do
       set! :placed, 0
       FOOD_TRIES.times do
-        (placed == 0).then do
+        if placed == 0
           roll :food_x, here.min_col..here.max_col
           roll :food_y, here.min_row..here.max_row
           set! :placed, 1 # assume it's clear...
           repeat(xs.length) do |i|
             # ...unless a body cell is already sitting there.
-            ((xs[i] == :food_x) & (ys[i] == :food_y)).then { set! :placed, 0 }
+            set! :placed, 0 if xs[i] == :food_x && ys[i] == :food_y
           end
         end
       end
@@ -226,7 +226,7 @@ module Snake
       call :spawn_food
       call :draw_board
       set! :state, 1
-      painted.set! 0 # the game-over screen, when it comes, is painted afresh
+      painted = 0 # the game-over screen, when it comes, is painted afresh
     end
 
     # Advance the snake one cell: commit the buffered turn, work out the new head,
@@ -240,19 +240,19 @@ module Snake
       # Would the new head land on a cell the body already occupies?
       set! :self_hit, 0
       repeat(xs.length) do |i|
-        ((xs[i] == :hx) & (ys[i] == :hy)).then { set! :self_hit, 1 }
+        set! :self_hit, 1 if xs[i] == :hx && ys[i] == :hy
       end
 
       # Game over if we hit a wall or ourselves. (Landing on the very last tail
       # cell counts too — the simplest "don't touch yourself at all" rule.)
-      dead = (hx < here.min_col) | (hx > here.max_col) | (hy < here.min_row) | (hy > here.max_row) | (self_hit == 1)
-      dead.then do
+      dead = hx < here.min_col || hx > here.max_col || hy < here.min_row || hy > here.max_row || self_hit == 1
+      if dead
         set! :state, 2
         beep :die
         # Record a new best. Setting a save_var writes it through to save memory
         # automatically, so the high score is kept even after the power goes off.
-        (score > high).then { high.set! score }
-      end.else do
+        high = score if score > high
+      else
         # The current head is about to become a body segment — repaint it green.
         board.set_cell xs.last, ys.last, :green
         # Remember the tail cell before we might drop it, so we can erase it.
@@ -263,13 +263,13 @@ module Snake
         ys.push :hy
         board.set_cell hx, hy, :white
         # Eat (keep the tail, so we're one longer) or slide (drop and erase it).
-        ((hx == food_x) & (hy == food_y)).then do
-          score.add! 1
+        if hx == food_x && hy == food_y
+          score += 1
           beep :eat
           call :spawn_food
           call :draw_food
           call :draw_score
-        end.else do
+        else
           xs.shift
           ys.shift
           board.clear_cell tail_x, tail_y
@@ -288,44 +288,68 @@ module Snake
     { title_prompt: 96, game_over_prompt: 110 }.each do |name, y|
       func name do
         dma_fill_rect (here.width - prompt_w) / 2, y, prompt_w, PROMPT_H, :black
-        (blink == 1).then { draw_text "PRESS START", :center, y, :gray }
+        draw_text "PRESS START", :center, y, :gray if blink == 1
       end
     end
 
     # Flash the prompt named +prompt+ on and off twice a second, painting only its line.
     blink_prompt = lambda do |prompt|
       every(0.5, :seconds) do
-        (blink == 1).then { blink.set! 0 }.else { blink.set! 1 }
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
         call prompt
       end
     end
 
     scene :title do
       # Painted once, as the game arrives here: nothing on it changes but the prompt.
-      (painted == 0).then do
+      if painted == 0
         clear_screen :black
         draw_text "SNAKE", :center, 56, :green
         draw_text "HIGH", :right, 78, :gray, within: here.stat_label
         draw_number :high_score, :left, 78, :white, digits: 3, within: here.stat_number
         call :title_prompt
-        painted.set! 1
+        painted = 1
       end
       blink_prompt.call(:title_prompt)
 
       # Keep stirring the random stream while we wait, so the food layout is decided
       # by the player's reaction time — every game plays out a little differently.
       randomize
-      pressed(:start).then { call :new_game }
+      call :new_game if pressed(:start)
     end
 
     scene :playing do
       # Steer every frame so turns feel responsive, but only remember the turn —
       # step_snake commits it. A turn is accepted only if it's perpendicular to the
       # current heading, so you can't spin 180° straight into your own neck.
-      held(:up).then    { (dy == 0).then { set! :ndx, 0; set! :ndy, -1 } }
-      held(:down).then  { (dy == 0).then { set! :ndx, 0; set! :ndy, 1 } }
-      held(:left).then  { (dx == 0).then { set! :ndx, -1; set! :ndy, 0 } }
-      held(:right).then { (dx == 0).then { set! :ndx, 1; set! :ndy, 0 } }
+      if held(:up)
+        if dy == 0
+          set! :ndx, 0
+          set! :ndy, -1
+        end
+      end
+      if held(:down)
+        if dy == 0
+          set! :ndx, 0
+          set! :ndy, 1
+        end
+      end
+      if held(:left)
+        if dx == 0
+          set! :ndx, -1
+          set! :ndy, 0
+        end
+      end
+      if held(:right)
+        if dx == 0
+          set! :ndx, 1
+          set! :ndy, 0
+        end
+      end
 
       # Move on the beat, not every frame. The board is already on screen from
       # draw_board; step_snake only repaints the handful of cells that change.
@@ -334,7 +358,7 @@ module Snake
 
     scene :game_over do
       # Painted once, as the game arrives here (new_game said it is not painted yet).
-      (painted == 0).then do
+      if painted == 0
         clear_screen :black
         draw_text "GAME OVER", :center, 52, :red
         draw_text "SCORE", :right, 76, :gray, within: here.stat_label
@@ -342,11 +366,11 @@ module Snake
         draw_text "HIGH", :right, 90, :gray, within: here.stat_label
         draw_number :high_score, :left, 90, :white, digits: 3, within: here.stat_number
         call :game_over_prompt
-        painted.set! 1
+        painted = 1
       end
       blink_prompt.call(:game_over_prompt)
 
-      pressed(:start).then { call :new_game }
+      call :new_game if pressed(:start)
     end
 
     # --- Main loop: pick the scene for the current state, every frame ---

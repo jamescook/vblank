@@ -58,7 +58,7 @@ module Piano
   CHORD_HOLD  = 60             # frames the chord stays down before lifting
   RELEASE     = 4             # lift a melody finger this many frames before its note ends
 
-  GAME = VBlank.game("PIANO", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("PIANO", consoles: %i[gba]) do
     # Tiled mode: the console composites the hands and the key-lights as hardware
     # sprites over the keyboard background — no framebuffer, no redraw by hand.
     screen :tiled
@@ -139,7 +139,7 @@ module Piano
        CHORD_KEYS.map { |k| sprite :key_light, at: [k * KEY_W, HILITE_Y], shown: false }]
     end
 
-    seq = var :seq, 0
+    seq = 0
 
     game_loop do
       # --- Right hand: the melody. At each note's start, sound it, press the right
@@ -147,13 +147,13 @@ module Piano
       # (or a repeated) note re-strikes. ---
       cursor = 0
       MELODY.each do |letter, dur|
-        (seq == cursor).then do
+        if seq == cursor
           piano.play(MEL_PITCH[letter])
           rhand.face(MEL_FACE[letter])
           melody_light.move_to(MEL_KEY[letter] * KEY_W, HILITE_Y)
           melody_light.show
         end
-        (seq == cursor + dur - RELEASE).then do
+        if seq == cursor + dur - RELEASE
           rhand.face(:rest)
           melody_light.hide
         end
@@ -165,19 +165,19 @@ module Piano
       # same frame as the melody note, so a downbeat is three voices at once — the
       # two-hand chord — which the mixer holds without any of them cutting out. ---
       (0...total).step(MEASURE).each do |m|
-        (seq == m).then do
+        if seq == m
           piano.play(*CHORD_PITCH)
           lhand.face(:chord)
           chord_lights.each(&:show)
         end
-        (seq == m + CHORD_HOLD).then do
+        if seq == m + CHORD_HOLD
           lhand.face(:rest)
           chord_lights.each(&:hide)
         end
       end
 
-      seq.add! 1
-      (seq >= total).then { seq.set! 0 } # loop the piece
+      seq += 1
+      seq = 0 if seq >= total # loop the piece
     end
   end
 

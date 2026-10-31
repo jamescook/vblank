@@ -50,7 +50,7 @@ module Maze
     "##############################",
   ])
 
-  GAME = VBlank.game("MAZE", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("MAZE", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a background room + a hardware sprite over it
 
     # Two 8x8 tiles: a brick wall and a dark floor. A little texture in each so a run
@@ -104,10 +104,10 @@ module Maze
     game_loop do
       # Hold a direction to walk. Each `move` is checked against the walls for you, so
       # the hero stops at bricks and slides along them instead of passing through.
-      held(:left).then  { hero.move :left,  by: SPEED }
-      held(:right).then { hero.move :right, by: SPEED }
-      held(:up).then    { hero.move :up,    by: SPEED }
-      held(:down).then  { hero.move :down,  by: SPEED }
+      hero.move :left,  by: SPEED if held(:left)
+      hero.move :right, by: SPEED if held(:right)
+      hero.move :up,    by: SPEED if held(:up)
+      hero.move :down,  by: SPEED if held(:down)
     end
   end
 

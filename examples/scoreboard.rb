@@ -56,7 +56,7 @@ module Scoreboard
   BAR = Ractor.make_shareable(["[#{'o' * PIPS}]".ljust(32, "_"), "_" * 32])
   BAR_HEIGHT = 16
 
-  GAME = VBlank.game("SCOREBOARD", consoles: %i[gba gbc snes]) do
+  GAME = VBlank.new_dsl("SCOREBOARD", consoles: %i[gba gbc snes]) do
     screen :tiled
     image(:ball, "#" => :white, "." => :transparent) { BALL }
     image(:dark, "#" => :blue) { SOLID }
@@ -73,22 +73,22 @@ module Scoreboard
     rest = screen_height - BAR_HEIGHT
     bar = status_bar :score, tiles: :bar_tiles, map: BAR, top: rest
     ball = sprite :ball, at: [(screen_width / 2) - 4, screen_height / 2]
-    lit = var :lit, 0
+    lit = 0
 
     game_loop do
       field.scroll_by 0, -1
-      held(:up).then { ball.move :up, by: 2 }
-      held(:down).then { ball.move :down, by: 2 }
+      ball.move :up, by: 2 if held(:up)
+      ball.move :down, by: 2 if held(:down)
       ball.y.clamp! 0, screen_height - 8
 
       # Out of the ball's way while it is low, and back once it has gone.
-      (ball.y > rest - 24).then { bar.move_to (bar.top + 3).clamp(rest, screen_height) }
-      (ball.y <= rest - 24).then { bar.move_to (bar.top - 3).clamp(rest, screen_height) }
+      bar.move_to (bar.top + 3).clamp(rest, screen_height) if ball.y > rest - 24
+      bar.move_to (bar.top - 3).clamp(rest, screen_height) if ball.y <= rest - 24
 
       every(60) do
-        (lit < PIPS).then do
+        if lit < PIPS
           bar.set_tile lit + 1, 0, "#"
-          lit.add! 1
+          lit += 1
         end
       end
     end

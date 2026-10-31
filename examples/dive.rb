@@ -99,7 +99,7 @@ module Dive
   # is always worth it.
   BREATH = 6
 
-  GAME = Ractor.make_shareable(VBlank.game("DIVE", consoles: %i[gba]) do
+  GAME = Ractor.make_shareable(VBlank.new_dsl("DIVE", consoles: %i[gba]) do
     screen :tiled
 
     # The stack, back to front. One line saying what is in front of what, for a picture
@@ -119,7 +119,7 @@ module Dive
     scene :title do
       title = Title.new(self)
       title.update
-      pressed(:start).then { set! :state, PLAY }
+      set! :state, PLAY if pressed(:start)
     end
 
     scene :play do
@@ -134,15 +134,15 @@ module Dive
       # Back to the surface with a full tank, asked for by the title or by the screen the
       # last dive ended on. Neither of those knows what has to be put back, which is the
       # point of asking here.
-      (fresh == 1).then do
-        down.set!(-RISE)
+      if fresh == 1
+        down = -RISE
         diver.reset
         gauge.reset
-        fresh.set! 0
+        fresh = 0
       end
 
-      held(:down).then { down.add! SINK }
-      held(:up).then { down.sub! SINK }
+      down += SINK if held(:down)
+      down -= SINK if held(:up)
       down.clamp!(-RISE, DEEPEST)
 
       # One number, read two ways. The sea scrolls by however much of it is above you,
@@ -151,15 +151,15 @@ module Dive
       #
       # And how far that moved THIS frame, which is what the fish undo to stay where they
       # were in the water while you go past them.
-      sank.set! down.clamp(0, DEEPEST) - depth
-      depth.set! down.clamp(0, DEEPEST)
+      sank = down.clamp(0, DEEPEST) - depth
+      depth = down.clamp(0, DEEPEST)
       sea.follow(depth)
       diver.update(down.clamp(-RISE, 0), sea.surface_on_screen(depth))
       fish.update(sank, sea.surface_on_screen(depth))
 
       gauge.spend 1
-      (down > HARD_WORK).then { gauge.spend 1 }
-      (down < 0).then { gauge.refill BREATH } # breathing, with your head out
+      gauge.spend 1 if down > HARD_WORK
+      gauge.refill BREATH if down < 0 # breathing, with your head out
       gauge.update
 
       # OUT OF AIR. The world goes dark, and the scene waits for it to actually arrive
@@ -173,15 +173,15 @@ module Dive
       # moves the COLOURS instead, which reaches everything that draws from them, so the
       # water goes on showing the diver all the way down into the dark. Ask for a placed
       # one here and the water turns solid until the fade lifts, and the build says so.
-      (gauge.empty? & (blacking_out == 0)).then do
+      if gauge.empty? && blacking_out == 0
         fade_out :black, frames: BLACKOUT
-        blacking_out.set! 1
+        blacking_out = 1
       end
-      (blacking_out == 1).then do
-        (fade_level == 100).then do
+      if blacking_out == 1
+        if fade_level == 100
           set! :state, OVER
           fade_in frames: BLACKOUT
-          blacking_out.set! 0
+          blacking_out = 0
         end
       end
     end
@@ -193,8 +193,8 @@ module Dive
         draw_text "OUT OF AIR", :center, 64, :white
         draw_text "PRESS START", :center, 88, :white, font: :tiny
       end
-      pressed(:start).then do
-        fresh.set! 1
+      if pressed(:start)
+        fresh = 1
         set! :state, PLAY
       end
     end

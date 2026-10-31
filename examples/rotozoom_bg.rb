@@ -32,7 +32,7 @@ module RotozoomBg
   MIN_ZOOM = 0.5
   MAX_ZOOM = 3.0
 
-  GAME = VBlank.game("ROTOZOOM", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("ROTOZOOM", consoles: %i[gba]) do
     screen :rotozoom # the rotate/scale layer, not the plain-scroll one `screen :tiled` gives
 
     image :light, "#" => rgb(20, 20, 26) do
@@ -66,10 +66,10 @@ module RotozoomBg
     }
 
     game_loop do
-      held(:left).then  { board.rotate(board.angle - TURN_SPEED) }
-      held(:right).then { board.rotate(board.angle + TURN_SPEED) }
-      held(:up).then    { board.scale.approach! MAX_ZOOM, ZOOM_STEP }
-      held(:down).then  { board.scale.approach! MIN_ZOOM, ZOOM_STEP }
+      board.rotate(board.angle - TURN_SPEED) if held(:left)
+      board.rotate(board.angle + TURN_SPEED) if held(:right)
+      board.scale.approach! MAX_ZOOM, ZOOM_STEP if held(:up)
+      board.scale.approach! MIN_ZOOM, ZOOM_STEP if held(:down)
     end
   end
 

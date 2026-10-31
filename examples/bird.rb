@@ -32,7 +32,7 @@ module Bird
   FURTHEST = 0.75
   DRIFT_SECONDS = 2.5
 
-  GAME = VBlank.game("BIRD", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("BIRD", consoles: %i[gba]) do
     screen :tiled # tile mode: a background layer for the sky + a hardware sprite for the bird
 
     # A plain sky the bird flies over (one repeated tile).
@@ -49,10 +49,16 @@ module Bird
 
     game_loop do
       bird.face_angle(0) # level unless it's climbing or diving this frame
-      held(:left).then  { bird.move(-SPEED, 0) }
-      held(:right).then { bird.move(SPEED, 0) }
-      held(:up).then    { bird.move(0, -SPEED); bird.face_angle(335) } # climb: tip the nose up
-      held(:down).then  { bird.move(0, SPEED);  bird.face_angle(25) }  # dive: tip the nose down
+      bird.move(-SPEED, 0) if held(:left)
+      bird.move(SPEED, 0) if held(:right)
+      if held(:up) # climb: tip the nose up
+        bird.move(0, -SPEED)
+        bird.face_angle(335)
+      end
+      if held(:down) # dive: tip the nose down
+        bird.move(0, SPEED)
+        bird.face_angle(25)
+      end
       bird.clamp_to_screen # keep the whole bird on screen, using its own size
     end
   end

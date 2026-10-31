@@ -30,7 +30,7 @@ module Level
   HERO  = "assets/hero.png"  # a 4-frame walk-cycle sprite sheet
   MAP   = Ractor.make_shareable("assets/level.csv") # a 30x20 tilemap exported as CSV (1 = brick, 2 = floor)
 
-  GAME = VBlank.game("LEVEL", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("LEVEL", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a background room + a hardware sprite over it
 
     # Import the whole tile sheet as numbered tiles, then read the CSV level straight
@@ -43,10 +43,10 @@ module Level
     hero.blocked_by room
 
     game_loop do
-      held(:left).then  { hero.move :left,  by: SPEED }
-      held(:right).then { hero.move :right, by: SPEED }
-      held(:up).then    { hero.move :up,    by: SPEED }
-      held(:down).then  { hero.move :down,  by: SPEED }
+      hero.move :left,  by: SPEED if held(:left)
+      hero.move :right, by: SPEED if held(:right)
+      hero.move :up,    by: SPEED if held(:up)
+      hero.move :down,  by: SPEED if held(:down)
     end
   end
 

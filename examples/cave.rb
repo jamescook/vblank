@@ -84,7 +84,7 @@ module Cave
   LANTERN_REACH = 36
   CAVE_DARK = 85
 
-  GAME = VBlank.game("CAVE", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("CAVE", consoles: %i[gba]) do
     screen :tiled
 
     image :rock, "#" => rgb(12, 10, 9), "." => rgb(7, 6, 5) do
@@ -164,36 +164,36 @@ module Cave
 
     # 1 while the circle is closing on the way out of one place and into the other — the
     # flag `iris_shut?` is read with, so the scene is swapped once.
-    leaving = var :leaving, 0
+    leaving = 0
 
     game_loop do
-      (leaving == 0).then do
-        held(:left).then { hero.move :left, by: 1 }
-        held(:right).then { hero.move :right, by: 1 }
-        held(:up).then { hero.move :up, by: 1 }
-        held(:down).then { hero.move :down, by: 1 }
+      if leaving == 0
+        hero.move :left, by: 1 if held(:left)
+        hero.move :right, by: 1 if held(:right)
+        hero.move :up, by: 1 if held(:up)
+        hero.move :down, by: 1 if held(:down)
       end
       hero.clamp_to_screen
       lantern.move_to hero.x + 4, hero.y + 4
 
       # Out of the cave mouth, or back in at the meadow's edge: close the circle on the hero.
-      in_cave = (land.showing == land.map_number(:cave))
-      leaving_cave = in_cave & (hero.x >= CAVE_MOUTH_X)
-      entering_cave = (land.showing == land.map_number(:meadow)) & (hero.x <= MEADOW_EDGE_X)
-      ((leaving == 0) & (leaving_cave | entering_cave)).then do
-        leaving.set! 1
+      in_cave = land.showing == land.map_number(:cave)
+      leaving_cave = in_cave && hero.x >= CAVE_MOUTH_X
+      entering_cave = land.showing == land.map_number(:meadow) && hero.x <= MEADOW_EDGE_X
+      if leaving == 0 && (leaving_cave || entering_cave)
+        leaving = 1
         iris_out at: [hero.x + 4, hero.y + 4], frames: 24
       end
 
       # Shut: nobody can see, so put up the other place, stand the hero at its edge, and
       # open the circle onto it — daylight outside, the lantern's dark back in the cave.
-      ((leaving == 1) & iris_shut?).then do
-        leaving.set! 0
-        (land.showing == land.map_number(:cave)).then do
+      if leaving == 1 && iris_shut?
+        leaving = 0
+        if land.showing == land.map_number(:cave)
           land.show_map :meadow
           hero.move_to MEADOW_EDGE_X + 8, hero.y
           iris_in frames: 24, dark: 0
-        end.else do
+        else
           land.show_map :cave
           hero.move_to CAVE_MOUTH_X - 8, CAVE_MOUTH_Y
           iris_in frames: 24, radius: LANTERN_REACH, dark: CAVE_DARK

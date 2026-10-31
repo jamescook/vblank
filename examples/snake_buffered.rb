@@ -68,7 +68,7 @@ module BufferedSnake
   START_CELLS = Ractor.make_shareable([[5, START_ROW], [6, START_ROW], [7, START_ROW], [8, START_ROW]])
   FOOD_TRIES = 8
 
-  GAME = VBlank.game("SNAKEBUF", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("SNAKEBUF", consoles: %i[gba]) do
     screen :bitmap, tear_free: true # <-- the whole difference. Remove it and it tears.
     enable_sound
 
@@ -103,12 +103,12 @@ module BufferedSnake
     func :spawn_food do
       set! :placed, 0
       FOOD_TRIES.times do
-        (placed == 0).then do
+        if placed == 0
           roll :food_x, MIN_COL..MAX_COL
           roll :food_y, MIN_ROW..MAX_ROW
           set! :placed, 1
           repeat(xs.length) do |i|
-            ((xs[i] == :food_x) & (ys[i] == :food_y)).then { set! :placed, 0 }
+            set! :placed, 0 if xs[i] == :food_x && ys[i] == :food_y
           end
         end
       end
@@ -161,21 +161,21 @@ module BufferedSnake
 
       set! :self_hit, 0
       repeat(xs.length) do |i|
-        ((xs[i] == :hx) & (ys[i] == :hy)).then { set! :self_hit, 1 }
+        set! :self_hit, 1 if xs[i] == :hx && ys[i] == :hy
       end
 
-      dead = (hx < MIN_COL) | (hx > MAX_COL) | (hy < MIN_ROW) | (hy > MAX_ROW) | (self_hit == 1)
-      dead.then do
+      dead = hx < MIN_COL || hx > MAX_COL || hy < MIN_ROW || hy > MAX_ROW || self_hit == 1
+      if dead
         set! :state, 2
         beep :die
-      end.else do
+      else
         xs.push :hx
         ys.push :hy
-        ((hx == food_x) & (hy == food_y)).then do
-          score.add! 1
+        if hx == food_x && hy == food_y
+          score += 1
           beep :eat
           call :spawn_food
-        end.else do
+        else
           xs.shift
           ys.shift
         end
@@ -185,17 +185,43 @@ module BufferedSnake
     scene :title do
       clear_screen :black
       draw_text "SNAKE", :center, 56, :green
-      every(0.5, :seconds) { (blink == 1).then { blink.set! 0 }.else { blink.set! 1 } }
-      (blink == 1).then { draw_text "PRESS START", :center, 96, :gray }
+      every(0.5, :seconds) do
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
+      end
+      draw_text "PRESS START", :center, 96, :gray if blink == 1
       randomize
-      pressed(:start).then { call :new_game }
+      call :new_game if pressed(:start)
     end
 
     scene :playing do
-      held(:up).then    { (dy == 0).then { set! :ndx, 0; set! :ndy, -1 } }
-      held(:down).then  { (dy == 0).then { set! :ndx, 0; set! :ndy, 1 } }
-      held(:left).then  { (dx == 0).then { set! :ndx, -1; set! :ndy, 0 } }
-      held(:right).then { (dx == 0).then { set! :ndx, 1; set! :ndy, 0 } }
+      if held(:up)
+        if dy == 0
+          set! :ndx, 0
+          set! :ndy, -1
+        end
+      end
+      if held(:down)
+        if dy == 0
+          set! :ndx, 0
+          set! :ndy, 1
+        end
+      end
+      if held(:left)
+        if dx == 0
+          set! :ndx, -1
+          set! :ndy, 0
+        end
+      end
+      if held(:right)
+        if dx == 0
+          set! :ndx, 1
+          set! :ndy, 0
+        end
+      end
 
       every(STEP) { call :step_snake }
       call :draw_all # repaint the whole board, every frame — safe because buffered
@@ -206,9 +232,15 @@ module BufferedSnake
       draw_text "GAME OVER", :center, 52, :red
       draw_text "SCORE", :right, 80, :gray, within: STAT_LABEL
       draw_number score, :left, 80, :white, digits: 3, within: STAT_NUMBER
-      every(0.5, :seconds) { (blink == 1).then { blink.set! 0 }.else { blink.set! 1 } }
-      (blink == 1).then { draw_text "PRESS START", :center, 110, :gray }
-      pressed(:start).then { call :new_game }
+      every(0.5, :seconds) do
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
+      end
+      draw_text "PRESS START", :center, 110, :gray if blink == 1
+      call :new_game if pressed(:start)
     end
 
     game_loop do

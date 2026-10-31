@@ -83,7 +83,7 @@ module Jukebox
     Note.new(at: 0, key: :G5, length: 4), Note.new(at: 4, key: :C6, length: 4),
   ])]))
 
-  GAME = Ractor.make_shareable(VBlank.game("JUKEBOX", consoles: %i[gba]) do
+  GAME = Ractor.make_shareable(VBlank.new_dsl("JUKEBOX", consoles: %i[gba]) do
     # Double-buffered so the full repaint each frame can't tear: we draw the whole
     # menu to a hidden screen and show it all at once.
     screen :bitmap, tear_free: true
@@ -170,20 +170,25 @@ module Jukebox
     # The tune actually playing, which is not always the one the cursor is on: when the cursor
     # moves, the old tune fades out first, and only once nobody can hear it does this catch up
     # and the new one fade in. `switching` says a switch is waiting for that silence.
-    playing   = var :playing, 0
-    switching = var :switching, 0
+    playing   = 0
+    switching = 0
 
     # Which sound effect was asked for last (1 HOORAY, 2 BLIP), whose name is lit.
-    asked = var :asked, 0
+    asked = 0
 
     game_loop do
       # --- Advance the bobbing blocks: move each by its speed, and reverse (snap
       # to the edge, flip the sign) whenever it reaches the top or bottom. ---
       BARS.each_with_index do |(_x, _y0, spd), i|
-        y = bar_y[i]
         add! :"bar_y#{i}", :"bar_v#{i}"
-        (y >= BAR_BOTTOM).then { y.set! BAR_BOTTOM; set! :"bar_v#{i}", -spd }
-        (y <= BAR_TOP).then    { y.set! BAR_TOP;    set! :"bar_v#{i}",  spd }
+        if bar_y[i] >= BAR_BOTTOM
+          bar_y[i] = BAR_BOTTOM
+          set! :"bar_v#{i}", -spd
+        end
+        if bar_y[i] <= BAR_TOP
+          bar_y[i] = BAR_TOP
+          set! :"bar_v#{i}", spd
+        end
       end
 
       # --- Draw the screen fresh each frame ---
@@ -205,13 +210,13 @@ module Jukebox
       # Moving the cursor fades the music out. A faded-out tune goes on playing silently, so
       # the switch waits until the volume reads nothing, names the new tune while nobody can
       # hear it, and fades that one in. Move again part way and the fade simply turns round.
-      songs.moved.then do
-        switching.set! 1
+      if songs.moved
+        switching = 1
         fade_music_out frames: FADE_FRAMES
       end
-      ((switching == 1) & (music_volume == 0)).then do
-        switching.set! 0
-        playing.set! songs.picked
+      if switching == 1 && music_volume == 0
+        switching = 0
+        playing = songs.picked
         fade_music_in
       end
 
@@ -219,17 +224,25 @@ module Jukebox
       # faded. Naming the tune every frame is fine — it is the tune playing now — and naming a
       # different one starts that one from its first note.
       SONGS.each_with_index do |s, i|
-        (songs.picked == i).then do
+        if songs.picked == i
           BARS.each_with_index { |(bx, _y0, _spd), j| draw_rect_at bx, :"bar_y#{j}", 8, 8, s[:color] }
         end
-        (playing == i).then { s[:name] == :chorale ? chorale.play(0) : play_song(s[:name]) }
+        if playing == i
+          s[:name] == :chorale ? chorale.play(0) : play_song(s[:name])
+        end
       end
 
       # --- The sound effects, over whatever is playing ---
       # Each plays once from the frame after it is asked for. Who is heard when the piano is
       # already using every voice is the priorities' to say, not this code's.
-      pressed(:a).then { sfx.play :hooray; asked.set! 1 }
-      pressed(:b).then { sfx.play :blip; asked.set! 2 }
+      if pressed(:a)
+        sfx.play :hooray
+        asked = 1
+      end
+      if pressed(:b)
+        sfx.play :blip
+        asked = 2
+      end
       draw_text "A HOORAY", 64, EFFECTS_ROW, [:gray, :white], showing: asked == 1
       draw_text "B BLIP", 136, EFFECTS_ROW, [:gray, :white], showing: asked == 2
     end

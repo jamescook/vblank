@@ -105,7 +105,7 @@ module Lake
     end.join
   end)
 
-  GAME = Ractor.make_shareable(VBlank.game("LAKE", consoles: %i[gba snes]) do
+  GAME = Ractor.make_shareable(VBlank.new_dsl("LAKE", consoles: %i[gba snes]) do
     screen :tiled # tile mode: two background layers the console composites for us
 
     # --- the scene above the water ---
@@ -247,7 +247,7 @@ module Lake
     ripple = table :ripple, (0...WAVE_ROWS).map { |i| (Math.sin(i * 2 * Math::PI / WAVE_ROWS) * SWAY).round }
 
     # How far the wave has travelled. Nothing else in the program moves.
-    phase = var :phase, 0
+    phase = 0
 
     # THE EFFECT. Every row of the water layer sits a few pixels left or right of where it
     # was drawn, following the wave. Subtracting the phase makes the pattern travel DOWN
@@ -258,14 +258,14 @@ module Lake
     game_loop do
       # Move the wave along. That is the entire animation — the bend is re-read for every
       # row of every frame, so one variable changing is a whole rippling lake.
-      phase.add! WAVE_SPEED
+      phase += WAVE_SPEED
 
       # ...and the jellyfish drift on it. Each one reads the SAME wave table the water
       # bends by, so they rise and fall on the swell they are floating in.
       jellyfish.each do |jelly, depth, speed|
-        jelly.x.add! speed
-        (jelly.x > SCREEN_W).then { jelly.x.set!(-JELLY_SIZE) }
-        jelly.y.set!(ripple[(jelly.x + phase) % WAVE_ROWS] + depth)
+        jelly.x += speed
+        jelly.x = -JELLY_SIZE if jelly.x > SCREEN_W
+        jelly.y = ripple[(jelly.x + phase) % WAVE_ROWS] + depth
       end
     end
   end)

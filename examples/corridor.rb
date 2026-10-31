@@ -83,7 +83,7 @@ module Corridor
   # sixty rays it ships with the console spends about four fifths of a frame, and at eighty it
   # does not fit at all. A test plays both sides on the console to show it.
   def self.game(name: "CORRIDOR", cols: NUM_COLS, col_w: COL_W)
-    VBlank.game(name, consoles: %i[gba]) do
+    VBlank.new_dsl(name, consoles: %i[gba]) do
       screen :bitmap, tear_free: true # double-buffered: the whole view is repainted each frame
       enable_sound
       define_sound :chime, frequency: 1400, duty: :half, decay: :fast
@@ -130,45 +130,45 @@ module Corridor
           repeat(cols) do |col|
             # Fan the rays across the view: this column looks a little left or right of center,
             # centered on the odd number in between so no ray points exactly straight ahead.
-            ang.set! view
-            ang.add!(col * 2)
-            ang.sub!(cols - 1)
+            ang = view
+            ang += col * 2
+            ang -= cols - 1
 
             # Step vector for this ray. cos(ang) = sin[ang + QUARTER]; a quarter cell per step.
-            dx.set!(sin[ang + QUARTER] * STEP)
-            dy.set!(sin[ang] * STEP)
+            dx = sin[ang + QUARTER] * STEP
+            dy = sin[ang] * STEP
 
-            rx.set! px
-            ry.set! py
-            hit.set! 0
-            dist.set!(STEPS * STEP) # if nothing is hit in range, treat it as far away
+            rx = px
+            ry = py
+            hit = 0
+            dist = STEPS * STEP # if nothing is hit in range, treat it as far away
 
             # March until the ray meets a wall, and stop there. This loop is the frame.
             repeat(STEPS, stop_when: hit == 1) do |step|
-              rx.add! dx
-              ry.add! dy
-              (world[(ry.to_i * MAP_W) + rx.to_i] == 1).then do
-                hit.set! 1
-                dist.set!(step * STEP)
+              rx += dx
+              ry += dy
+              if world[(ry.to_i * MAP_W) + rx.to_i] == 1
+                hit = 1
+                dist = step * STEP
               end
             end
 
             # Correct for the fan, so a flat wall reads flat instead of bowing outward.
-            seen.set!(dist * sin[(col * 2) + (QUARTER - (cols - 1))])
+            seen = dist * sin[(col * 2) + (QUARTER - (cols - 1))]
 
             # The perspective divide: a wall twice as far covers half as much of the view.
-            col_h.set!((WALL_SCALE / (seen + SOFTEN)).to_i)
+            col_h = (WALL_SCALE / (seen + SOFTEN)).to_i
             col_h.clamp! MIN_H, MAX_H
-            top.set! HORIZON
-            top.sub!(col_h / 2)
+            top = HORIZON
+            top -= col_h / 2
 
             # Shade by distance, which is what reads as depth. Exactly one band runs.
-            (dist < 1.5).then do
+            if dist < 1.5
               draw_rect_at((col * col_w), top, col_w, col_h, NEAR)
-            end.else do
-              (dist < 3.0).then do
+            else
+              if dist < 3.0
                 draw_rect_at((col * col_w), top, col_w, col_h, MID)
-              end.else do
+              else
                 draw_rect_at((col * col_w), top, col_w, col_h, FAR)
               end
             end
@@ -177,31 +177,31 @@ module Corridor
 
         # Turning and walking, the same as any first-person game: the step is WALK cells in the
         # direction the player faces, and it is only taken if the cell it lands in is empty.
-        held(:left).then  { view.sub! 4 }
-        held(:right).then { view.add! 4 }
+        view -= 4 if held(:left)
+        view += 4 if held(:right)
 
-        step_x.set!(sin[view + QUARTER] * WALK)
-        step_y.set!(sin[view] * WALK)
-        held(:down).then { step_x.flip! }
-        held(:down).then { step_y.flip! }
+        step_x = sin[view + QUARTER] * WALK
+        step_y = sin[view] * WALK
+        step_x.flip! if held(:down)
+        step_y.flip! if held(:down)
 
-        (held(:up) | held(:down)).then do
-          nx.set! px
-          nx.add! step_x
-          ny.set! py
-          ny.add! step_y
-          (world[(ny.to_i * MAP_W) + nx.to_i] == 0).then do
-            px.set! nx
-            py.set! ny
+        if held(:up) || held(:down)
+          nx = px
+          nx += step_x
+          ny = py
+          ny += step_y
+          if world[(ny.to_i * MAP_W) + nx.to_i] == 0
+            px = nx
+            py = ny
           end
         end
 
         # Gold: if the cell underfoot holds a piece nobody has taken, take it.
-        cell.set!((py.to_i * MAP_W) + px.to_i)
+        cell = (py.to_i * MAP_W) + px.to_i
         repeat(GOLD.length) do |g|
-          ((gold_at[g] == cell) & (taken[g] == 0)).then do
+          if gold_at[g] == cell && taken[g] == 0
             taken[g] = 1
-            score.add! 1
+            score += 1
             beep :chime
           end
         end

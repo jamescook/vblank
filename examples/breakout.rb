@@ -138,7 +138,7 @@ module Breakout
   # On a Game Boy Color the screen is painted into 8×8 squares of four colours each. Every
   # brick row keeps to its own squares but one: the orange and yellow rows meet in one row of
   # squares, which then holds orange, yellow, the white ball and black — four.
-  GAME = VBlank.game("BREAKOUT", consoles: %i[gba gbc]) do
+  GAME = VBlank.new_dsl("BREAKOUT", consoles: %i[gba gbc]) do
     screen :bitmap, tear_free: true # draw to a hidden page, flip when done — no tearing
     layout = Layout.new(width: screen_width, height: screen_height)
     bricks = layout.bricks
@@ -180,23 +180,32 @@ module Breakout
     func :serve do
       copy! :ball_x, :paddle_x
       add! :ball_x, (PADDLE_W - BALL_SIZE) / 2 # centre it over the paddle
-      ball_y.set! layout.paddle_y - BALL_SIZE - 2
-      ball_dx.set! BALL_SPEED
-      ball_dy.set!(-BALL_SPEED)                # up
+      ball_y = layout.paddle_y - BALL_SIZE - 2
+      ball_dx = BALL_SPEED
+      ball_dy = -BALL_SPEED                # up
     end
 
     # Move the ball one step and resolve everything it can hit this frame: the
     # walls, the paddle, the bricks, and the pit below the paddle.
     func :update_ball do
-      ball_x.add! ball_dx
-      ball_y.add! ball_dy
+      ball_x += ball_dx
+      ball_y += ball_dy
 
       # Bounce off the two side walls and the ceiling. abs/negate_abs force the
       # direction rather than just flipping it, so a ball wedged against a wall for
       # a frame can't rattle back and forth.
-      (ball_x <= 0).then                 { ball_dx.abs!;        beep :wall }
-      (ball_x >= layout.width - BALL_SIZE).then { ball_dx.negate_abs!; beep :wall }
-      (ball_y <= 0).then                 { ball_dy.abs!;        beep :wall }
+      if ball_x <= 0
+        ball_dx.abs!
+        beep :wall
+      end
+      if ball_x >= layout.width - BALL_SIZE
+        ball_dx.negate_abs!
+        beep :wall
+      end
+      if ball_y <= 0
+        ball_dy.abs!
+        beep :wall
+      end
 
       ball   = box(ball_x, ball_y, BALL_SIZE, BALL_SIZE)
       paddle = box(paddle_x, layout.paddle_y, PADDLE_W, PADDLE_H)
@@ -206,17 +215,21 @@ module Breakout
       # sideways direction and steepness: near the left edge it goes hard-left, near
       # the right, hard-right. That's the whole skill of the game — you aim with the
       # paddle. `_hit` is the ball's centre measured from the paddle's left side.
-      (ball_dy >= 0).then do
-        ball.overlaps?(paddle).then do
+      if ball_dy >= 0
+        if ball.overlaps?(paddle)
           ball_dy.negate_abs!                      # always send it back up
           copy! :_hit, :ball_x
           add! :_hit, BALL_SIZE / 2
           sub! :_hit, :paddle_x
           quarter = PADDLE_W / 4
-          (_hit < quarter).then { ball_dx.set!(-4) }.else do
-            (_hit < quarter * 2).then { ball_dx.set!(-2) }.else do
-              (_hit < quarter * 3).then { ball_dx.set!(2) }.else { ball_dx.set!(4) }
-            end
+          if _hit < quarter
+            ball_dx = -4
+          elsif _hit < quarter * 2
+            ball_dx = -2
+          elsif _hit < quarter * 3
+            ball_dx = 2
+          else
+            ball_dx = 4
           end
           beep :paddle_hit
         end
@@ -226,30 +239,30 @@ module Breakout
       # For each brick still standing, see if the ball overlaps it; if so, remove
       # it, score it, and bounce the ball vertically. (The ball is smaller than a
       # brick, so in practice it clears one per frame.)
-      (ball_y <= BRICK_BAND_BOTTOM).then do
+      if ball_y <= BRICK_BAND_BOTTOM
         bricks.each do |b|
-          (alive[b[:name]] == 1).then do
-            ball.overlaps?(box(b[:x], b[:y], layout.brick_w, BRICK_H)).then do
-              alive[b[:name]].set! 0
-              score.add! b[:points]
-              bricks_left.sub! 1
+          if alive[b[:name]] == 1
+            if ball.overlaps?(box(b[:x], b[:y], layout.brick_w, BRICK_H))
+              alive[b[:name]] = 0
+              score += b[:points]
+              bricks_left -= 1
               ball_dy.flip!
               beep :brick
               shake_screen intensity: 2, frames: 4 # a small knock on impact
             end
           end
         end
-        (bricks_left <= 0).then do # wall cleared — you win
-          (score > high).then { high.set! score } # record a new best (saved automatically)
-          state.set! 2
+        if bricks_left <= 0 # wall cleared — you win
+          high = score if score > high # record a new best (saved automatically)
+          state = 2
           flash_screen :black, frames: 18 # cut to black, then bring the new screen up
         end
       end
 
       # Past the bottom edge: the paddle missed. Lose a life and re-serve, or end
       # the game if that was the last one.
-      (ball_y >= layout.height).then do
-        lives.sub! 1
+      if ball_y >= layout.height
+        lives -= 1
         beep :lose
         # Losing a life hits harder, and it hits three ways at once: heard, felt, and
         # seen. Each of these is one call at the moment of the miss — the framework runs
@@ -259,14 +272,16 @@ module Breakout
         # "that hurt". Any color works: black and white are a brightness change and every
         # other color is mixed into the picture, and the verb is the same either way.
         flash_screen :red, frames: 6
-        (lives <= 0).then do
-          (score > high).then { high.set! score } # record a new best (saved automatically)
-          state.set! 3
+        if lives <= 0
+          high = score if score > high # record a new best (saved automatically)
+          state = 3
           # A flash toward BLACK is a scene change: the screen cuts to black and the
           # game-over screen rises out of it over the next few frames. Same verb as the
           # white one above, same machinery — a fade held at full and let go.
           flash_screen :black, frames: 18
-        end.else { call :serve }
+        else
+          call :serve
+        end
       end
     end
 
@@ -290,18 +305,22 @@ module Breakout
       draw_text "BEST", :right, 70, :gray, within: layout.stat_label
       draw_number :high_score, :left, 70, :white, digits: 3, within: layout.stat_number
       every(0.5, :seconds) do
-        (blink == 1).then { blink.set! 0 }.else { blink.set! 1 }
+        if blink == 1
+          blink = 0
+        else
+          blink = 1
+        end
       end
-      (blink == 1).then { draw_text "PRESS START", :center, 96, :gray }
-      pressed(:start).then { call :new_game }
+      draw_text "PRESS START", :center, 96, :gray if blink == 1
+      call :new_game if pressed(:start)
     end
 
     scene :playing do
       clear_screen :black
 
       # Steer the paddle and keep it on screen.
-      held(:left).then  { paddle_x.sub! PADDLE_SPEED }
-      held(:right).then { paddle_x.add! PADDLE_SPEED }
+      paddle_x -= PADDLE_SPEED if held(:left)
+      paddle_x += PADDLE_SPEED if held(:right)
       paddle_x.clamp! 0, layout.width - PADDLE_W
 
       call :update_ball
@@ -309,7 +328,7 @@ module Breakout
       # Repaint the whole picture. Each standing brick draws itself; broken ones
       # simply aren't drawn. Safe to do wholesale every frame because we're buffered.
       bricks.each do |b|
-        (alive[b[:name]] == 1).then { dma_fill_rect b[:x], b[:y], layout.brick_w, BRICK_H, b[:color] }
+        dma_fill_rect b[:x], b[:y], layout.brick_w, BRICK_H, b[:color] if alive[b[:name]] == 1
       end
       draw_rect_at :paddle_x, layout.paddle_y, PADDLE_W, PADDLE_H, :white
       draw_rect_at :ball_x, :ball_y, BALL_SIZE, BALL_SIZE, :white
@@ -322,8 +341,8 @@ module Breakout
       # the cartridge remembered, so it is different every time you play — the game
       # works it out, the build cannot. Dividing by it before there IS a record would
       # be dividing by nothing, so the first run simply has no bar to show.
-      (high > 0).then do
-        best_bar.set!(score * layout.best_bar_w / high)
+      if high > 0
+        best_bar = score * layout.best_bar_w / high
         best_bar.clamp! 0, layout.best_bar_w
         draw_rect_at BEST_BAR_X, BEST_BAR_Y, best_bar, BEST_BAR_H, :green
       end
@@ -337,7 +356,7 @@ module Breakout
       draw_text "BEST", :right, 88, :gray, within: layout.stat_label
       draw_number :high_score, :left, 88, :white, digits: 3, within: layout.stat_number
       draw_text "PRESS START", :center, 112, :gray
-      pressed(:start).then { state.set! 0 }
+      state = 0 if pressed(:start)
     end
 
     scene :game_over do
@@ -348,7 +367,7 @@ module Breakout
       draw_text "BEST", :right, 88, :gray, within: layout.stat_label
       draw_number :high_score, :left, 88, :white, digits: 3, within: layout.stat_number
       draw_text "PRESS START", :center, 112, :gray
-      pressed(:start).then { state.set! 0 }
+      state = 0 if pressed(:start)
     end
 
     # --- Main loop: one scene runs per frame, chosen by the game state ---

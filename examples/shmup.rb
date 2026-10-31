@@ -41,7 +41,7 @@ module Shmup
   # again, so the pulse rises and falls; the two share their colours on the console too.
   WARM = %i[warm_yellow warm_orange warm_red warm_orange_again].freeze
 
-  GAME = VBlank.game("SHMUP", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("SHMUP", consoles: %i[gba]) do
     screen :tiled
     # The stack, back to front — one line saying what is in front of what, for a picture
     # whose parts are declared in three different files. The fade below then sits UNDER
@@ -70,7 +70,7 @@ module Shmup
 
       # Start a fresh game when the game-over screen asked for one: everything back to
       # its opening position, then clear the request.
-      (new_game == 1).then do
+      if new_game == 1
         player.reset
         enemies.reset
         boss.reset
@@ -93,15 +93,15 @@ module Shmup
       # `under: :ui` puts the fade below the score, so the field and the ships in it go
       # dark and the numbers stay readable all the way down — the arcade thing where the
       # game disappears and the score you just got does not.
-      ((hud.lives <= 0) & (leaving == 0)).then do
+      if hud.lives <= 0 && leaving == 0
         fade_out :black, frames: 12, under: :ui
-        leaving.set! 1
+        leaving = 1
       end
-      (leaving == 1).then do
-        (fade_level == 100).then do
+      if leaving == 1
+        if fade_level == 100
           set! :state, GAME_OVER
           fade_in frames: 12
-          leaving.set! 0
+          leaving = 0
         end
       end
     end
@@ -111,7 +111,7 @@ module Shmup
     scene :game_over do
       draw_text "GAME OVER",   :center, 68, :red
       draw_text "PRESS START", :center, 88, :white
-      pressed(:start).then do
+      if pressed(:start)
         set! :new_game, 1
         set! :state, PLAYING
       end

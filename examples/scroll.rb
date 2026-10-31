@@ -47,7 +47,7 @@ module Scroll
     end.join
   end)
 
-  GAME = VBlank.game("SCROLL", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("SCROLL", consoles: %i[gba snes]) do
     screen :tiled # tile mode: one big background layer we slide the window over
 
     image :grass, "." => rgb(3, 18, 5), "'" => rgb(5, 24, 7) do
@@ -92,10 +92,10 @@ module Scroll
 
     game_loop do
       # Hold a direction to pan the camera that way; the world slides under it.
-      held(:left).then  { world.scroll_by(-SPEED, 0) }
-      held(:right).then { world.scroll_by(SPEED, 0) }
-      held(:up).then    { world.scroll_by(0, -SPEED) }
-      held(:down).then  { world.scroll_by(0, SPEED) }
+      world.scroll_by(-SPEED, 0) if held(:left)
+      world.scroll_by(SPEED, 0) if held(:right)
+      world.scroll_by(0, -SPEED) if held(:up)
+      world.scroll_by(0, SPEED) if held(:down)
     end
   end
 

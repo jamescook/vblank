@@ -74,7 +74,7 @@ HARD           = "HARD"
 # cores may never share — and that would stop this game being built anywhere but where it
 # was declared. Every other example is shaped this way already.
 module PongGame
-  GAME = VBlank.game("PONG", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("PONG", consoles: %i[gba]) do
     screen :bitmap
     enable_sound
 
@@ -136,23 +136,23 @@ module PongGame
     # --- Subroutines ---
 
     func :reset_ball do
-      ball_x.set! 118
-      ball_y.set! 78
+      ball_x = 118
+      ball_y = 78
       ball_dx.flip! # reverse horizontal direction
     end
 
     func :reset_game do
-      player_score.set! 0
-      cpu_score.set! 0
-      player_y.set! 68
-      cpu_y.set! 68.0
-      ball_dx.set! BALL_SPEED
-      ball_dy.set! BALL_SPEED
-      ball_x.set! 118
-      ball_y.set! 78
-      zoom_timer.set! 0 # so the title starts unzoomed the next time it shows
+      player_score = 0
+      cpu_score = 0
+      player_y = 68
+      cpu_y = 68.0
+      ball_dx = BALL_SPEED
+      ball_dy = BALL_SPEED
+      ball_x = 118
+      ball_y = 78
+      zoom_timer = 0 # so the title starts unzoomed the next time it shows
       fade_music_in     # the last game faded its music out; this one brings it up again
-      state.set! 1
+      state = 1
     end
 
     func :update_cpu do
@@ -168,17 +168,17 @@ module PongGame
 
     func :update_ball do
       # Move ball
-      ball_x.add! ball_dx
-      ball_y.add! ball_dy
+      ball_x += ball_dx
+      ball_y += ball_dy
 
       # Bounce off top wall
-      (ball_y <= 0).then do
+      if ball_y <= 0
         ball_dy.abs!
         beep :wall_bounce
       end
 
       # Bounce off bottom wall
-      (ball_y >= SCREEN_H - BALL_SIZE).then do
+      if ball_y >= SCREEN_H - BALL_SIZE
         ball_dy.negate_abs!
         beep :wall_bounce
       end
@@ -193,23 +193,23 @@ module PongGame
       player_pad = box(LEFT_X, player_y, PADDLE_W, PADDLE_H)
       cpu_pad    = box(RIGHT_X, cpu_y.to_i, PADDLE_W, PADDLE_H)
 
-      ball.overlaps?(player_pad).then do
+      if ball.overlaps?(player_pad)
         ball_dx.abs! # bounce right
         beep :paddle_hit
       end
 
       # The CPU tops out at CPU_SPEED, slower than the ball, so a fast diagonal can
       # leave it behind and let the player score.
-      ball.overlaps?(cpu_pad).then do
+      if ball.overlaps?(cpu_pad)
         ball_dx.negate_abs! # bounce left
         beep :paddle_hit
       end
 
       # Score: ball went off left edge — you just let one past, so the screen stings red.
-      (ball_x <= 0).then do
-        cpu_score.add! 1
-        (cpu_score >= WIN_SCORE).then do
-          state.set! 3
+      if ball_x <= 0
+        cpu_score += 1
+        if cpu_score >= WIN_SCORE
+          state = 3
           fade_music_out
         end
         beep :point
@@ -218,10 +218,10 @@ module PongGame
       end
 
       # Score: ball went off right edge
-      (ball_x >= SCREEN_W).then do
-        player_score.add! 1
-        (player_score >= WIN_SCORE).then do
-          state.set! 2
+      if ball_x >= SCREEN_W
+        player_score += 1
+        if player_score >= WIN_SCORE
+          state = 2
           fade_music_out
         end
         beep :point
@@ -270,11 +270,11 @@ module PongGame
 
       # Zoom the backdrop in once START is chosen, then hand off to :playing when the zoom
       # finishes — the same pace `fade_out`/`fade_in` walk a level over frames at.
-      (zoom_timer == 0).then { title_board.scale(1.0) } # idle: hold it at the size it was drawn
-      (zoom_timer > 0).then do
+      title_board.scale(1.0) if zoom_timer == 0 # idle: hold it at the size it was drawn
+      if zoom_timer > 0
         title_board.scale.approach! 4.0, ZOOM_PER_FRAME
-        zoom_timer.add! 1
-        (zoom_timer > ZOOM_FRAMES).then { call :reset_game }
+        zoom_timer += 1
+        call :reset_game if zoom_timer > ZOOM_FRAMES
       end
     end
 
@@ -282,8 +282,8 @@ module PongGame
       clear_screen :black
 
       # Input
-      held(:up).then   { player_y.sub! PADDLE_SPEED }
-      held(:down).then { player_y.add! PADDLE_SPEED }
+      player_y -= PADDLE_SPEED if held(:up)
+      player_y += PADDLE_SPEED if held(:down)
       player_y.clamp! 0, SCREEN_H - PADDLE_H
 
       # Update
@@ -303,7 +303,11 @@ module PongGame
       draw_number cpu_score, :left, 8, :white, digits: 1, within: (NET_X + SCORE_GAP)...SCREEN_W
 
       # Background music, unless it was turned off on the title screen.
-      (music_on == 1).then { play_song :gameplay }.else { stop_music }
+      if music_on == 1
+        play_song :gameplay
+      else
+        stop_music
+      end
     end
 
     # How hard the game is, on a screen of its own. Two rows and a cursor that opens on the
@@ -336,26 +340,26 @@ module PongGame
     # `stop_music` with nothing playing does nothing at all.
     scene :player_wins do
       clear_screen :black
-      (music_volume == 0).then { stop_music }
+      stop_music if music_volume == 0
       draw_text "YOU WIN!", :center, 60, :white
       draw_text "PRESS START", :center, 100, :gray
 
       # Leaving before the fade is over stops the song there, so the next game starts it again.
-      pressed(:start).then do
+      if pressed(:start)
         stop_music
-        state.set! 0
+        state = 0
       end
     end
 
     scene :cpu_wins do
       clear_screen :black
-      (music_volume == 0).then { stop_music }
+      stop_music if music_volume == 0
       draw_text "GAME OVER", :center, 60, :white
       draw_text "PRESS START", :center, 100, :gray
 
-      pressed(:start).then do
+      if pressed(:start)
         stop_music
-        state.set! 0
+        state = 0
       end
     end
 

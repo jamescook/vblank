@@ -82,7 +82,7 @@ module ClockFace
     (SCREEN_W - width) / 2
   end
 
-  GAME = VBlank.game("CLOCK", consoles: %i[gba]) do
+  GAME = VBlank.new_dsl("CLOCK", consoles: %i[gba]) do
     screen :bitmap, tear_free: true
 
     font :big, glyphs: ClockFace.blown_up("0123456789: #{NO_CLOCK}#{NOT_SET}", BIG), spacing: BIG
@@ -101,7 +101,7 @@ module ClockFace
     face = keep_showing :face do
       clear_screen BACKGROUND
 
-      (now.present? & now.set?).then do
+      if now.present? && now.set?
         # 21:07:05 — eight characters, a pair of figures in the first, fourth and seventh places.
         left = ClockFace.centered(8, BIG)
         step = LETTERS.cell_w * BIG
@@ -121,20 +121,21 @@ module ClockFace
         two_figures.call(now.day, left + (8 * step), DATE_ROW, :small)
 
         DAYS.each_with_index do |name, weekday|
-          (now.weekday == weekday).then { draw_text name, :center, DAY_ROW, INK, font: :small }
+          draw_text name, :center, DAY_ROW, INK, font: :small if now.weekday == weekday
         end
-      end.else do
-        now.present?.then { draw_text NOT_SET, :center, TIME_ROW, INK, font: :big }
-                    .else { draw_text NO_CLOCK, :center, TIME_ROW, INK, font: :big }
+      elsif now.present?
+        draw_text NOT_SET, :center, TIME_ROW, INK, font: :big
+      else
+        draw_text NO_CLOCK, :center, TIME_ROW, INK, font: :big
       end
     end
 
     # The second the face shows. It starts at one the clock never reads, so the first pass paints.
-    shown = var :shown, -1
+    shown = -1
 
     game_loop do
-      (now.second != shown).then do
-        shown.set! now.second
+      if now.second != shown
+        shown = now.second
         face.changed
       end
       face.draw

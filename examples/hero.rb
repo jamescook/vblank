@@ -113,7 +113,7 @@ module Hero
     end.join
   end)
 
-  GAME = VBlank.game("HERO", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("HERO", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a scrolling background for the world + a hardware sprite on top
 
     # Pixels the hero walks per frame while a direction is held. A setting rather than a
@@ -305,8 +305,8 @@ module Hero
     # places type a letter and drawing one is a fair amount of code: as a routine it is
     # written once and called from both.
     func(:type_a_letter) do
-      pen.add! box.draw_letter(note[typed], pen, 5, :white)
-      typed.add! 1
+      pen += box.draw_letter(note[typed], pen, 5, :white)
+      typed += 1
     end
 
     # Open the sign's box and put its words together, from the file you are walking in and
@@ -318,21 +318,21 @@ module Hero
       note.push slot + 49 # the file's number, 1 to 3, as the letter that draws it
       ", ".each_char { |char| note.push char.ord }
       [10_000, 1000, 100, 10].each do |power|
-        (steps >= power).then { note.push ((steps / power) % 10) + 48 }
+        note.push ((steps / power) % 10) + 48 if steps >= power
       end
       note.push (steps % 10) + 48
       " STEPS".each_char { |char| note.push char.ord }
       box.clear rgb(2, 4, 12)
-      typed.set! 0
-      pen.set! 4
-      reading.set! 1
+      typed = 0
+      pen = 4
+      reading = 1
     end
 
     # A fresh walk starts with no box open and a map showing only the pond — one dot of the
     # map for every tile of the world, which is 8 pixels.
     fresh_pictures = lambda do
       box.clear
-      reading.set! 0
+      reading = 0
       trail.clear
       trail.fill_rect POND_COLS.first, POND_ROWS.first, POND_COLS.size, POND_ROWS.size, :blue
     end
@@ -358,8 +358,8 @@ module Hero
     # `files[slot].good?` every frame.
     scene :files do
       hero.hide
-      choosing.set! next_choosing
-      number.set! slot + 1
+      choosing = next_choosing
+      number = slot + 1
       layer(:words) do
         background :backdrop, tiles: :panels, map: Array.new(20) { "#" * 30 } unless two_backgrounds
         # The map of the walk you left, in the same corner it had while you walked. A
@@ -370,27 +370,27 @@ module Hero
         # Second step, written first: on the frame a file is picked this menu is not yet up,
         # so the press that picked the file is not taken as a choice here too.
         actions = nil
-        (choosing == 1).then do
+        if choosing == 1
           draw_text "FILE", 72, 32, :yellow
           draw_number number, 104, 32, :yellow, digits: 1
           actions = menu :actions, at: [72, 60], starts_on: 1 do |m|
             m.item("CONTINUE", enabled: files[slot].good?) do
               files[slot].load
               place_hero.call
-              mode.set! :walking
+              mode = :walking
             end
             m.item("NEW GAME") do
               files.reset
               place_hero.call
-              mode.set! :walking
+              mode = :walking
             end
             m.item("COPY TO NEXT", enabled: files[slot].good?) do
               files.copy slot, to: (slot + 1) % 3
-              next_choosing.set! 0
+              next_choosing = 0
             end
             m.item("ERASE", enabled: files[slot].good?) do
               files[slot].erase
-              next_choosing.set! 0
+              next_choosing = 0
             end
             m.item("BACK") { next_choosing.set! 0 }
           end
@@ -399,21 +399,28 @@ module Hero
         # EVERY LETTER ON THIS SCREEN IS A SPRITE, and a game has 128 of those for all its
         # screens together — so the words here are kept short. A row that greys itself is
         # drawn both ways, and costs its letters twice.
-        (choosing == 0).then do
+        if choosing == 0
           3.times do |n|
             row = 60 + (n * 16)
-            shown[n].set! files[n].peek(steps)
-            files[n].good?.then { draw_number shown[n], 136, row, :white, digits: 4 }
-                          .else { draw_text "NEW", 136, row, :gray }
+            shown[n] = files[n].peek(steps)
+            if files[n].good?
+              draw_number shown[n], 136, row, :white, digits: 4
+            else
+              draw_text "NEW", 136, row, :gray
+            end
           end
           menu :files, at: [64, 60], spacing: 16 do |m|
             3.times do |n|
               m.item("FILE #{n + 1}") do
-                slot.set! n
+                slot = n
                 # The cursor opens on CONTINUE for a file there is something in, and on NEW
                 # GAME for an empty one.
-                files[n].good?.then { actions.picked.set! 0 }.else { actions.picked.set! 1 }
-                next_choosing.set! 1
+                if files[n].good?
+                  actions.picked = 0
+                else
+                  actions.picked = 1
+                end
+                next_choosing = 1
               end
             end
           end
@@ -426,40 +433,40 @@ module Hero
       # Hold a direction to walk. This is the same `move` any sprite takes — nothing
       # here knows the world is bigger than the screen. The world is a torus, so there's
       # no edge to bump into: keep going and it wraps.
-      held(:left).then do
+      if held(:left)
         hero.move :left, by: speed
-        px.sub! speed
+        px -= speed
       end
-      held(:right).then do
+      if held(:right)
         hero.move :right, by: speed
-        px.add! speed
+        px += speed
       end
       # Walking north takes you into the mist and south brings you back out of it. The
       # layer is see-through by whatever this holds, so the weather is one variable.
-      held(:up).then do
+      if held(:up)
         hero.move :up, by: speed
-        py.sub! speed
-        mist.add! MIST_PER_STEP
+        py -= speed
+        mist += MIST_PER_STEP
       end
-      held(:down).then do
+      if held(:down)
         hero.move :down, by: speed
-        py.add! speed
-        mist.sub! MIST_PER_STEP
+        py += speed
+        mist -= MIST_PER_STEP
       end
       mist.clamp! 0, THICKEST
-      (held(:left) | held(:right) | held(:up) | held(:down)).then { steps.add! 1 }
+      steps += 1 if held(:left) || held(:right) || held(:up) || held(:down)
 
       # START saves the walk into the picked file; SELECT goes back to the file screen.
-      pressed(:start).then do
+      if pressed(:start)
         files[slot].save
-        saved.set! 60
+        saved = 60
       end
-      pressed(:select).then do
-        next_choosing.set! 0
-        mode.set! :files
+      if pressed(:select)
+        next_choosing = 0
+        mode = :files
       end
-      (saved > 0).then { saved.sub! 1 }
-      layer(:words) { (saved > 0).then { draw_text "SAVED", :center, 16, :white } }
+      saved -= 1 if saved > 0
+      layer(:words) { draw_text "SAVED", :center, 16, :white if saved > 0 }
 
       # THE SIGN. Stand by it and press A: the box opens and its words type themselves out,
       # two frames a letter. A while they are typing puts the rest up at once, and A once
@@ -475,14 +482,18 @@ module Hero
         end
         sprite :trail, at: [204, 4]
       end
-      tick.add! 1
-      (pressed(:a) & (reading == 1)).then do
-        (typed >= note.length).then { box.clear; reading.set! 0 }
-                              .else { repeat(32, stop_when: typed >= note.length) { call :type_a_letter } }
+      tick += 1
+      if pressed(:a) && reading == 1
+        if typed >= note.length
+          box.clear
+          reading = 0
+        else
+          repeat(32, stop_when: typed >= note.length) { call :type_a_letter }
+        end
       end
-      near = ((px - SIGN_X).abs < READING_REACH_X) & ((py - SIGN_Y).abs < READING_REACH_Y)
-      (pressed(:a) & (reading == 0) & near).then { call :open_the_sign }
-      ((reading == 1) & (typed < note.length) & ((tick & 1) == 0)).then { call :type_a_letter }
+      near = ((px - SIGN_X).abs < READING_REACH_X) && ((py - SIGN_Y).abs < READING_REACH_Y)
+      call :open_the_sign if pressed(:a) && reading == 0 && near
+      call :type_a_letter if reading == 1 && typed < note.length && (tick & 1) == 0
 
       # THE MAP: a dot wherever you are, a pixel for every tile of the world. It is never
       # cleared while you walk, so it is a map of everywhere you have been.

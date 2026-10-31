@@ -41,7 +41,7 @@ module SpriteMover
 
   # The game as a block the builder runs, so a test can drive the exact program
   # that ships — the headless interpreter runs THIS, the console runs the ROM.
-  GAME = VBlank.game("SPRITEMV", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("SPRITEMV", consoles: %i[gba snes]) do
     screen :bitmap
     places = SpriteMover.layout(screen_width, screen_height)
 
@@ -92,10 +92,10 @@ module SpriteMover
     game_loop do
       # Hold a direction to move — say it the way you'd think it: press left, move
       # left. `by:` is the speed; no x/y arithmetic in sight.
-      held(:left).then  { hero.move :left,  by: SPEED }
-      held(:right).then { hero.move :right, by: SPEED }
-      held(:up).then    { hero.move :up,    by: SPEED }
-      held(:down).then  { hero.move :down,  by: SPEED }
+      hero.move :left,  by: SPEED if held(:left)
+      hero.move :right, by: SPEED if held(:right)
+      hero.move :up,    by: SPEED if held(:up)
+      hero.move :down,  by: SPEED if held(:down)
 
       # A sprite clips at the screen edges, so let the heart slide half off any side
       # or corner — just not so far it vanishes. It stays put until you steer back.

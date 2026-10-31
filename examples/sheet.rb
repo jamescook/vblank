@@ -54,7 +54,7 @@ module Sheet
     "##############################",
   ])
 
-  GAME = VBlank.game("SHEET", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("SHEET", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a background room + a hardware sprite over it
 
     # Import the tile sheet straight into the tileset: "#" is its first tile (the
@@ -69,10 +69,10 @@ module Sheet
     hero.blocked_by room
 
     game_loop do
-      held(:left).then  { hero.move :left,  by: SPEED }
-      held(:right).then { hero.move :right, by: SPEED }
-      held(:up).then    { hero.move :up,    by: SPEED }
-      held(:down).then  { hero.move :down,  by: SPEED }
+      hero.move :left,  by: SPEED if held(:left)
+      hero.move :right, by: SPEED if held(:right)
+      hero.move :up,    by: SPEED if held(:up)
+      hero.move :down,  by: SPEED if held(:down)
     end
   end
 

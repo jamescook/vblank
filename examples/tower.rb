@@ -111,7 +111,7 @@ module Tower
   # The two cells of the gate on the roof.
   GATE = Ractor.make_shareable([[9, 8], [10, 8]])
 
-  GAME = VBlank.game("TOWER", consoles: %i[gba gbc snes]) do
+  GAME = VBlank.new_dsl("TOWER", consoles: %i[gba gbc snes]) do
     screen :tiled
     image(:hero, "#" => :white, "." => :transparent) { HERO }
     image(:stone_wall, "#" => :gray) { SOLID }
@@ -133,16 +133,15 @@ module Tower
     # up, where it has any.
     climb = lambda do |floor, stairs|
       hero.blocked_by floor
-      held(:left).then { hero.move :left, by: 2 }
-      held(:right).then { hero.move :right, by: 2 }
-      held(:up).then { hero.move :up, by: 2 }
-      held(:down).then { hero.move :down, by: 2 }
+      hero.move :left, by: 2 if held(:left)
+      hero.move :right, by: 2 if held(:right)
+      hero.move :up, by: 2 if held(:up)
+      hero.move :down, by: 2 if held(:down)
       next unless stairs
 
       col, row = stairs
-      on_stairs = ((hero.x + 4) / 8 == col) & ((hero.y + 4) / 8 == row)
-      on_stairs.then do
-        level.add! 1
+      if (hero.x + 4) / 8 == col && (hero.y + 4) / 8 == row
+        level += 1
         hero.move_to(*START)
       end
     end
@@ -154,7 +153,7 @@ module Tower
     scene(:roof) do
       floor = background :floor, tiles: :roof_tiles, map: ROOF
       climb.call(floor, nil)
-      pressed(:a).then { GATE.each { |col, row| floor.set_tile col, row, "." } }
+      GATE.each { |col, row| floor.set_tile col, row, "." } if pressed(:a)
     end
 
     game_loop do

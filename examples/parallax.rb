@@ -49,7 +49,7 @@ module Parallax
     end.join
   end)
 
-  GAME = VBlank.game("PARALLAX", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("PARALLAX", consoles: %i[gba snes]) do
     screen :tiled # tile mode: two background layers, composited by the hardware
 
     # --- FAR layer tiles: sky and clouds (fully opaque; it's the backmost layer) ---
@@ -129,11 +129,11 @@ module Parallax
     game_loop do
       # Hold a direction; the near layer moves twice as far as the far one, so the
       # trees streak past while the clouds only inch along — that speed gap is the depth.
-      held(:right).then do
+      if held(:right)
         far.scroll_by(FAR_SPEED, 0)
         near.scroll_by(NEAR_SPEED, 0)
       end
-      held(:left).then do
+      if held(:left)
         far.scroll_by(-FAR_SPEED, 0)
         near.scroll_by(-NEAR_SPEED, 0)
       end

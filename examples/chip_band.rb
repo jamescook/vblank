@@ -95,7 +95,7 @@ module ChipBand
     [:C6, :quarter, { swell: 4, volume: 1 }],
   ])
 
-  GAME = Ractor.make_shareable(VBlank.game("CHIP BAND", consoles: %i[gba gbc]) do
+  GAME = Ractor.make_shareable(VBlank.new_dsl("CHIP BAND", consoles: %i[gba gbc]) do
     screen :bitmap
     enable_sound
 
@@ -257,7 +257,7 @@ module ChipBand
         TUNES.each { |tune| m.item tune[:label] }
       end
       TUNES.each_with_index do |tune, i|
-        (tunes.picked == i).then { play_song tune[:name] }
+        play_song tune[:name] if tunes.picked == i
       end
     end
   end)

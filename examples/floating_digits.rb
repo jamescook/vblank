@@ -39,7 +39,7 @@ module FloatingDigits
 
   # The game as a block the builder runs (so a test can drive the exact program
   # that ships — the interpreter runs THIS, the console runs the ROM built from it).
-  GAME = VBlank.game("FLOATNUM", consoles: %i[gba snes]) do
+  GAME = VBlank.new_dsl("FLOATNUM", consoles: %i[gba snes]) do
     screen :bitmap
 
     # A colored glyph image per digit. '.' is transparent, so only the digit's lit
@@ -75,14 +75,26 @@ module FloatingDigits
         dx = m[:dx]
         dy = m[:dy]
 
-        x.add! dx
-        y.add! dy
+        x += dx
+        y += dy
 
         # Bounce off each wall: pin the digit to the edge and reverse its direction.
-        (x < 0).then     { x.set! 0;     dx.flip! }
-        (x > max_x).then { x.set! max_x; dx.flip! }
-        (y < 0).then     { y.set! 0;     dy.flip! }
-        (y > max_y).then { y.set! max_y; dy.flip! }
+        if x < 0
+          m[:x] = 0
+          dx.flip!
+        end
+        if x > max_x
+          m[:x] = max_x
+          dx.flip!
+        end
+        if y < 0
+          m[:y] = 0
+          dy.flip!
+        end
+        if y > max_y
+          m[:y] = max_y
+          dy.flip!
+        end
 
         blit :"digit#{m[:d]}", :"x#{m[:d]}", :"y#{m[:d]}"
       end
