@@ -188,7 +188,7 @@ usually a checkout beside this one, `../ruby-wolf3d` (anywhere else, say where i
 this one does not run and must not learn about: a library that names the games built on it is
 coupled to them. Its whole purpose is to find gaps here, and a gap it finds is tracked against
 this framework rather than worked around there. To work on both at once, point its bundler at
-this checkout (`bundle config set --local local.vblank ../ruby-gba` from there).
+this checkout (`bundle config set --local local.vblank ../vblank` from there).
 
 ## Testing strategy — assert behavior, at the right altitude
 
