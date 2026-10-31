@@ -311,9 +311,12 @@ module VBlank
     #
     # +sprite_piece_size+ is the size each of its consoles draws a sprite's pieces at, by console:
     # `sprite_piece_size: { gbc: [8, 16] }` for the Color's tall pieces (see Cartridge::Options).
+    #
+    # The block is written in normal Ruby (see DSL::PlainRuby). +allow+ names libraries it may use,
+    # on the author's word that they are safe here.
     def game(title, code: nil, maker: nil, frame_sync: :auto, fast_cartridge: nil, fast_code: nil,
              save_memory: nil, stack_room: nil, consoles: nil, menu: true, variants: {}, sprite_piece_size: {},
-             &block)
+             allow: [], &block)
       unless block
         raise ArgumentError, %(VBlank.game needs a block: VBlank.game("NAME", consoles: %i[gba]) { ... })
       end
@@ -326,24 +329,14 @@ module VBlank
       options = Cartridge::Options.new(frame_sync: frame_sync, fast_cartridge: fast_cartridge,
                                        fast_code: fast_code, save_memory: save_memory, stack_room: stack_room,
                                        sprite_piece_size: sprite_piece_size)
-      handle = Cartridge::Game.new(title, code: code, maker: maker, block: block, options: options, consoles: consoles,
-                                          menu: menu, variants: variants)
+      handle = Cartridge::Game.new(title, code: code, maker: maker, block: DSL::PlainRuby.game_block(block, allow: allow),
+                                          options: options, consoles: consoles, menu: menu, variants: variants)
       Ractor.current[:vblank_registered_games] = registered_games + [handle]
       handle
     end
 
-    # VBlank.game for a block written in normal Ruby (see DSL::PlainRuby). +allow+ names libraries
-    # the block may use, on the author's word that they are safe here.
-    def new_dsl(title, allow: [], **options, &block)
-      unless block
-        raise ArgumentError, %(VBlank.new_dsl needs a block: VBlank.new_dsl("NAME", consoles: %i[gba]) { ... })
-      end
-
-      game(title, **options, &DSL::PlainRuby.rewrite(block, allow: allow))
-    end
-
     # `require_relative` for a file of a game written in normal Ruby (see DSL::PlainRuby): a part
-    # the game splits out, which the block given to #new_dsl does not reach. Returns false for a
+    # the game splits out, which the block given to #game does not reach. Returns false for a
     # file already brought in, as `require` does.
     def require_game_file(name)
       from = caller_locations(1, 1).first.path

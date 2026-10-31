@@ -95,7 +95,7 @@ module ChipBand
     [:C6, :quarter, { swell: 4, volume: 1 }],
   ])
 
-  GAME = Ractor.make_shareable(VBlank.new_dsl("CHIP BAND", consoles: %i[gba gbc]) do
+  GAME = Ractor.make_shareable(VBlank.game("CHIP BAND", consoles: %i[gba gbc]) do
     screen :bitmap
     enable_sound
 

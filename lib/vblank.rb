@@ -124,6 +124,7 @@ module VBlank
                  fast_code: nil, out: $stdout, err: $stderr, progress: Messages::Progress.silent,
                  profile: false, settings: {}, save_memory: nil, stack_room: nil, console: nil, variant: nil,
                  sprite_piece_size: {}, cartridge: true, &block)
+    block = DSL::PlainRuby.game_block(block) if block
     # The eight that say how the game is built travel as one value from here on (see
     # {Cartridge::Options}), checked now so a setting that cannot be right stops the build first.
     options = Cartridge::Options.new(frame_sync: frame_sync, fast_cartridge: fast_cartridge,

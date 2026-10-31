@@ -181,11 +181,11 @@ class TestImagePieces < Minitest::Test
       game_loop do
         ticks += 1
         if ticks == 2
-          shape.overlaps?(block).then { touched_large.set! 1 }
+          touched_large = 1 if shape.overlaps?(block)
         end
         shape.face :small if ticks == 3
         if ticks == 5
-          shape.overlaps?(block).then { touched_small.set! 1 }
+          touched_small = 1 if shape.overlaps?(block)
         end
       end
     end

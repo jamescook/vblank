@@ -25,7 +25,13 @@ module VBlank
           !block.source_location.first.start_with?(VBlank.root.join("lib").to_s)
       end
     end
+
+    # A test's own game names its helpers and fixtures, so its checks stay out here too.
+    module UncheckedGameBlocks
+      def game_block(block, allow: []) = rewritable?(block) ? rewrite(block, allow: allow, checked: false) : block
+    end
   end
 end
 
 VBlank::Builder.prepend(VBlank::Testing::RewrittenBlocks)
+VBlank::DSL::PlainRuby.singleton_class.prepend(VBlank::Testing::UncheckedGameBlocks)

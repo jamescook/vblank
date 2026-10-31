@@ -82,7 +82,7 @@ module ClockFace
     (SCREEN_W - width) / 2
   end
 
-  GAME = VBlank.new_dsl("CLOCK", consoles: %i[gba]) do
+  GAME = VBlank.game("CLOCK", consoles: %i[gba]) do
     screen :bitmap, tear_free: true
 
     font :big, glyphs: ClockFace.blown_up("0123456789: #{NO_CLOCK}#{NOT_SET}", BIG), spacing: BIG

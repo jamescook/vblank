@@ -43,6 +43,10 @@ module VBlank
         eval(source, block.binding, file, line) # rubocop:disable Security/Eval
       end
 
+      # What a game runs for +block+: the block rewritten, or as it is if it cannot be, as with one
+      # made from a method, or one this module made already.
+      def game_block(block, allow: []) = rewritable?(block) ? rewrite(block, allow: allow) : block
+
       # A lambda stays one, since it checks what it is given and a proc does not. `->` has its
       # arrow in its own text, and `lambda { }` does not.
       def callable_source(rewriter, block)

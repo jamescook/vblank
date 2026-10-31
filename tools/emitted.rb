@@ -147,7 +147,7 @@ module Emitted
     # A game for the Game Boy Color alone has no ARM to measure.
     paths = Dir[File.join(EXAMPLES, "*.rb")].sort.select do |path|
       source = File.read(path)
-      source.match?(/VBlank\.(game|new_dsl)\b/) && !source.include?("consoles: %i[gbc]")
+      source.match?(/VBlank\.game\b/) && !source.include?("consoles: %i[gbc]")
     end
     return paths if wanted.empty?
 

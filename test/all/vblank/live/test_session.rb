@@ -292,7 +292,7 @@ class TestSession < Minitest::Test
       game_loop do
         files[0].save if pass == 0
         if pass == 2
-          files[0].good?.then { pixel 0, 0, :green }
+          pixel 0, 0, :green if files[0].good?
         end
         pass += 1
       end

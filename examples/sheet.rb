@@ -54,7 +54,7 @@ module Sheet
     "##############################",
   ])
 
-  GAME = VBlank.new_dsl("SHEET", consoles: %i[gba snes]) do
+  GAME = VBlank.game("SHEET", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a background room + a hardware sprite over it
 
     # Import the tile sheet straight into the tileset: "#" is its first tile (the

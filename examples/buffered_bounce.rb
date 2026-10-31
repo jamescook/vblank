@@ -24,7 +24,7 @@ module BufferedBounce
   BALL = 8
   SPEED = 2
 
-  GAME = VBlank.new_dsl("BOUNCE", consoles: %i[gba snes]) do
+  GAME = VBlank.game("BOUNCE", consoles: %i[gba snes]) do
     screen :bitmap, tear_free: true # the tear-proof screen — try flipping this to false
 
     # Each ball is a position (x, y) and a velocity (dx, dy).

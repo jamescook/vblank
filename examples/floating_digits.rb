@@ -39,7 +39,7 @@ module FloatingDigits
 
   # The game as a block the builder runs (so a test can drive the exact program
   # that ships — the interpreter runs THIS, the console runs the ROM built from it).
-  GAME = VBlank.new_dsl("FLOATNUM", consoles: %i[gba snes]) do
+  GAME = VBlank.game("FLOATNUM", consoles: %i[gba snes]) do
     screen :bitmap
 
     # A colored glyph image per digit. '.' is transparent, so only the digit's lit

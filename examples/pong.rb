@@ -74,7 +74,7 @@ HARD           = "HARD"
 # cores may never share — and that would stop this game being built anywhere but where it
 # was declared. Every other example is shaped this way already.
 module PongGame
-  GAME = VBlank.new_dsl("PONG", consoles: %i[gba]) do
+  GAME = VBlank.game("PONG", consoles: %i[gba]) do
     screen :bitmap
     enable_sound
 

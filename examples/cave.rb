@@ -84,7 +84,7 @@ module Cave
   LANTERN_REACH = 36
   CAVE_DARK = 85
 
-  GAME = VBlank.new_dsl("CAVE", consoles: %i[gba]) do
+  GAME = VBlank.game("CAVE", consoles: %i[gba]) do
     screen :tiled
 
     image :rock, "#" => rgb(12, 10, 9), "." => rgb(7, 6, 5) do

@@ -138,7 +138,7 @@ module Breakout
   # On a Game Boy Color the screen is painted into 8×8 squares of four colours each. Every
   # brick row keeps to its own squares but one: the orange and yellow rows meet in one row of
   # squares, which then holds orange, yellow, the white ball and black — four.
-  GAME = VBlank.new_dsl("BREAKOUT", consoles: %i[gba gbc]) do
+  GAME = VBlank.game("BREAKOUT", consoles: %i[gba gbc]) do
     screen :bitmap, tear_free: true # draw to a hidden page, flip when done — no tearing
     layout = Layout.new(width: screen_width, height: screen_height)
     bricks = layout.bricks

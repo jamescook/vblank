@@ -68,7 +68,7 @@ module BufferedSnake
   START_CELLS = Ractor.make_shareable([[5, START_ROW], [6, START_ROW], [7, START_ROW], [8, START_ROW]])
   FOOD_TRIES = 8
 
-  GAME = VBlank.new_dsl("SNAKEBUF", consoles: %i[gba]) do
+  GAME = VBlank.game("SNAKEBUF", consoles: %i[gba]) do
     screen :bitmap, tear_free: true # <-- the whole difference. Remove it and it tears.
     enable_sound
 

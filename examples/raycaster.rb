@@ -86,7 +86,7 @@ module Raycaster
   FAR = Ractor.make_shareable(VBlank::Graphics::Color.rgb(11, 10, 9))
   WALL_SHADES = [NEAR, MID, FAR].freeze
 
-  GAME = VBlank.new_dsl("RAYCAST", consoles: %i[gba snes]) do
+  GAME = VBlank.game("RAYCAST", consoles: %i[gba snes]) do
     screen :bitmap, tear_free: true # double-buffered: the whole view is repainted each frame
     laid = Raycaster.layout(screen_width, screen_height)
     cols, horizon, scale, tallest = laid.values_at(:columns, :horizon, :scale, :tallest)

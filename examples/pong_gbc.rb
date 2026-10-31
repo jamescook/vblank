@@ -84,7 +84,7 @@ module PongGBC
   NORMAL       = "NORMAL" # ...and its two rows
   HARD         = "HARD"
 
-  GAME = VBlank.new_dsl("PONG", consoles: %i[gbc]) do
+  GAME = VBlank.game("PONG", consoles: %i[gbc]) do
     screen :bitmap
     enable_sound
 

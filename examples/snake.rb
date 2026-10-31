@@ -110,7 +110,7 @@ module Snake
   # The whole game, as a block the builder runs. Keeping it in one place means the
   # test drives the exact program that ships: the headless interpreter runs THIS to
   # check the game plays without crashing, and the console runs the ROM built from it.
-  GAME = VBlank.new_dsl("SNAKE", consoles: %i[gba snes]) do
+  GAME = VBlank.game("SNAKE", consoles: %i[gba snes]) do
     screen :bitmap
     enable_sound
     here = Layout.new(width: screen_width, height: screen_height)

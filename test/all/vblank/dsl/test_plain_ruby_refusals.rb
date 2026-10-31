@@ -10,7 +10,7 @@ class TestPlainRubyRefusals < Minitest::Test
   Refused = VBlank::DSL::PlainRuby::Refused
 
   # Read from each test's Ractor, as an example's game is.
-  SHARED_GAME = VBlank.new_dsl("SHARED", consoles: %i[gba]) do
+  SHARED_GAME = VBlank.game("SHARED", consoles: %i[gba]) do
     hp = 3
     game_loop { hp -= 1 if hp > OWN_NUMBER - 7 }
   end
@@ -165,7 +165,7 @@ class TestPlainRubyRefusals < Minitest::Test
     assert_kind_of Builder, builder
   end
 
-  def test_a_game_made_with_new_dsl_can_be_shared_between_ractors
+  def test_a_game_can_be_shared_between_ractors
     game = TestPlainRubyRefusals::SHARED_GAME
 
     assert_predicate game, :frozen?
@@ -244,8 +244,8 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_includes err.string, "never waits for the next frame"
   end
 
-  def test_new_dsl_builds_a_game_written_in_plain_ruby
-    game = VBlank.new_dsl("PLAIN GAME", consoles: %i[gba]) do
+  def test_vblank_game_builds_a_game_written_in_plain_ruby
+    game = VBlank.game("PLAIN GAME", consoles: %i[gba]) do
       shown = 0
       game_loop { shown += 1 if shown < 3 }
     end

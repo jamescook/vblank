@@ -56,7 +56,7 @@ module Scoreboard
   BAR = Ractor.make_shareable(["[#{'o' * PIPS}]".ljust(32, "_"), "_" * 32])
   BAR_HEIGHT = 16
 
-  GAME = VBlank.new_dsl("SCOREBOARD", consoles: %i[gba gbc snes]) do
+  GAME = VBlank.game("SCOREBOARD", consoles: %i[gba gbc snes]) do
     screen :tiled
     image(:ball, "#" => :white, "." => :transparent) { BALL }
     image(:dark, "#" => :blue) { SOLID }

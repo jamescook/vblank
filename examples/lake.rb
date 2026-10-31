@@ -105,7 +105,7 @@ module Lake
     end.join
   end)
 
-  GAME = Ractor.make_shareable(VBlank.new_dsl("LAKE", consoles: %i[gba snes]) do
+  GAME = Ractor.make_shareable(VBlank.game("LAKE", consoles: %i[gba snes]) do
     screen :tiled # tile mode: two background layers the console composites for us
 
     # --- the scene above the water ---

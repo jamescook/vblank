@@ -113,7 +113,7 @@ module Hero
     end.join
   end)
 
-  GAME = VBlank.new_dsl("HERO", consoles: %i[gba snes]) do
+  GAME = VBlank.game("HERO", consoles: %i[gba snes]) do
     screen :tiled # tile mode: a scrolling background for the world + a hardware sprite on top
 
     # Pixels the hero walks per frame while a direction is held. A setting rather than a
