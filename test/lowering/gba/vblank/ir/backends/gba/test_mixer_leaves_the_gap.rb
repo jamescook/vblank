@@ -29,10 +29,10 @@ class TestMixerLeavesTheGap < Minitest::Test
       low = sprite :low, at: [0, 140]
       pcm = Array.new(4096) { |i| ((i * 7) % 200) - 100 }
       clips = Array.new(VOICES) { |n| sample :"clip#{n}", pcm: pcm, rate: 32_768 }
-      x = var :x, 0
-      started = var :started, 0
+      x = 0
+      started = 0
       game_loop do
-        (started == 0).then do
+        if started == 0
           clips.each { |clip| clip.play(loop: true) }
           started = 1
         end

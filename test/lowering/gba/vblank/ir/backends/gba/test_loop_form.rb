@@ -42,9 +42,9 @@ class TestLoopForm < Minitest::Test
       screen :bitmap
       xs = list :xs, capacity: 8
       8.times { |i| xs << i }
-      total = var :total, 0
+      total = 0
       b = self
-      game_loop { b.repeat(8) { |i| (xs[i] > 2).then { total.add! xs[i] } } }
+      game_loop { b.repeat(8) { |i| total += xs[i] if xs[i] > 2 } }
     end
 
     assert_equal 1, shapes.length
@@ -56,9 +56,9 @@ class TestLoopForm < Minitest::Test
   def test_a_body_that_calls_keeps_the_registers_by_saving_them_around_the_call
     _, shapes = shapes_of do
       screen :bitmap
-      moved = var :moved, 0
+      moved = 0
       b = self
-      func(:bump) { moved.add! 1 }
+      func(:bump) { moved += 1 }
       game_loop { b.repeat(4) { b.call :bump } }
     end
     shape = shapes.values.first
@@ -74,9 +74,9 @@ class TestLoopForm < Minitest::Test
   def test_a_body_with_too_much_to_save_around_goes_through_memory
     _, shapes = shapes_of do
       screen :bitmap
-      moved = var :moved, 0
+      moved = 0
       b = self
-      func(:bump) { moved.add! 1 }
+      func(:bump) { moved += 1 }
       game_loop { b.repeat(4) { 3.times { b.call :bump } } }
     end
     shape = shapes.values.first
@@ -94,11 +94,11 @@ class TestLoopForm < Minitest::Test
       image(:dot, "#" => :red, "." => :blue) { "#.\n.#" }
       n = var :n, 1
       d = var :d, 3
-      out = var :out, 0
+      out = 0
       x = var :bx, 8
       b = self
       game_loop do
-        b.repeat(4) { out.set!(n / d) }
+        b.repeat(4) { out = n / d }
         b.repeat(4) { b.blit :dot, x, 8 }
         b.repeat(4) { b.draw_number :n, 0, 40, :white }
       end
@@ -118,13 +118,13 @@ class TestLoopForm < Minitest::Test
       screen :bitmap
       image(:dot, "#" => :red, "." => :blue) { "#.\n.#" }
       x = var :bx, 2
-      passes = var :passes, 0
+      passes = 0
       b = self
       game_loop do
-        passes.set! 0
+        passes = 0
         b.repeat(7) do
           b.blit :dot, x, 60
-          passes.add! 1
+          passes += 1
         end
       end
     end
@@ -139,13 +139,13 @@ class TestLoopForm < Minitest::Test
     rom = VBlank.build("LOOPDGT", console: :gba, code: "BLDG", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
       var :n, 4
-      passes = var :passes, 0
+      passes = 0
       b = self
       game_loop do
-        passes.set! 0
+        passes = 0
         b.repeat(7) do
           b.draw_number :n, 0, 40, :white
-          passes.add! 1
+          passes += 1
         end
       end
     end
@@ -160,11 +160,11 @@ class TestLoopForm < Minitest::Test
   def test_a_blocker_buried_in_a_branch_is_still_found
     _, shapes = shapes_of do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       b = self
-      func(:bump) { n.add! 1 }
+      func(:bump) { n += 1 }
       game_loop do
-        b.repeat(4) { |i| (i > 2).then { n.add! 1 }.else { b.call :bump } }
+        b.repeat(4) { |i| if i > 2 then n += 1 else b.call :bump end }
       end
     end
     shape = shapes.values.first
@@ -181,11 +181,11 @@ class TestLoopForm < Minitest::Test
   def test_a_loop_down_an_else_branch_counts_right_on_the_console
     rom = VBlank.build("LOOPELSE", console: :gba, code: "BLEL", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      total = var :total, 0
+      total = 0
       b = self
       game_loop do
-        total.set! 0
-        b.repeat(4) { |i| (i > 1).then { total.add! 100 }.else { b.repeat(3) { total.add! 1 } } }
+        total = 0
+        b.repeat(4) { |i| if i > 1 then total += 100 else b.repeat(3) { total += 1 } end }
       end
     end
 
@@ -225,22 +225,22 @@ class TestLoopForm < Minitest::Test
       b = self
 
       bodies = {
-        set: ->(_i) { n.set! 3 },
-        add: ->(_i) { n.add! 1 },
-        sub: ->(_i) { n.sub! 1 },
+        set: ->(_i) { n = 3 },
+        add: ->(_i) { n += 1 },
+        sub: ->(_i) { n -= 1 },
         copy: ->(_i) { b.copy! :n, :other },
         negate: ->(_i) { n.flip! },
         abs: ->(_i) { n.abs! },
         clamp: ->(_i) { n.clamp! 0, 9 },
         approach: ->(_i) { n.approach! 4, 1 },
-        branch: ->(_i) { (n > 2).then { n.set! 1 }.else { n.set! 8 } },
-        multiply: ->(_i) { n.set!(other * 3) },
-        divide_by_a_fixed_number: ->(_i) { n.set!(other / 3) },
-        divide_by_a_power_of_two: ->(_i) { n.set!(other / 4) },
-        list_read: ->(i) { n.set! xs[i] },
+        branch: ->(_i) { if n > 2 then n = 1 else n = 8 end },
+        multiply: ->(_i) { n = other * 3 },
+        divide_by_a_fixed_number: ->(_i) { n = other / 3 },
+        divide_by_a_power_of_two: ->(_i) { n = other / 4 },
+        list_read: ->(i) { n = xs[i] },
         list_write: ->(i) { xs[i] = 2 },
         list_fill: ->(_i) { b.record_statement(VBlank::IR::Build.list_fill(:xs, from: 1, count: 5, value: 2)) },
-        table_read: ->(i) { n.set! curve[i] },
+        table_read: ->(i) { n = curve[i] },
         pixel: ->(_i) { b.pixel 4, 4, :red },
         fill_rect: ->(_i) { b.fill_rect 0, 0, 2, 2, :blue },
         draw_rect_at: ->(_i) { b.draw_rect_at other, 20, 4, 4, :green },
@@ -253,12 +253,12 @@ class TestLoopForm < Minitest::Test
       game_loop do
         bodies.each do |kind, body|
           count = counts[kind]
-          count.set! 0
+          count = 0
           # The loop runs the statement and counts its own pass. A statement that landed on the
           # counter leaves this reading something other than SWEEP_PASSES.
           b.repeat(SWEEP_PASSES) do |i|
             body.call(i)
-            count.add! 1
+            count += 1
           end
         end
       end
@@ -283,12 +283,12 @@ class TestLoopForm < Minitest::Test
       screen :bitmap
       xs = list :xs, capacity: 8
       8.times { |i| xs << (i + 1) }
-      held_total = var :held_total, 0
-      memory_total = var :memory_total, 0
+      held_total = 0
+      memory_total = 0
       b = self
-      func(:add_one) { memory_total.add! 1 }
+      func(:add_one) { memory_total += 1 }
       game_loop do
-        b.repeat(8) { |i| held_total.add! xs[i] } # plain body — in registers
+        b.repeat(8) { |i| held_total += xs[i] } # plain body — in registers
         b.repeat(5) { b.call :add_one }          # calls out — through memory
         b.halt
       end
@@ -306,14 +306,14 @@ class TestLoopForm < Minitest::Test
       screen :bitmap
       xs = list :xs, capacity: 8
       8.times { |i| xs << (i + 1) }
-      held_total = var :held_total, 0
-      memory_total = var :memory_total, 0
+      held_total = 0
+      memory_total = 0
       b = self
-      func(:add_one) { memory_total.add! 1 }
+      func(:add_one) { memory_total += 1 }
       game_loop do
-        held_total.set! 0
-        memory_total.set! 0
-        b.repeat(8) { |i| held_total.add! xs[i] }
+        held_total = 0
+        memory_total = 0
+        b.repeat(8) { |i| held_total += xs[i] }
         b.repeat(5) { b.call :add_one }
       end
     end
@@ -327,11 +327,11 @@ class TestLoopForm < Minitest::Test
   def test_a_nested_loop_counts_right_on_the_console
     rom = VBlank.build("LOOPNEST", console: :gba, code: "BLNS", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      total = var :total, 0
+      total = 0
       b = self
       game_loop do
-        total.set! 0
-        b.repeat(4) { b.repeat(5) { total.add! 1 } }
+        total = 0
+        b.repeat(4) { b.repeat(5) { total += 1 } }
       end
     end
 
@@ -346,18 +346,18 @@ class TestLoopForm < Minitest::Test
   def test_a_spilled_loop_reads_its_index_inside_the_saved_statement
     rom = VBlank.build("LOOPIDX", console: :gba, code: "BLIX", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      seen = var :seen, 0
-      hits = var :hits, 0
+      seen = 0
+      hits = 0
       b = self
-      func(:bump) { hits.add! 1 }
+      func(:bump) { hits += 1 }
       game_loop do
-        seen.set! 0
-        hits.set! 0
+        seen = 0
+        hits = 0
         b.repeat(10) do |i|
-          (i > 5).then do
-            seen.add! i     # read while the register is lent out
+          if i > 5
+            seen += i     # read while the register is lent out
             b.call :bump
-            seen.add! i     # and again before it comes back
+            seen += i     # and again before it comes back
           end
         end
       end
@@ -377,12 +377,12 @@ class TestLoopForm < Minitest::Test
   def test_a_spilled_loop_emits_the_save_and_the_restore
     rom = VBlank.build("LOOPSAVE", console: :gba, code: "BLSV", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       b = self
-      func(:bump) { n.add! 1 }
+      func(:bump) { n += 1 }
       game_loop do
         b.repeat(4) do |i|
-          n.add! i
+          n += i
           b.call :bump
         end
         b.repeat(4) { b.call :bump }
@@ -411,7 +411,7 @@ class TestLoopForm < Minitest::Test
   # so the body finds the base of the variable memory again there, where written out in a row it
   # would still be sitting in its register from the statement before.
   def test_a_held_pass_that_ignores_its_index_is_a_subtract_and_a_branch
-    overhead = loop_overhead { |_b, n| n.add! 1 }
+    overhead = loop_overhead { |_b, counted| counted[:n] += 1 }
 
     assert_equal 3, overhead
   end
@@ -444,7 +444,7 @@ class TestLoopForm < Minitest::Test
   # Written out with no loop, the body reads an ordinary variable instead of the index, which is
   # the same one instruction as reading the index out of its register.
   def test_a_held_pass_that_reads_its_index_is_an_add_a_compare_and_a_branch
-    overhead = loop_overhead { |_b, n, index| n.set! index }
+    overhead = loop_overhead { |_b, counted, index| counted[:n] = index }
 
     assert_equal 4, overhead
   end
@@ -452,8 +452,8 @@ class TestLoopForm < Minitest::Test
   # ...and the same around a call, where the index is also written out to its variable before
   # the call, and the pair saved and restored around it.
   def test_a_spilled_pass_that_reads_its_index_is_the_write_the_save_the_restore_and_the_count
-    overhead = loop_overhead do |b, n, index|
-      n.set! index
+    overhead = loop_overhead do |b, counted, index|
+      counted[:n] = index
       b.call :bump
     end
 
@@ -464,8 +464,8 @@ class TestLoopForm < Minitest::Test
   # limit, compares and branches back. Tested first it loads the index twice — once to compare
   # and once to add — and spends a branch out and a branch back.
   def test_a_pass_through_memory_that_reads_its_index_loads_it_once
-    overhead = loop_overhead do |b, n, index|
-      n.set! index
+    overhead = loop_overhead do |b, counted, index|
+      counted[:n] = index
       3.times { b.call :bump }
     end
 
@@ -480,8 +480,8 @@ class TestLoopForm < Minitest::Test
   def test_a_loop_gets_whichever_shape_is_cheaper_for_the_calls_in_its_body
     [true, false].each do |reads|
       costs = (1..3).to_h do |calls|
-        [calls, loop_overhead do |b, n, index|
-          n.set! index if reads
+        [calls, loop_overhead do |b, counted, index|
+          counted[:n] = index if reads
           calls.times { b.call :bump }
         end]
       end
@@ -500,28 +500,28 @@ class TestLoopForm < Minitest::Test
       none = var :none, 0
       below = var :below, -3
       hit = var :hit, 0
-      passes = var :passes, 0
+      passes = 0
       b = self
-      func(:bump) { passes.add! 1 }
+      func(:bump) { passes += 1 }
       game_loop do
-        passes.set! 0
+        passes = 0
         [none, below].each do |count|
-          b.repeat(count) { passes.add! 1 }                        # held
+          b.repeat(count) { passes += 1 }                        # held
           b.repeat(count) { b.call :bump }                         # spilled
           b.repeat(count) { 3.times { b.call :bump } }             # through memory
-          b.repeat(count, stop_when: hit == 1) { passes.add! 1 }   # stops early
-          b.repeat(count) { |i| passes.add! i + 1 }                # ...and each reading its index
+          b.repeat(count, stop_when: hit == 1) { passes += 1 }   # stops early
+          b.repeat(count) { |i| passes += i + 1 }                # ...and each reading its index
           b.repeat(count) do |i|
-            passes.add! i + 1
+            passes += i + 1
             b.call :bump
           end
           b.repeat(count) do |i|
-            passes.add! i + 1
+            passes += i + 1
             3.times { b.call :bump }
           end
-          b.repeat(count, stop_when: hit == 1) { |i| passes.add! i + 1 }
+          b.repeat(count, stop_when: hit == 1) { |i| passes += i + 1 }
         end
-        b.repeat(3, stop_when: hit == 1) { passes.add! 100 }
+        b.repeat(3, stop_when: hit == 1) { passes += 100 }
       end
     end
 
@@ -534,23 +534,23 @@ class TestLoopForm < Minitest::Test
   def test_a_loop_through_memory_reads_its_index_and_stops_where_told
     rom = VBlank.build("LOOPMEMI", console: :gba, code: "BLMI", maker: "01", err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      whole = var :whole, 0
-      stopped = var :stopped, 0
-      calls = var :calls, 0
-      found = var :found, 0
+      whole = 0
+      stopped = 0
+      calls = 0
+      found = 0
       b = self
-      func(:bump) { calls.add! 1 }
+      func(:bump) { calls += 1 }
       game_loop do
-        whole.set! 0
-        stopped.set! 0
-        found.set! 0
+        whole = 0
+        stopped = 0
+        found = 0
         b.repeat(5) do |i|
-          whole.add! i * 10 + 1
+          whole += i * 10 + 1
           2.times { b.call :bump }
         end
         b.repeat(9, stop_when: found == 1) do |i|
-          stopped.add! i * 10 + 1
-          (i == 3).then { found.set! 1 }
+          stopped += i * 10 + 1
+          found = 1 if i == 3
           2.times { b.call :bump }
         end
       end
@@ -570,12 +570,12 @@ class TestLoopForm < Minitest::Test
   def test_an_index_read_only_by_a_routine_the_body_calls_still_counts_up
     rom = VBlank.build("LOOPCAPT", console: :gba, err: StringIO.new, out: StringIO.new) do
       screen :bitmap
-      seen = var :seen, 0
+      seen = 0
       b = self
       game_loop do
-        seen.set! 0
+        seen = 0
         b.repeat(4) do |i|
-          b.func(:look) { seen.add! i * 10 + 1 }
+          b.func(:look) { seen += i * 10 + 1 }
           b.call :look
         end
       end
@@ -593,10 +593,10 @@ class TestLoopForm < Minitest::Test
   # ordinary variable.
   private def loop_overhead(&body)
     looped = [PASSES, PASSES * 2].map do |passes|
-      instructions_a_frame(pass_rom("LOOPED") { |b, n, _stand_in| b.repeat(passes) { |i| body.call(b, n, i) } })
+      instructions_a_frame(pass_rom("LOOPED") { |b, n, _stand_in| b.repeat(passes) { |i| instance_exec(b, n, i, &body) } })
     end
     inline = [PASSES, PASSES * 2].map do |passes|
-      instructions_a_frame(pass_rom("INLINE") { |b, n, stand_in| passes.times { body.call(b, n, stand_in) } })
+      instructions_a_frame(pass_rom("INLINE") { |b, n, stand_in| passes.times { instance_exec(b, n, stand_in, &body) } })
     end
     ((looped.last - looped.first) - (inline.last - inline.first)) / PASSES
   end
@@ -604,14 +604,14 @@ class TestLoopForm < Minitest::Test
   # Nothing is moved to the quick memory, which changes how a call is made depending on where
   # the caller and the routine each landed — and a body written out four hundred times lands
   # somewhere different from one written out two hundred.
-  private def pass_rom(name)
+  private def pass_rom(name, &body)
     VBlank.build(name, console: :gba, err: StringIO.new, out: StringIO.new, fast_code: false) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       stand_in = var :stand_in, 0
       b = self
-      func(:bump) { n.add! 1 }
-      game_loop { yield b, n, stand_in }
+      func(:bump) { n += 1 }
+      game_loop { instance_exec(b, { n: n }, stand_in, &body) }
     end
   end
 

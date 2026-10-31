@@ -27,11 +27,11 @@ class TestFrameStep < Minitest::Test
     b.instance_eval do
       screen :bitmap
       step = VBlank::DSL::Value.new(self, VBlank::IR::Build.var_ref(Frames::STEP))
-      spin = var :spin, 0
+      spin = 0
       game_loop do
         dma_fill_rect 0, 0, 240, 8, :black
         draw_rect_at 0, 0, step * WIDE, 8, :white
-        repeat(busy) { spin.add! 1 } if busy.positive?
+        repeat(busy) { spin += 1 } if busy.positive?
       end
     end
     b.finalize_program
@@ -81,18 +81,18 @@ class TestFrameStep < Minitest::Test
     b.instance_eval do
       screen :bitmap
       step = VBlank::DSL::Value.new(self, VBlank::IR::Build.var_ref(Frames::STEP))
-      ticks = var :ticks, 0
-      last = var :last, 0
-      loops = var :loops, 0
-      spin = var :spin, 0
-      once_a_frame { ticks.add! 1 }
+      ticks = 0
+      last = 0
+      loops = 0
+      spin = 0
+      once_a_frame { ticks += 1 }
       game_loop do
         loops += 1 # ...which the loop body does once a PASS, however many frames that took
         dma_fill_rect 0, 0, 240, 24, :black
         draw_rect_at 0, 0, step * WIDE, 8, :white
         draw_rect_at 0, 12, (ticks - last) * WIDE, 8, :white
         last = ticks
-        repeat(busy) { spin.add! 1 } if busy.positive?
+        repeat(busy) { spin += 1 } if busy.positive?
       end
     end
     b.finalize_program
@@ -159,10 +159,10 @@ class TestFrameStep < Minitest::Test
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap
-      by_pass = var :by_pass, 0
-      by_clock = var :by_clock, 0
-      once_a_frame { by_clock.add! 1 }
-      game_loop { by_pass.add! 1 }
+      by_pass = 0
+      by_clock = 0
+      once_a_frame { by_clock += 1 }
+      game_loop { by_pass += 1 }
     end
     b.finalize_program
     b.program
@@ -186,14 +186,14 @@ class TestFrameStep < Minitest::Test
     b.instance_eval do
       screen :bitmap
       step = VBlank::DSL::Value.new(self, VBlank::IR::Build.var_ref(Frames::STEP))
-      beats = var :beats, 0
-      spin = var :spin, 0
+      beats = 0
+      spin = 0
       game_loop do
-        every(period) { beats.add! 1 }
+        every(period) { beats += 1 }
         dma_fill_rect 0, 0, 240, 24, :black
         draw_rect_at 0, 0, step * WIDE, 8, :white
         draw_rect_at 0, 12, beats * WIDE, 8, :white
-        repeat(busy) { spin.add! 1 } if busy.positive?
+        repeat(busy) { spin += 1 } if busy.positive?
       end
     end
     b.finalize_program
@@ -224,13 +224,13 @@ class TestFrameStep < Minitest::Test
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap
-      fired = var :fired, 0
-      spin = var :spin, 0
+      fired = 0
+      spin = 0
       game_loop do
-        after(wait) { fired.set! 1 }
+        after(wait) { fired = 1 }
         dma_fill_rect 0, 0, 240, 24, :black
         draw_rect_at 0, 12, fired * WIDE, 8, :white
-        repeat(busy) { spin.add! 1 } if busy.positive?
+        repeat(busy) { spin += 1 } if busy.positive?
       end
     end
     b.finalize_program

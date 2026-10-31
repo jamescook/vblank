@@ -30,15 +30,15 @@ class TestLatePages < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: true, late: late, pace: late == :wait ? 60 : pace
-      done = var :done, 0
-      passes = var :passes, 0
+      done = 0
+      passes = 0
       game_loop do
         clear_screen :gray
-        repeat(work) { done.add! 1 }
+        repeat(work) { done += 1 }
         if every.positive?
           passes += 1
           if (passes % every) == 0
-            repeat(extra) { done.add! 1 }
+            repeat(extra) { done += 1 }
           end
         end
       end
@@ -144,20 +144,20 @@ class TestLatePages < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: true, late: :show_now
-      done = var :done, 0
+      done = 0
       scene :menu do
         screen :bitmap, tear_free: true
         clear_screen :gray
-        repeat(ENDS_NEAR_THE_TOP) { done.add! 1 }
+        repeat(ENDS_NEAR_THE_TOP) { done += 1 }
       end
       scene :play do
         clear_screen :gray
-        repeat(ENDS_NEAR_THE_TOP) { done.add! 1 }
+        repeat(ENDS_NEAR_THE_TOP) { done += 1 }
       end
       if dispatch == :case_var
-        state = var :state, 0
+        state = 0
         game_loop do
-          after(5) { state.set!(stay == :menu ? 0 : 1) }
+          after(5) { state = stay == :menu ? 0 : 1 }
           case_var(:state) do
             when_val 0, :menu
             when_val 1, :play
@@ -166,7 +166,7 @@ class TestLatePages < Minitest::Test
       else
         mode = var :mode, :menu
         game_loop do
-          after(5) { mode.set! stay }
+          after(5) { mode = stay }
           call mode
         end
       end
@@ -198,10 +198,10 @@ class TestLatePages < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap, tear_free: true, late: :show_now
-      done = var :done, 0
+      done = 0
       game_loop do
         clear_screen :gray
-        repeat(ENDS_NEAR_THE_TOP) { done.add! 1 }
+        repeat(ENDS_NEAR_THE_TOP) { done += 1 }
         draw_rect_at 10, 10, 20, 30, :red
       end
     end

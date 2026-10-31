@@ -29,11 +29,11 @@ class TestClockChip < Minitest::Test
       now = clock
       kept = READINGS.to_h { |name| [name, var(name, -1)] }
       game_loop do
-        kept.each do |name, reading|
+        kept.each_key do |name|
           case name
-          when :present then reading.set! 0; now.present?.then { reading.set! 1 }
-          when :set then reading.set! 0; now.set?.then { reading.set! 1 }
-          else reading.set! now.public_send(name)
+          when :present then kept[name] = 0; kept[name] = 1 if now.present?
+          when :set then kept[name] = 0; kept[name] = 1 if now.set?
+          else kept[name] = now.public_send(name)
           end
         end
       end
@@ -103,19 +103,19 @@ class TestClockChip < Minitest::Test
       now = clock
       var :hour_at_power_on, now.hour
       before_the_loop = var :hour_before_the_loop, -1
-      before_the_loop.set! now.hour
-      passes = var :passes, 0
+      before_the_loop = now.hour
+      passes = 0
       kept = READINGS.to_h { |name| [name, var(name, -1)] }
       game_loop do
-        (passes == set_on_pass).then { now.set_to(**SATURDAY) }
-        kept.each do |name, reading|
+        now.set_to(**SATURDAY) if passes == set_on_pass
+        kept.each_key do |name|
           case name
-          when :present then reading.set! 0; now.present?.then { reading.set! 1 }
-          when :set then reading.set! 0; now.set?.then { reading.set! 1 }
-          else reading.set! now.public_send(name)
+          when :present then kept[name] = 0; kept[name] = 1 if now.present?
+          when :set then kept[name] = 0; kept[name] = 1 if now.set?
+          else kept[name] = now.public_send(name)
           end
         end
-        passes.add! 1
+        passes += 1
       end
     end
   end

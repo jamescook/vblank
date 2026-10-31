@@ -46,9 +46,9 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       rooms = (0...4).map { |n| :"room_#{n}" }
       rooms.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(n) }
       image :hero, width: 64, height: 64, data: t.big_art(50)
-      passes = var :passes, 0
-      here = var :here, 0
-      beside = var :beside, 0
+      passes = 0
+      here = 0
+      beside = 0
       up = picture_groups :rooms, rooms.each_with_index.to_h { |name, n| [n, [name]] },
                           up_together: [[0, 1], [1, 2], [2, 3]]
       this_room = sprite :this_room, facing: rooms.to_h { |name| [name, name] }, at: [8, 8]
@@ -89,12 +89,12 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       rooms.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(n) }
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 1
-      tick = var :tick, 0
+      state = 1
+      tick = 0
       scene(:maze) do
         up = picture_groups :cells, rooms.each_with_index.to_h { |name, n| [n, [name]] }
         things = pool :thing, x: 0, y: 0, capacity: 20, facing: rooms.to_h { |name| [name, name] }
-        (things.count == 0).then do
+        if things.count == 0
           things.spawn(x: 8, y: 8)
           things.spawn(x: 88, y: 40)
         end
@@ -124,10 +124,10 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       image :room_1, width: 64, height: 64, data: t.big_art(1)
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 0
-      tick = var :tick, 0
-      here = var :here, 0
-      look = var :look, 0
+      state = 0
+      tick = 0
+      here = 0
+      look = 0
       up = picture_groups :rooms, { 0 => %i[room_0], 1 => %i[room_1] }
       scene(:walking) do
         walker = sprite :walker, facing: { ahead: :room_0, back: mirror(:room_0), other: :room_1 }, at: [8, 8]
@@ -159,12 +159,12 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       rooms.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(n) }
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 0
-      tick = var :tick, 0
+      state = 0
+      tick = 0
       scene(:harbor, loads_first: true) do
         up = picture_groups :docks, rooms.each_with_index.to_h { |name, n| [n, [name]] }
         boats = pool :boat, x: 0, y: 0, capacity: 4, facing: rooms.to_h { |name| [name, name] }
-        (boats.count == 0).then do
+        if boats.count == 0
           boats.spawn(x: 8, y: 8)
           boats.spawn(x: 88, y: 40)
         end

@@ -19,15 +19,15 @@ class TestPoolStackingByScene < Minitest::Test
     builder.instance_eval do
       screen :tiled
       image(:dot, "#" => :yellow) { "########\n" * 8 }
-      t = var :t, 0
-      where = var :where, 0
+      t = 0
+      where = 0
       scene(:title) { draw_text "TITLE", 10, 10, :white }
       scene :playing do
         sparks = pool :spark, x: 0, y: 0, capacity: 8, image: :dot
         if sparks.count == 0
           3.times { |n| sparks.spawn(x: 20 + (n * 30), y: 40 + (n * 8)) }
         end
-        sparks.each { |spark| spark.x.add! 1 }
+        sparks.each { |spark| spark.x += 1 }
       end
       game_loop do
         t += 1

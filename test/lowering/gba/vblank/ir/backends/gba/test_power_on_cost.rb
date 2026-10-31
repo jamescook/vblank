@@ -16,7 +16,7 @@ class TestPowerOnCost < Minitest::Test
     rom = VBlank.build("POWERON", console: :gba, out: StringIO.new, err: StringIO.new, profile: false) do
       fields = (1..12).to_h { |n| [:"f#{n}", 0] }
       things = pool :things, capacity: slots, **fields
-      game_loop { things.each { |thing| thing.f1.add! 1 } }
+      game_loop { things.each { |thing| thing.f1 += 1 } }
     end
     result = VBlank::Diagnostics::Profiler.run(rom, frames: 1, settle: 0, picture: false)
     assert_operator result.idle_share, :>, 0, "power-on with #{slots} slots used the whole first frame"

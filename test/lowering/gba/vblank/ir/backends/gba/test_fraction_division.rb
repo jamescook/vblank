@@ -123,7 +123,7 @@ class TestFractionDivision < Minitest::Test
         a = var :a, numerator
         b = var :b, divisor
         out = var :out, starts_as
-        game_loop { count.times { out.set! worked_out.call(a, b) } }
+        game_loop { count.times { out = worked_out.call(a, b) } }
       end
       backend = GBA.new
       rom = ROM.assemble(backend.lower(program), title: "#{title}#{count}", built: backend.build_record(program))
@@ -212,8 +212,8 @@ class TestFractionDivision < Minitest::Test
   def test_the_console_wraps_it_the_same_way
     program = program_for do
       screen :bitmap
-      tiny = var :tiny, 0.0
-      rounded = var :rounded, 0
+      tiny = 0.0
+      rounded = 0
       game_loop do
         tiny = 0.001
         rounded = (227.9 / tiny + 0.5).to_i
@@ -342,7 +342,8 @@ class TestFractionDivision < Minitest::Test
     state = interpret do
       screen :bitmap
       dist = var :dist, 2.5
-      var(:height, 0).set!((160 / dist).to_i)
+      height = var(:height, 0)
+      height = (160 / dist).to_i
       halt
     end
 
@@ -353,7 +354,8 @@ class TestFractionDivision < Minitest::Test
     state = interpret do
       screen :bitmap
       dist = var :dist, 2.0
-      var(:tenths, 0).set!(((90 / dist) * 10).to_i) # 45.0 -> 450
+      tenths = var(:tenths, 0)
+      tenths = ((90 / dist) * 10).to_i # 45.0 -> 450
       halt
     end
 
@@ -372,13 +374,15 @@ class TestFractionDivision < Minitest::Test
     without = emitted_bytes do
       screen :bitmap
       dist = var :dist, 2.5
-      var(:height, 0).set!((dist * 4).to_i)
+      height = var(:height, 0)
+      height = (dist * 4).to_i
       halt
     end
     with = emitted_bytes do
       screen :bitmap
       dist = var :dist, 2.5
-      var(:height, 0).set!((160 / dist).to_i)
+      height = var(:height, 0)
+      height = (160 / dist).to_i
       halt
     end
 

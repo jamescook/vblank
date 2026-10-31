@@ -31,7 +31,7 @@ class TestConsoleLineUp < Minitest::Test
     bitmap = build do
       screen :bitmap
       clear_screen :black
-      x = var :x, 10
+      x = 10
       game_loop do
         x += 2
         draw_rect_at x, 40, 8, 8, Color.resolve(:white)
@@ -69,7 +69,7 @@ class TestConsoleLineUp < Minitest::Test
   private def over_budget(tear_free:)
     build do
       screen :bitmap, tear_free: tear_free
-      x = var :x, 10
+      x = 10
       game_loop do
         x += 3 if held(:right)
         repeat(12) { clear_screen :black } # far more than a frame's worth of drawing
@@ -115,10 +115,10 @@ class TestConsoleLineUp < Minitest::Test
       tiles :set, "#" => :brick, "." => :floor
       background :bg, tiles: :set, map: FULL_MAP
       guards = pool :guard, x: 0, y: 0, capacity: 32, image: :guy
-      setting_up = var :setting_up, 0
-      repeat(30_000) { setting_up.add! 1 }
+      setting_up = 0
+      repeat(30_000) { setting_up += 1 }
       6.times { |i| guards.spawn(x: (i * 20) + 16, y: 32) }
-      game_loop { guards.each { |g| g.x.add! 2 } }
+      game_loop { guards.each { |g| g.x += 2 } }
     end
   end
 
@@ -150,7 +150,7 @@ class TestConsoleLineUp < Minitest::Test
   # the helper have to say so — the frame offset it gets and whether its passes can be
   # counted on. They are worked out separately, so this pins them together.
   def test_a_program_that_names_no_screen_is_a_plain_bitmap_one_to_both_halves
-    silent = build { game_loop { var(:x, 0).add! 1 } }
+    silent = build { game_loop { x = var(:x, 0); x += 1 } }
 
     refute shows_finished_passes?(silent)
     assert_equal BOOT_FRAMES[:bitmap], console_frames_for(silent, 4) - 4

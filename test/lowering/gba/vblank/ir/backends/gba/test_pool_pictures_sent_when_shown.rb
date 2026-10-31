@@ -53,8 +53,8 @@ class TestPoolPicturesSentWhenShown < Minitest::Test
       # the pool is written over while it is up.
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 0
-      tick = var :tick, 0
+      state = 0
+      tick = 0
       scene(:playing) do
         shards = pool :shard, x: 0, y: 0, look: 0, capacity: 3, facing: POSES.to_h { |name| [name, name] }
         shards.spawn(x: 8, y: 8, look: 0) if tick == 2
@@ -110,11 +110,11 @@ class TestPoolPicturesSentWhenShown < Minitest::Test
       image :small, width: 96, height: 48, data: t.corner_art(1, 32), transparent: true
       banners = (0...8).map { |n| :"banner_#{n}" }
       banners.each_with_index { |name, n| image name, width: 64, height: 64, data: t.big_art(100 + n) }
-      state = var :state, 1
-      tick = var :tick, 0
+      state = 1
+      tick = 0
       scene(:playing) do
         things = pool :thing, x: 0, y: 0, look: 0, capacity: 2, facing: { whole: :whole, small: :small }
-        (tick == 4).then do
+        if tick == 4
           things.spawn(x: 8, y: 8, look: 1)
           things.spawn(x: 96, y: 8, look: 0)
         end

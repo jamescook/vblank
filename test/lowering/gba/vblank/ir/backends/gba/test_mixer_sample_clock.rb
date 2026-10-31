@@ -72,11 +72,11 @@ class TestMixerSampleClock < Minitest::Test
                         out: StringIO.new, err: StringIO.new) do
       screen :bitmap
       tone = sample :tone, pcm: pcm, rate: hz
-      started = var :started, 0
-      frame = var :frame, 0
+      started = 0
+      frame = 0
       game_loop do
         frame += 1
-        (started == 0).then do
+        if started == 0
           started = 1
           tone.play loop: true
         end
@@ -131,7 +131,7 @@ class TestMixerSampleClock < Minitest::Test
       screen :bitmap
       lead = sample :lead, pcm: loud, rate: hz
       crowd = (1..joining).map { |n| sample :"quiet#{n}", pcm: quiet, rate: hz }
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         lead.play loop: true if frame == 5
@@ -165,9 +165,9 @@ class TestMixerSampleClock < Minitest::Test
                           out: StringIO.new, err: StringIO.new) do
         screen :bitmap
         tone = sample :tone, pcm: pcm, rate: hz
-        started = var :started, 0
+        started = 0
         game_loop do
-          (started == 0).then do
+          if started == 0
             started = 1
             tone.play loop: true
           end

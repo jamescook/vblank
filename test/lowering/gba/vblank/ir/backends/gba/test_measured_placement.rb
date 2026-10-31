@@ -29,11 +29,11 @@ class TestMeasuredPlacement < Minitest::Test
       screen :bitmap
       clear_screen :black
       var :state, 0
-      var :x, 0
+      x = 0
 
-      scene(:title) { add! :x, 1 }
+      scene(:title) { x += 1 }
       scene(:playing) { call :the_hot_one }
-      func(:the_hot_one) { repeat(3000) { add! :x, 1 } }
+      func(:the_hot_one) { repeat(3000) { x += 1 } }
 
       game_loop do
         case_var(:state) do
@@ -93,13 +93,13 @@ class TestMeasuredPlacement < Minitest::Test
       screen :bitmap
       clear_screen :black
       var :state, 0
-      var :x, 0
-      func(:everywhere) { repeat(300) { add! :x, 1 } }
-      func(:one_screen) { repeat(800) { add! :x, 1 } }
-      scene(:logos) { add! :x, 1 }
-      scene(:title) { add! :x, 1 }
+      x = 0
+      func(:everywhere) { repeat(300) { x += 1 } }
+      func(:one_screen) { repeat(800) { x += 1 } }
+      scene(:logos) { x += 1 }
+      scene(:title) { x += 1 }
       scene(:files) { call :one_screen }
-      scene(:playing) { add! :x, 1 }
+      scene(:playing) { x += 1 }
       game_loop do
         call :everywhere
         case_var(:state) do
@@ -173,9 +173,9 @@ class TestMeasuredPlacement < Minitest::Test
     game = VBlank.game("MPL2", consoles: %i[gba], code: "MPL2", maker: "01") do
       screen :bitmap
       clear_screen :black
-      var :x, 0
-      func(:never_run, fast: true) { repeat(3000) { add! :x, 1 } }
-      game_loop { add! :x, 1 }
+      x = 0
+      func(:never_run, fast: true) { repeat(3000) { x += 1 } }
+      game_loop { x += 1 }
     end
     placement = game.build_rom(out: StringIO.new, err: StringIO.new).built.placement
 
@@ -189,7 +189,7 @@ class TestMeasuredPlacement < Minitest::Test
   def test_a_save_is_measured_and_kept_without_fast_true
     game = VBlank.game("MSAV", consoles: %i[gba]) do
       screen :bitmap
-      score = var :score, 0
+      score = 0
       files = save_data :file, copies: 2 do
         keep score
       end

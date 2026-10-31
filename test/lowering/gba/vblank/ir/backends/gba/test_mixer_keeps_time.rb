@@ -43,16 +43,16 @@ class TestMixerKeepsTime < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clip = sample :tone, pcm: tone, rate: rate
-      started = var :started, 0
-      spin = var :spin, 0
-      passes = var :passes, 0
+      started = 0
+      spin = 0
+      passes = 0
       game_loop do
         passes += 1
-        (started == 0).then do
+        if started == 0
           started = 1
           clip.play
         end
-        repeat(burn) { spin.add! 1 }
+        repeat(burn) { spin += 1 }
       end
     end
     b.finalize_program
@@ -129,9 +129,9 @@ class TestMixerKeepsTime < Minitest::Test
       b = Builder.new
       b.instance_eval do
         screen :bitmap
-        passes = var :passes, 0
+        passes = 0
         sample(:v, pcm: [100, -100] * 400, rate: rate).play(loop: true)
-        game_loop { passes.add! 1 }
+        game_loop { passes += 1 }
       end
       b.finalize_program
       rom = ROM.assemble(backend.lower(b.program), title: "MIXBOOT", code: "ZMXB", maker: "01")

@@ -24,18 +24,18 @@ class TestFastCodePlacement < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       clear_screen :black
-      total = var :total, 0
-      f = var :f, 0
+      total = 0
+      f = 0
       func(:work, fast: fast) do
         total = 0
-        repeat(passes) { |i| total.add! i }
+        repeat(passes) { |i| total += i }
       end
       game_loop do
         wait_vblank
         call :work
         fill_rect 0, 0, 40, 8, :green
         f += 1
-        (f >= halt_after).then { halt } if halt_after
+        halt if halt_after && f >= halt_after
       end
     end
     builder.finalize_program
@@ -150,10 +150,10 @@ class TestFastCodePlacement < Minitest::Test
     rom = VBlank.build("FASTC", console: :gba, code: "FSTC", maker: "01", err: StringIO.new) do
       screen :bitmap
       clear_screen :black
-      t = var :t, 0
+      t = 0
       game_loop do
         wait_vblank
-        repeat(50) { |i| t.add! i }
+        repeat(50) { |i| t += i }
         fill_rect 0, 0, 40, 8, :green
       end
     end
@@ -341,8 +341,8 @@ class TestFastCodePlacement < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      n = var :n, 0
-      timer(:beat, per_second: per_second).on_tick { n.add! 1 }
+      n = 0
+      timer(:beat, per_second: per_second).on_tick { n += 1 }
       game_loop { fill_rect 0, 0, 40, 8, :green }
     end
     b.finalize_program
@@ -398,8 +398,8 @@ class TestFastCodePlacement < Minitest::Test
   # crossing is not handled.
   def test_a_block_that_calls_a_routine_still_bends_the_same_rows
     program = bending_program do |water|
-      shift = var :shift, 0
-      func(:pick) { shift.set! 4 }
+      shift = 0
+      func(:pick) { shift = 4 }
       water.scroll_each_row do |row|
         call :pick
         shift += row % 2
@@ -455,14 +455,14 @@ class TestFastCodePlacement < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       var :state, 0
-      score = var :score, 0
-      func(:tally) { score.add! 1 }
+      score = 0
+      func(:tally) { score += 1 }
       scene(:title) { clear_screen :black }
       scene(:playing) do
         clear_screen :blue
         draw_number :score, 10, 20, :white, digits: 6
         call :tally
-        repeat(300) { |i| score.add! i }
+        repeat(300) { |i| score += i }
       end
       scene(:over) { draw_number :score, 10, 30, :white, digits: 6 }
       game_loop do
@@ -499,7 +499,7 @@ class TestFastCodePlacement < Minitest::Test
   def test_a_routine_saving_on_128k_is_charged_at_least_what_it_comes_out_at
     program = VBlank.game("CHARGE", consoles: %i[gba], save_memory: 128) do
       screen :bitmap
-      hearts = var :hearts, 3
+      hearts = 3
       file = save_data(:file) { keep hearts }
       game_loop { if pressed(:a) then hearts = 7; file[0].save end }
     end.program
@@ -512,8 +512,8 @@ class TestFastCodePlacement < Minitest::Test
   def test_a_digit_drawn_from_a_tick_is_charged_to_the_interrupt
     program = VBlank.game("CHARGE", consoles: %i[gba]) do
       screen :bitmap
-      shown = var :shown, 0
-      timer(:clock, per_second: 4000).on_tick { shown.add! 1; draw_number shown, 8, 8, :white, digits: 3 }
+      shown = 0
+      timer(:clock, per_second: 4000).on_tick { shown += 1; draw_number shown, 8, 8, :white, digits: 3 }
       game_loop {}
     end.program
 
@@ -565,9 +565,9 @@ class TestFastCodePlacement < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       screen :bitmap
-      total = var :total, 0
+      total = 0
       list :filler, capacity: filler, width: :byte, fast: true if filler
-      func(:leaf) { total.add! 1 }
+      func(:leaf) { total += 1 }
       func(:caller) { 10.times { call :leaf } }
       game_loop { call :caller }
     end
@@ -624,8 +624,8 @@ class TestFastCodePlacement < Minitest::Test
     builder.instance_eval do
       screen :bitmap
       CROWD.times { |n| var :"v#{n}", 7 }
-      last = var :last, 0
-      func(:work, fast: true) { last.add! 1 }
+      last = 0
+      func(:work, fast: true) { last += 1 }
       game_loop { call :work }
     end
     builder.finalize_program
@@ -657,8 +657,8 @@ class TestFastCodePlacement < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       screen :bitmap
-      total = var :total, 0
-      func(:leaf, fast: false) { total.add! 1 }
+      total = 0
+      func(:leaf, fast: false) { total += 1 }
       func(:kept, fast: true) { repeat(3) { call :leaf; call :leaf } }
       func(:left, fast: false) { repeat(3) { call :leaf; call :leaf } }
       game_loop { call :kept; call :left }
@@ -689,7 +689,7 @@ class TestFastCodePlacement < Minitest::Test
       clear_screen :black
       list :big, capacity: 7000, fast: true # eats nearly all of the quick memory, and insists on it
       big = var :b, 0
-      func(:work, fast: true) { 400.times { big.add! 1 } }
+      func(:work, fast: true) { 400.times { big += 1 } }
       game_loop { wait_vblank; call :work }
     end
     builder.finalize_program

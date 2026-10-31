@@ -30,8 +30,8 @@ class TestInstructionCounts < Minitest::Test
   def test_a_statement_is_charged_for_its_own_instructions_and_not_its_operands
     program, emitted = counts do
       x = var :x, 3
-      y = var :y, 0
-      game_loop { y.set! x }
+      y = 0
+      game_loop { y = x }
     end
 
     assert_equal 1, emitted[find(program, :set)].instructions
@@ -43,8 +43,8 @@ class TestInstructionCounts < Minitest::Test
   def test_the_parts_of_a_statement_add_up_to_what_it_emitted
     program, emitted = counts do
       x = var :x, 3
-      y = var :y, 0
-      game_loop { y.set!(x + 2) }
+      y = 0
+      game_loop { y = x + 2 }
     end
 
     statement = find(program, :set)
@@ -62,7 +62,7 @@ class TestInstructionCounts < Minitest::Test
     program, emitted = counts do
       x = var :x, 3
       y = var :y, 0
-      game_loop { 8.times { y.add! x } }
+      game_loop { 8.times { y += x } }
     end
 
     read = find(program, :var_ref)
@@ -80,8 +80,8 @@ class TestInstructionCounts < Minitest::Test
     program, emitted = counts do
       x = var :x, 300
       d = var :d, 7
-      y = var :y, 0
-      game_loop { y.set!(x / d) }
+      y = 0
+      game_loop { y = x / d }
     end
 
     refute_predicate emitted[find(program, :binop)], :branch_free?
@@ -92,7 +92,7 @@ class TestInstructionCounts < Minitest::Test
   def test_a_comparison_is_not_straight
     program, emitted = counts do
       x = var :x, 3
-      y = var :y, 0
+      y = 0
       game_loop { y = 1 if x > 3 }
     end
 
@@ -104,8 +104,8 @@ class TestInstructionCounts < Minitest::Test
   def test_a_divide_the_build_settles_is_straight
     program, emitted = counts do
       x = var :x, 300
-      y = var :y, 0
-      game_loop { y.set!(x / 100) }
+      y = 0
+      game_loop { y = x / 100 }
     end
 
     assert_predicate emitted[find(program, :binop)], :branch_free?
@@ -116,8 +116,8 @@ class TestInstructionCounts < Minitest::Test
   def test_the_cartridge_carries_what_each_node_emitted
     rom = VBlank.build("COUNT", console: :gba, code: "BCNT", maker: "01", err: StringIO.new) do
       screen :bitmap
-      y = var :y, 0
-      game_loop { y.add! 1 }
+      y = 0
+      game_loop { y += 1 }
     end
 
     step = rom.source_program.walk.find { |node| node.kind == :add }
@@ -131,8 +131,8 @@ class TestInstructionCounts < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      y = var :y, 0
-      game_loop { y.add! 1 }
+      y = 0
+      game_loop { y += 1 }
     end
     b.finalize_program
     backend = GBA.new
