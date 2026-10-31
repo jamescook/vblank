@@ -175,7 +175,7 @@ class TestTextTwoColors < Minitest::Test
       b = var :b, 1
       game_loop do
         clear_screen :black
-        draw_text WORDS, X, Y, %i[gray white], showing: (a == 1) & (b == 1)
+        draw_text WORDS, X, Y, %i[gray white], showing: a == 1 && b == 1
       end
     end
 
