@@ -283,14 +283,17 @@ module VBlank
       #
       # +low_notes_intended:+ says a note lower than its voice can play is meant to be played at
       # the lowest it can, as the music's source played it (see Audio::Score).
+      #
+      # +keeps_voices:+ says a sound effect holds each voice it has taken until it ends.
       def song(name, total_frames:, voices: nil, events: nil, duty: :half, volume: 12, loop_frame: nil, priority: nil,
-               group: nil, low_notes_intended: false, plays_once: false)
+               group: nil, low_notes_intended: false, plays_once: false, keeps_voices: false)
         voices ||= [Audio::Music::Part.new(events: events, duty: duty, volume: volume)]
         said = loop_frame ? { loop_frame: loop_frame } : {}
         said[:priority] = priority if priority
         said[:group] = group if group
         said[:low_notes_intended] = true if low_notes_intended
         said[:plays_once] = true if plays_once
+        said[:keeps_voices] = true if keeps_voices
         Nodes.build(:song, name: name, voices: voices, total_frames: total_frames, **said)
       end
 

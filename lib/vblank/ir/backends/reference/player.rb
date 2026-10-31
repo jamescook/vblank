@@ -395,7 +395,7 @@ module VBlank
                 @log << [:note, name, frequency] if heard
                 next
               end
-              next unless claim_channel(channel, rank, sounds: sounds?(kind, part, event))
+              next unless claim_channel(channel, rank, sounds: song.keeps_voices || sounds?(kind, part, event))
 
               @sounding.delete(channel) # the song's note there, if it had one, is gone
               @log << [:note, name, frequency]

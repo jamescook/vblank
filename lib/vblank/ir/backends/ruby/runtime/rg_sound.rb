@@ -67,12 +67,13 @@ RG_SONG_STARTS = 1
 RG_NUMBERS_PER_SONG = 5
 RG_NUMBERS_PER_PART = 6
 RG_EFFECT_ROWS = 2
-RG_NUMBERS_PER_EFFECT = 5
+RG_NUMBERS_PER_EFFECT = 6
 RG_EFFECT_SONG = 0
 RG_EFFECT_NOTES = 1
 RG_EFFECT_RANK = 2
 RG_EFFECT_GROUP = 3
 RG_EFFECT_PRIORITY = 4
+RG_EFFECT_KEEPS_VOICES = 5
 RG_EFFECTS_MOST = 512
 
 # How much one step of loudness moves the speaker, and one step of the mixer's byte: two voices at
@@ -971,7 +972,7 @@ def rg_play_effect_note(effect, part, note)
     rg_sound_log("note #{number} #{pitch}") if heard != 0
     return
   end
-  return unless rg_claim_voice(part.voice, rank, sounds)
+  return unless rg_claim_voice(part.voice, rank, sounds || rg_effect_field(effect, RG_EFFECT_KEEPS_VOICES) == 1)
 
   ticks = music[note + 3]
   fade = rg_note_fade(part, note)

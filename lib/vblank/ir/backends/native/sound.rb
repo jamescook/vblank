@@ -174,16 +174,16 @@ module VBlank
 
           # Every sound effect, in the order declared, as the player reads it (see the layout atop
           # runtime/rg_sound.c): whether any of them plays the wave voice, which changes how that
-          # voice's waveform is put in; then each one's song, where its notes are, rank, group and
-          # priority; and then the effects again, highest rank first, which is the order a frame
-          # plays them in.
+          # voice's waveform is put in; then each one's song, where its notes are, rank, group,
+          # priority and whether it keeps its voices; and then the effects again, highest rank
+          # first, which is the order a frame plays them in.
           def effects_table
             songs = @sound_log.sound_effects.map { |name| @sound_log.song(name) }
             groups = songs.filter_map(&:group).uniq
             rows = songs.each_with_index.map do |song, order|
               rank = Tunes.effect_rank(song, order)
               [@sound_log.song_number(song.name), effect_notes_number(song.name), rank,
-               song.group ? groups.index(song.group) : -1, Tunes.priority_of(rank)]
+               song.group ? groups.index(song.group) : -1, Tunes.priority_of(rank), song.keeps_voices ? 1 : 0]
             end
             by_rank = Tunes.effects_by_rank(songs).map { |name, _| @sound_log.effect_number(name) }
             plays_wave = songs.any? { |song| Tunes.parts_on(song, :wave).positive? }

@@ -1203,13 +1203,15 @@ module VBlank
       # and then it ends there (IR::Tunes.plays_once?). Played as a sound effect, the
       # others of its +group+ are the effects it stops (IR::Tunes.priority_of). +low_notes_intended+
       # says a note lower than its voice can play is played at the lowest it can on purpose.
+      # +keeps_voices+ says a sound effect holds each voice it has taken until it ends, through a
+      # rest or a note at volume 0.
       class Song
         include Node
         kind :song
         declaration!
         category :sound
         operands name: :name, voices: :score, total_frames: :int, loop_frame: :int, priority: :int,
-                 group: :name, low_notes_intended: :flag, plays_once: :flag
+                 group: :name, low_notes_intended: :flag, plays_once: :flag, keeps_voices: :flag
       end
 
       # A named list of songs that each play ONCE, over the tune playing now, when the program

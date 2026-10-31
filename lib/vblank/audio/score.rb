@@ -55,8 +55,13 @@ module VBlank
     # console sees the note, so music decoded off one plays exactly what the original did, and
     # `low_notes_intended: true` says so: the warning is left out for this Score alone. The sound
     # does not change — the note is played at the bottom either way.
+    #
+    # A SOUND EFFECT THAT KEEPS ITS VOICES. A rest or a note at volume 0 gives its voice to the song
+    # at once. `keeps_voices: true` on an effect's Score holds each voice it has taken through such a
+    # silence until the effect ends, the way a cartridge's own sound engine can, so a song note
+    # falling in that silence is lost. It says nothing of a song.
     Score = Data.define(:parts, :tempo, :ticks_per_beat, :length, :loop_from, :plays_once, :priority, :group,
-                        :low_notes_intended)
+                        :low_notes_intended, :keeps_voices)
 
     class Score
       # FRAMES A SECOND, the rate the music is played at — the same round figure a song block's
@@ -72,7 +77,7 @@ module VBlank
       # it comes round TO; left out, that is its start. A song that +plays_once+ does not come
       # round, and +length+ is where it ends.
       def initialize(parts:, tempo: 120, ticks_per_beat: 24, length: nil, loop_from: nil, plays_once: false,
-                     priority: 0, group: nil, low_notes_intended: false)
+                     priority: 0, group: nil, low_notes_intended: false, keeps_voices: false)
         super
       end
 
@@ -88,7 +93,7 @@ module VBlank
         song = { voices: parts.each_with_index.map { |part, n| part.to_voice(frames, total, "Part #{n} of a Score") },
                  total_frames: total,
                  priority: priority, group: group, low_notes_intended: low_notes_intended,
-                 plays_once: plays_once }
+                 plays_once: plays_once, keeps_voices: keeps_voices }
         return song unless loop_from
 
         Checks.loop_from!(loop_from, ticks) { frames.at(loop_from) < total }

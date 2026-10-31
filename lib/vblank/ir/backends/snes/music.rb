@@ -352,7 +352,7 @@ module VBlank
             head = [[:note, song.name, frequency], [:voice, channel, song.name, frequency, volume]]
             commands = entry_commands(head + between + wave_or_noise_entries(part, frequency), voicing, song.name, &number_of)
             [frame, keep_group(commands.take(2).flatten(1)), keep_group(commands.drop(2 + between.size).flatten(1)),
-             frequency.zero? ? 0 : volume, DSPWrites.sounds?(channel, frequency, volume)]
+             frequency.zero? ? 0 : volume, song.keeps_voices || DSPWrites.sounds?(channel, frequency, volume)]
           end
 
           # A NOTE OF A PART THAT PLAYS A RECORDING (Reference::Player#play_recorded_note): its head logs

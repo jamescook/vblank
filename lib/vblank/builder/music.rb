@@ -144,6 +144,7 @@ module VBlank
       # {VBlank::DSL::SongList}.
       def songs(name, scores)
         keys, members = record_scores(name: name, scores: scores, verb: :songs, entry: "Song") do |key, score|
+          refuse_song_keeping_voices!(name, key, score)
           next unless score.group
 
           raise ArgumentError, "Song #{key.inspect} of :#{name} has `group:`. A group says which sound effects " \
@@ -152,6 +153,13 @@ module VBlank
         end
         record(Build.song_list(name, members))
         VBlank::DSL::SongList.new(self, name, keys)
+      end
+
+      private def refuse_song_keeping_voices!(name, key, score)
+        return unless score.keeps_voices
+
+        raise ArgumentError, "Song #{key.inspect} of :#{name} has `keeps_voices:`. It says a sound effect holds " \
+                             "its voices until it ends. Remove `keeps_voices:` from this Score."
       end
 
       # SOUNDS HANDED OVER AS DATA, each played ONCE over the song that is playing.

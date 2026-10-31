@@ -337,6 +337,7 @@ module VBlank
             @effect_ranks = ranked.to_h
             @effect_lists = {}
             @effect_waves = false
+            @effects_keep_voices = @effects.any? { |name| @songs.fetch(name).keeps_voices }
             return unless plays_sound_effects?
 
             slots = @effects.each_with_index.to_h
@@ -1312,6 +1313,7 @@ module VBlank
                 emit_effect_recorded_note(lane, rank, row)
               else
                 emit_take_voice(lane: lane, rank: rank, row: row, dropped: skip)
+                emit_keep_voice(lane, rank, entry) if @effects_keep_voices
                 if lane.kind == :wave
                   e.emit(ASM.ldr_offset(ACC, entry, effect_wave_at))
                   emit_load_waveform(row)
@@ -1333,7 +1335,8 @@ module VBlank
           # Where an effect's waveform sits in its entry, after where its lanes start — and how
           # long an entry is.
           def effect_wave_at = EFFECT_STARTS + (4 * @effect_lanes.size)
-          def effect_entry_bytes = effect_wave_at + (@effect_waves ? 4 : 0)
+          def effect_keeps_at = effect_wave_at + (@effect_waves ? 4 : 0)
+          def effect_entry_bytes = effect_keeps_at + (@effects_keep_voices ? 4 : 0)
 
           # THE ROW AT +row+ IS ABOUT TO BE WRITTEN TO THE WAVE VOICE, with its waveform in ACC: a
           # note loads that waveform first if it is not the one there, and a rest loads nothing. A
@@ -1452,6 +1455,17 @@ module VBlank
               @emitter.emit(ASM.mov_imm_cond(:eq, TMP, 0))
             end
             @primitives.store_var(TMP, holder)
+          end
+
+          # An effect that says so holds +lane+'s voice through a rest or a silent note, until it
+          # ends: its entry's word says, and #emit_take_voice has just found that it may.
+          def emit_keep_voice(lane, rank, entry)
+            lets_go = @emitter.gensym
+            @emitter.emit(ASM.ldr_offset(ACC, entry, effect_keeps_at))
+            @emitter.emit(ASM.cmp_imm(ACC, 0))
+            @emitter.emit_branch(:bcond, lets_go, cond: :eq)
+            @primitives.store_var(rank, self.class.voice_rank(lane.index))
+            @emitter.place_label(lets_go)
           end
 
           # Silence +lane+'s voice, and nobody holds it.
@@ -2579,7 +2593,8 @@ module VBlank
                 rows << lane_rows(@effect_lanes[number], part, part.events)
               end
               wave = @effect_waves ? [waveform_at(song, wave_at)] : []
-              [song.total_frames, @effect_ranks.fetch(name), *starts, *wave].pack("V*")
+              keeps = @effects_keep_voices ? [song.keeps_voices ? 1 : 0] : []
+              [song.total_frames, @effect_ranks.fetch(name), *starts, *wave, *keeps].pack("V*")
             end
             entries.join + rows
           end

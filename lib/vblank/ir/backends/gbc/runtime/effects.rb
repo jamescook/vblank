@@ -51,6 +51,7 @@ module VBlank
             # (GBC::Music#fades?), and +bytes+ is how many a note of it takes (GBC::Music.note_bytes).
             def emit(asm, memory, effects, by_rank, slides: false, pans: false, fades: false, bytes: GBC::Music::NOTE_BYTES)
               emit_claim(asm, memory, fades)
+              emit_claim_keeping(asm, memory) if effects.any?(&:keeps_voices)
               emit_tune_rank(asm, memory)
               emit_sides(asm, memory, by_rank)
               effects.each do |effect|
@@ -68,20 +69,8 @@ module VBlank
             # HL = the note's tuning, then its volume. Keeps HL and C.
             def emit_claim(asm, memory, fades)
               part = memory[Music::PART]
-              holders = memory[HOLDERS]
               asm.label("rt_claim")
-              asm.load(:a, [part])
-              asm.dec(:a)
-              asm.add_a(holders & 0xFF)
-              asm.load(:e, :a)
-              asm.load(:a, holders >> 8)
-              asm.adc_a(0)
-              asm.load(:d, :a) # DE = where the voice's holder is kept
-              asm.load(:a, [:de])
-              asm.load(:b, :a)
-              asm.load(:a, :c)
-              asm.cp_a(:b)
-              asm.ret(:c)
+              emit_refuse_outranked_claim(asm, memory)
               asm.call("rt_note_sounds")
               asm.load(:a, :c)
               asm.jump_relative(:nz, "rt_claim_held")
@@ -264,10 +253,39 @@ module VBlank
               asm.load(:a, part.tone)
               asm.load([part_memory + 1], :a)
               asm.load(:c, effect.rank)
-              asm.call("rt_claim")
+              asm.call(effect.keeps_voices ? "rt_claim_keeping" : "rt_claim")
               asm.jump(:c, past)
               asm.call("rt_sfx_note")
               asm.label(past)
+            end
+
+            # rt_claim_keeping: rt_claim for an effect that keeps its voices, which holds the voice
+            # through a rest or a silent note until the effect ends (rt_sfx_finish_N).
+            def emit_claim_keeping(asm, memory)
+              asm.label("rt_claim_keeping")
+              emit_refuse_outranked_claim(asm, memory)
+              asm.load(:a, :c)
+              asm.load([:de], :a)
+              asm.and_a(:a) # carry clear
+              asm.ret
+            end
+
+            # DE = where the voice's holder is kept, and back to the caller with carry set when a
+            # higher rank than C holds it.
+            def emit_refuse_outranked_claim(asm, memory)
+              holders = memory[HOLDERS]
+              asm.load(:a, [memory[Music::PART]])
+              asm.dec(:a)
+              asm.add_a(holders & 0xFF)
+              asm.load(:e, :a)
+              asm.load(:a, holders >> 8)
+              asm.adc_a(0)
+              asm.load(:d, :a)
+              asm.load(:a, [:de])
+              asm.load(:b, :a)
+              asm.load(:a, :c)
+              asm.cp_a(:b)
+              asm.ret(:c)
             end
 
             # rt_sfx_finish_N: effect N is over, and every voice it still holds goes quiet and is

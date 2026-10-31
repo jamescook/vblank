@@ -59,8 +59,8 @@ module ConformanceFixture
       B.song(:finale, events: [[0, 294]], total_frames: 2, plays_once: true),
       B.song_list(:tracks, %i[theme finale]),              # ...the list, picked from by number below
       # a sound effect over the tune, on the square voice and the noise voice, with a priority and
-      # a group of its own
-      B.song(:hit, total_frames: 3, priority: 68, group: :sword, voices: [
+      # a group of its own, keeping its voices through its rest to its end
+      B.song(:hit, total_frames: 3, priority: 68, group: :sword, keeps_voices: true, voices: [
                VBlank::Audio::Music::Part.new(events: [[0, 523], [2, 0]]),
                VBlank::Audio::Music::Part.new(events: [[0, 131]], noise: true),
              ]),

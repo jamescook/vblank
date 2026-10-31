@@ -88,8 +88,9 @@ module VBlank
 
           # A SOUND EFFECT as the Color's player reads it (Runtime::Effects): its name, its number
           # among the game's effects in the order declared, its rank as a number of a byte (#rank),
-          # its group and priority, how many frames it lasts, and its parts.
-          Effect = Data.define(:name, :number, :rank, :group, :priority, :total_frames, :parts)
+          # its group and priority, how many frames it lasts, its parts, and whether it keeps its
+          # voices to its end.
+          Effect = Data.define(:name, :number, :rank, :group, :priority, :total_frames, :parts, :keeps_voices)
 
           # A part of a sound effect: the voice it plays on, what the voice sounds like (as a song's
           # part has it, #tone_of), and the label of its notes and how many there are.
@@ -121,7 +122,8 @@ module VBlank
                                count: part.events.length)
               end
               Effect.new(name: name, number: number, rank: rank(Tunes.effect_rank(song, number)), group: song.group,
-                         priority: song.priority || 0, total_frames: song.total_frames, parts: parts)
+                         priority: song.priority || 0, total_frames: song.total_frames, parts: parts,
+                         keeps_voices: song.keeps_voices == true)
             end
           end
 

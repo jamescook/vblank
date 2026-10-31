@@ -186,13 +186,14 @@
 #define EFFECT_COUNT (rg_game_effects[0])
 #define EFFECTS_PLAY_WAVE (rg_game_effects[1])
 #define EFFECT_ROWS 2
-#define NUMBERS_PER_EFFECT 5
+#define NUMBERS_PER_EFFECT 6
 /* Each effect's numbers in rg_game_effects, by where they are in its row. */
 #define EFFECT_SONG 0
 #define EFFECT_NOTES 1
 #define EFFECT_RANK 2
 #define EFFECT_GROUP 3
 #define EFFECT_PRIORITY 4
+#define EFFECT_KEEPS_VOICES 5
 /* Room for every sound effect a game has, each keeping where it is: a game's own effects are a
  * handful, and a cartridge's whole set of sequences, decoded, is a few hundred. More stops the
  * program, saying so. */
@@ -1287,7 +1288,7 @@ static void play_effect_note(int32_t effect, const part_walk *part, const int32_
     if (heard) rg_sound_log("note %d %d", (int)number, (int)pitch);
     return;
   }
-  if (!claim_voice(part->voice, rank, sounds)) return;
+  if (!claim_voice(part->voice, rank, sounds || row[EFFECT_KEEPS_VOICES])) return;
 
   int32_t ticks = note[3], fade = note_fade(part, note);
   drop_held_note(part->voice);
