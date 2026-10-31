@@ -37,10 +37,10 @@ class TestMusicVolumeOnTheAdvance < Minitest::Test
           note :C4, :whole
         end
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        named_once ? (pass == 1).then { play_song :hold } : play_song(:hold)
+        named_once ? (play_song :hold if pass == 1) : play_song(:hold)
         instance_exec(pass, &body)
       end
     end
@@ -74,7 +74,7 @@ class TestMusicVolumeOnTheAdvance < Minitest::Test
   # volume 12 is 410 of those — and the mixer takes a new one while a note plays, like the wave
   # voice. The log names the part by its place among the song's recorded parts.
   def test_half_the_music_volume_halves_a_recorded_note_already_sounding
-    program = held_note_game(plays: :piano) { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game(plays: :piano) { |pass| music_volume 50 if pass == 5 }
 
     assert_equal({ 2 => [[[:mixer, 0], 410]], 6 => [[[:mixer, 0], 205]] }, loudness_by_frame(program, 10))
   end
@@ -83,7 +83,7 @@ class TestMusicVolumeOnTheAdvance < Minitest::Test
   # Such a game mixes every voice by a gain the shapes work out a frame at a time, and a note
   # with no shape has none to work it out.
   def test_no_music_volume_silences_a_recorded_note_without_a_shape_in_a_game_that_shapes
-    program = held_note_game(plays: :piano, shaped_elsewhere: true) { |pass| (pass == 20).then { music_volume 0 } }
+    program = held_note_game(plays: :piano, shaped_elsewhere: true) { |pass| music_volume 0 if pass == 20 }
     i = game_player
     i.run(program, frames: 40)
     peaks = i.mixed_sound.map { |slice| slice.map(&:abs).max }

@@ -34,7 +34,7 @@ class TestMenuOnTheAdvance < Minitest::Test
   private def menu_program(press: :a, repeat_every: nil, on: :bitmap, starts_on: nil, &extra)
     build_program do
       screen on
-      var :chose, 0
+      chose = 0
       game_loop do
         clear_screen :black if on == :bitmap
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white,
@@ -43,7 +43,7 @@ class TestMenuOnTheAdvance < Minitest::Test
         options[:starts_on] = starts_on if starts_on
         m = menu(:main, **options) do |rows|
           ROWS.each_with_index do |label, i|
-            rows.item(label, enabled: i != 1) { set! :chose, i + 1 }
+            rows.item(label, enabled: i != 1) { chose = i + 1 }
           end
         end
         instance_exec(m, &extra) if extra
@@ -102,7 +102,10 @@ class TestMenuOnTheAdvance < Minitest::Test
   # raced down the list one row a frame can land on the right row by coincidence, and
   # in a three-row walk it often does.
   private def counting_moves(repeat_every:)
-    menu_program(repeat_every: repeat_every) { |m| add! :chose, 1 if m.moved }
+    menu_program(repeat_every: repeat_every) do |m|
+      chose = var :chose, 0
+      chose += 1 if m.moved
+    end
   end
 
   # ---- choosing ----
@@ -136,11 +139,11 @@ class TestMenuOnTheAdvance < Minitest::Test
   private def settings_menu(&extra)
     build_program do
       screen :bitmap
-      music = var :music, 1
+      music = 1
       game_loop do
         clear_screen :black
         menu(:main, at: [X, Y], spacing: SPACING, color: :gray, picked: :white) do |rows|
-          rows.item(["MUSIC OFF", "MUSIC ON"], showing: music) { music.set! 1 - music }
+          rows.item(["MUSIC OFF", "MUSIC ON"], showing: music) { music = 1 - music }
           rows.item("START")
         end
         instance_exec(music, &extra) if extra
@@ -208,21 +211,21 @@ class TestMenuOnTheAdvance < Minitest::Test
   private def changing_menu(on: :bitmap, opens_at: nil, repeat_every: nil)
     build_program do
       screen on
-      var :chose, 0
-      open = var :open, 0
-      t = var :t, 0
+      chose = 0
+      open = 0
+      t = 0
       game_loop do
         clear_screen :black if on == :bitmap
         t += 1
         open = 1 - open if pressed(:l)
-        (t == opens_at).then { open.set! 1 } if opens_at
+        open = 1 if opens_at && t == opens_at
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white, disabled: :red }
         options[:repeat_every] = repeat_every if repeat_every
         menu(:main, **options) do |rows|
-          rows.item("ONE") { set! :chose, 1 }
-          rows.item("TWO", enabled: open == 1) { set! :chose, 2 }
-          rows.item("THREE", enabled: open) { set! :chose, 3 }
-          rows.item("FOUR") { set! :chose, 4 }
+          rows.item("ONE") { chose = 1 }
+          rows.item("TWO", enabled: open == 1) { chose = 2 }
+          rows.item("THREE", enabled: open) { chose = 3 }
+          rows.item("FOUR") { chose = 4 }
         end
       end
     end

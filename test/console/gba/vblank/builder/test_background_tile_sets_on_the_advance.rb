@@ -45,7 +45,7 @@ class TestBackgroundTileSetsOnTheAdvance < Minitest::Test
       scenery = background :scenery, tiles: { shrine: :arches, clearing: :trees },
                                      map: { shrine: { hall_arch: scenery_map }, clearing: { glade_trees: scenery_map } }
       where = var :room, 0
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         where = 1 if pass == 3
@@ -248,8 +248,8 @@ class TestBackgroundTileSetsOnTheAdvance < Minitest::Test
       tiles :clearing, "#" => :clearing_grass
       tiles :banner, "#" => :banner_blue, "o" => :banner_yellow
       grid = (0...20).map { "#" * 30 }
-      state = var :state, 0
-      tick = var :tick, 0
+      state = 0
+      tick = 0
       where = var :room, 0
       ground = lambda do
         background(:ground, tiles: { shrine: :shrine, clearing: :clearing },
@@ -263,7 +263,7 @@ class TestBackgroundTileSetsOnTheAdvance < Minitest::Test
       game_loop do
         tick += 1
         where = 1 if tick == 3
-        (tick == 6).then do
+        if tick == 6
           state = 1
           where = 0
         end

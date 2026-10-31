@@ -18,7 +18,7 @@ module ClockOnTheAdvanceGames
       now = clock
       readings = TIME.to_h { |name| [name, var(name, -1)] }
       game_loop do
-        readings.each { |name, reading| reading.set! now.public_send(name) }
+        readings.each_key { |name| readings[name] = now.public_send(name) }
       end
     end
     b.finalize_program
@@ -81,9 +81,9 @@ class TestClockOnTheAdvance < Minitest::Test
     b = Builder.new
     b.instance_eval do
       now = clock
-      present = var :present, 0
-      set = var :set, 0
-      hour = var :hour, -1
+      present = 0
+      set = 0
+      hour = -1
       game_loop do
         present = 1 if now.present?
         set = 1 if now.set?

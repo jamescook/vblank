@@ -49,8 +49,8 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       tiles :stones, **keys
       room_map = Array.new(20) { |r| Array.new(30) { |c| ("a".ord + ((r + c) % ROOM_TILES)).chr }.join }
 
-      var :mode, 0
-      pass = var :pass, 0
+      mode = 0
+      pass = 0
       scene(:title) do
         rays = background :rays, tiles: :light, map: Array.new(20) { "#" * 30 }
         rays.draw_with [:shimmer], showing: (pass >> 3) & 1
@@ -59,7 +59,7 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       tint(*tint) if tint
       game_loop do
         pass += 1
-        set! :mode, 1 if pass == switch_at
+        mode = 1 if pass == switch_at
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :room
@@ -129,8 +129,8 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       end
       tiles :stones, **keys
       room_map = Array.new(20) { |r| Array.new(30) { |c| ("a".ord + ((r + c) % ROOM_TILES)).chr }.join }
-      var :mode, 0
-      pass = var :pass, 0
+      mode = 0
+      pass = 0
       rays = nil
       scene(:title) { rays = background :rays, tiles: :light, map: Array.new(20) { "#" * 30 } }
       scene(:room) do
@@ -139,8 +139,8 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       end
       game_loop do
         pass += 1
-        set! :mode, 1 if pass == 4
-        set! :mode, 0 if pass == 12
+        mode = 1 if pass == 4
+        mode = 0 if pass == 12
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :room
@@ -197,15 +197,15 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       grid = (0...20).map { "#" * 30 }
       ground = background :ground, tiles: { shrine: :shrine, clearing: :clearing },
                                    map: { shrine: { hall: grid }, clearing: { glade: grid } }
-      var :mode, 0
-      pass = var :pass, 0
-      room = var :room, 0
+      mode = 0
+      pass = 0
+      room = 0
       scene(:plain) { nil }
       scene(:signed) { background :board, tiles: :signs, map: ["#" * 30] * 4 }
       game_loop do
         pass += 1
         room = 1 if pass == 3
-        set! :mode, 1 if pass == 5
+        mode = 1 if pass == 5
         ground.show_map room
         case_var(:mode) do
           when_val 0, :plain

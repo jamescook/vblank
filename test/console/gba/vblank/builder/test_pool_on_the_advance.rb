@@ -24,7 +24,7 @@ module PoolOnTheAdvanceGames
       # Each one tagged with the order it was spawned in, so the first and the last can be
       # picked out whatever slots they landed in.
       repeat(1000) { |i| crowd.spawn x: i % 200, y: 20, vx: i }
-      crowd.each { |one| ((one.vx == 0) | (one.vx == 999)).then { draw_rect_at one.x, one.y, 4, 4, :green } }
+      crowd.each { |one| draw_rect_at one.x, one.y, 4, 4, :green if one.vx == 0 || one.vx == 999 }
       game_loop {}
     end
     b.finalize_program

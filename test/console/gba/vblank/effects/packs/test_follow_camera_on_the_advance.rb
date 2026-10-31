@@ -52,7 +52,7 @@ class TestFollowCameraOnTheAdvance < Minitest::Test
   # --- the swap: the sprite moves, the world does ---
 
   def test_the_character_stays_put_while_the_world_slides_under_it
-    prog = walking_game { |hero| held(:right).then { hero.move :right, by: 2 } }
+    prog = walking_game { |hero| hero.move :right, by: 2 if held(:right) }
     seen = (1..8).map do |n|
       game_player.hold(:right).run(prog, frames: n).screen
     end
@@ -67,7 +67,7 @@ class TestFollowCameraOnTheAdvance < Minitest::Test
   end
 
   def test_walking_the_other_way_scrolls_the_other_way
-    prog = walking_game { |hero| held(:left).then { hero.move :left, by: 2 } }
+    prog = walking_game { |hero| hero.move :left, by: 2 if held(:left) }
     first = game_player.hold(:left).run(prog, frames: 2).screen
     later = game_player.hold(:left).run(prog, frames: 8).screen
 

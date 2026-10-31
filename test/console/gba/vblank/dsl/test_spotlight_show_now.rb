@@ -22,11 +22,11 @@ module SpotlightShowNowGames
       loops = var :shape_loops, 2
       light.shape do |row|
         steps = var :shape_steps, 0
-        repeat(loops) { steps.add! 1 }
+        repeat(loops) { steps += 1 }
         light.circle(row) + steps - 2
       end
-      waited = var :waited, 0
-      turns = var :turns, 0
+      waited = 0
+      turns = 0
       game_loop do
         turns += 1
         repeat(3) do
@@ -64,11 +64,11 @@ class TestSpotlightShowNow < Minitest::Test
       tiles :set, "#" => :white_tile
       background :room, tiles: :set, map: ["#" * 32] * 32
       light = spotlight at: [120, 80], radius: 0, dark: 100
-      turn = var :turn, 0
+      turn = 0
       game_loop do
         turn += 1
         light.radius += 4 if turn > OPENS
-        (turn == OPENS).then do
+        if turn == OPENS
           light.radius = 4
           light.show_now if now
         end
@@ -123,10 +123,10 @@ class TestSpotlightShowNow < Minitest::Test
       loops = var :shape_loops, 2
       light.shape do |row|
         steps = var :shape_steps, 0
-        repeat(loops) { steps.add! 1 }
+        repeat(loops) { steps += 1 }
         light.circle(row) + steps - 2
       end
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         passes = 0
         repeat(3) do
@@ -163,8 +163,8 @@ class TestSpotlightShowNow < Minitest::Test
       tiles :set, "#" => :white_tile
       layer(:ground) { background :room, tiles: :set, map: ["#" * 32] * 32 }
       light = spotlight at: [120, 80], radius: 30, dark: 100
-      mode = var :mode, 0
-      turn = var :turn, 0
+      mode = 0
+      turn = 0
       scene(:title) do
         layer(:water, transparency: 50) { background :pond, tiles: :set, map: ["#" * 32] * 32 }
         light.show_now

@@ -40,7 +40,7 @@ module SaveDataOnTheAdvanceGames
     builder = VBlank::Builder.new(options: VBlank::Cartridge::Options.new(save_memory: 64))
     builder.instance_eval do
       screen :tiled
-      hearts = var :hearts, 3
+      hearts = 3
       file = save_data(:file) { keep hearts }
       file[0].load
       game_loop do
@@ -73,7 +73,7 @@ module SaveDataOnTheAdvanceGames
     built do
       screen :tiled
       state = { speed: var(:speed, 1), volume: var(:volume, 5), hearts: var(:hearts, 3) }
-      extra.each { |name, capacity| state[name] = list(name, capacity: capacity, width: :byte) }
+      state = state.merge(extra.to_h { |name, capacity| [name, list(name, capacity: capacity, width: :byte)] })
       declare = {
         settings: -> { save_data(:settings) { keep(*settings.map { |name| state.fetch(name) }) } },
         file: -> { save_data(:file, copies: copies) { keep state[:hearts] } }
@@ -83,7 +83,7 @@ module SaveDataOnTheAdvanceGames
       files = records.fetch(:file)
       settings_record = records.fetch(:settings)
       shown = Array.new(4) { |n| var :"shown#{n}", -1 }
-      kept_speed = var :kept_speed, -1
+      kept_speed = -1
       game_loop do
         if pressed(:a)
           state[:hearts] = 42
@@ -95,7 +95,7 @@ module SaveDataOnTheAdvanceGames
           state[:speed] = 7
           settings_record[0].save
         end
-        copies.times { |n| shown[n].set! files[n].peek(state[:hearts]) }
+        copies.times { |n| shown[n] = files[n].peek(state[:hearts]) }
         kept_speed = settings_record[0].peek(state[:speed])
       end
     end
@@ -111,8 +111,8 @@ module SaveDataOnTheAdvanceGames
       journal = list :journal, capacity: 12_000, width: :byte
       save_data(:settings) { keep speed }
       pages = save_data(record) { keep journal }
-      was_empty = var :was_empty, 0
-      first_page = var :first_page, 0
+      was_empty = 0
+      first_page = 0
       game_loop do
         if pressed(:a)
           journal.push 9

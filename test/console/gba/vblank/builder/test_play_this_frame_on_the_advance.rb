@@ -25,10 +25,10 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
       sound = sample :click, pcm: [40, 0, -40, 0] * 2000, rate: 8000
       music = songs :music, [Score.new(tempo: 150, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: :E4)])])]
       func(:ask, fast: false) { music.play 0, this_frame: true }
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        (pass == ASKED_ON).then do
+        if pass == ASKED_ON
           sound.play if click
           call :ask if song
         end
@@ -65,7 +65,7 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
         Score.new(tempo: 150, group: :voice, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: :G4)])]),
         Score.new(tempo: 150, group: :voice, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: :D5), Note.new(at: 5, key: :C5)])]),
       ]
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         sfx.play 0 if pass == 1
@@ -88,14 +88,14 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
       instrument :piano, pcm: [60, -60] * 16_000, rate: 8000, note: :C4
       held = ->(group, priority, key) { Score.new(tempo: 150, group: group, priority: priority, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: key)])]) }
       sfx = sound_effects :sfx, [held.call(:a, 5, :G4), held.call(:a, 0, :A4), held.call(:b, 0, :C5), held.call(:b, 0, :D5)]
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        (pass == 1).then do
+        if pass == 1
           sfx.play 0
           sfx.play 2
         end
-        (pass == ASKED_ON).then do
+        if pass == ASKED_ON
           sfx.play 3
           sfx.play 1, this_frame: true
         end

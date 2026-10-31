@@ -63,8 +63,8 @@ class TestSpotlightShapeOnTheAdvance < Minitest::Test
   # backend alike.
   def test_a_shape_that_reads_a_changing_number_is_worked_out_again
     widening = lit_room do |light|
-      reach = var :reach, 10
-      once_a_frame { reach.add! 5 }
+      reach = 10
+      once_a_frame { reach += 5 }
       light.shape { |row| reach - (row - light.y).abs }
     end
 
@@ -92,11 +92,11 @@ class TestSpotlightShapeOnTheAdvance < Minitest::Test
   # game changes is worked out again when it changes.
   def test_a_shape_that_copies_a_changing_number_is_worked_out_again
     widening = lit_room do |light|
-      reach = var :reach, 10
-      once_a_frame { reach.add! 5 }
+      reach = 10
+      once_a_frame { reach += 5 }
       light.shape do |_row|
         mine = var :shape_reach, 0
-        copy! :shape_reach, :reach
+        mine = reach
         mine + 0
       end
     end

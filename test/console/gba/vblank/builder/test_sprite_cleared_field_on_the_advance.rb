@@ -25,7 +25,7 @@ class TestSpriteClearedFieldOnTheAdvance < Minitest::Test
       image(:block, "#" => :red) { BLOCK }
       clear_screen :white
       hero = sprite :block, at: START
-      step = var :step, 0
+      step = 0
       game_loop do
         instance_exec(hero, step, &body)
         step += 1
@@ -48,7 +48,7 @@ class TestSpriteClearedFieldOnTheAdvance < Minitest::Test
   # sprite is drawn over the wall and has to remember the wall, not the cleared colour.
   def test_what_is_painted_after_the_clear_is_what_the_sprite_remembers
     prog = field_program do |hero, step|
-      (step == 3).then do
+      if step == 3
         clear_screen :blue
         fill_rect START[0], START[1], SIDE, SIDE, :green
       end

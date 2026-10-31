@@ -26,7 +26,7 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       repeat(64) { canvas.push 0 }
       box = tiles :box, from: canvas, count: 2, colors: :ink
       background :front, tiles: :box, map: [[1, 2]]
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         instance_exec(canvas, box, frame, &body)
@@ -51,8 +51,8 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       canvas = list :canvas, capacity: 64, width: :byte
       repeat(64) { canvas.push 0 }
       box = tiles :box, from: canvas, count: 2, colors: :ink
-      state = var :state, 0
-      frame = var :frame, 0
+      state = 0
+      frame = 0
       scene(:house) do
         background :house_box, tiles: :box, map: [[1, 2]]
         if frame == 2
@@ -82,7 +82,7 @@ class TestTileRunsOnTheAdvance < Minitest::Test
 
   def test_pixels_written_into_the_list_show_on_the_frame_after_changed
     prog = game do |canvas, box, frame|
-      (frame == 3).then do
+      if frame == 3
         canvas[0] = 0x01 # the top-left pixel of tile 1 is place 1, white
         box.changed
       end
@@ -94,7 +94,7 @@ class TestTileRunsOnTheAdvance < Minitest::Test
   end
 
   def test_a_write_the_game_never_announces_does_not_show
-    prog = game { |canvas, _box, frame| (frame == 3).then { canvas[0] = 0x01 } }
+    prog = game { |canvas, _box, frame| canvas[0] = 0x01 if frame == 3 }
 
     assert_equal RED, pixel(prog, 10, 0, 0)
   end
@@ -103,7 +103,7 @@ class TestTileRunsOnTheAdvance < Minitest::Test
   # right pixel of a pair is the HIGH half, which is the one a game gets wrong first.
   def test_the_second_tile_and_the_right_pixel_of_a_byte_land_where_the_console_puts_them
     prog = game do |canvas, box, frame|
-      (frame == 2).then do
+      if frame == 2
         canvas[32] = 0x10 # tile 2, row 0: the left pixel see-through, the right one white
         box.changed
       end
@@ -138,8 +138,8 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       repeat(64) { canvas.push 0 }
       box = tiles :box, from: canvas, count: 2, colors: :ink
       background :top_box, tiles: :box, map: [[1, 2]]
-      state = var :state, 0
-      frame = var :frame, 0
+      state = 0
+      frame = 0
       scene(:house) { state = 1 if frame == 3 }
       scene(:shop) do
         background :shop_box, tiles: :box, map: [[nil, nil, 1, 2]]

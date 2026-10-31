@@ -46,7 +46,7 @@ module NameVariablesOnTheAdvanceGames
         sprite :spot, at: [200, 120]
         mode = :walk if pressed(:a)
       end
-      b.scene(:walk) { pressed(:b).then { mode.set! :title } }
+      b.scene(:walk) { mode = :title if pressed(:b) }
       game_loop { b.call mode }
     end
   end

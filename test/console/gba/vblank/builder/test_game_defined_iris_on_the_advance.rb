@@ -25,23 +25,27 @@ class TestGameDefinedIrisOnTheAdvance < Minitest::Test
   # The pack, as a game would write it.
   module CopiedIris
     def close_iris(at:)
-      light = copied_iris_light
-      light.move_to(*at)
-      light.dark.set! 100
-      light.radius.set! 150
-      each_pass(:copied_iris_closing).start
+      instance_eval do
+        light = copied_iris_light
+        light.move_to(*at)
+        light.dark = 100
+        light.radius = 150
+        each_pass(:copied_iris_closing).start
+      end
     end
 
     def open_iris(at:)
-      light = copied_iris_light
-      light.move_to(*at)
-      light.dark.set! 100
-      light.radius.set! 0
-      each_pass(:copied_iris_opening).start
-      light.show_now # that game hands the console its first circle as it asks for it
+      instance_eval do
+        light = copied_iris_light
+        light.move_to(*at)
+        light.dark = 100
+        light.radius = 0
+        each_pass(:copied_iris_opening).start
+        light.show_now # that game hands the console its first circle as it asks for it
+      end
     end
 
-    def iris_closed? = (spotlight.radius == 0) & (spotlight.dark == 100)
+    def iris_closed? = instance_eval { spotlight.radius == 0 && spotlight.dark == 100 }
 
     private
 
@@ -50,26 +54,28 @@ class TestGameDefinedIrisOnTheAdvance < Minitest::Test
       return spotlight if @copied_iris_ready
 
       @copied_iris_ready = true
-      light = spotlight
-      light.shape do |row|
-        half = light.circle((row - 1).clamp(0, 159))
-        [light.x - half, light.x + half]
-      end
-      each_pass(:copied_iris_closing) do |job|
-        light.radius.sub! 4
-        (light.radius <= 0).then do
-          light.radius.set! 0
-          job.stop
+      instance_eval do
+        light = spotlight
+        light.shape do |row|
+          half = light.circle((row - 1).clamp(0, 159))
+          [light.x - half, light.x + half]
         end
-      end
-      each_pass(:copied_iris_opening) do |job|
-        light.radius.add! 4
-        (light.radius > 150).then do
-          light.dark.set! 0
-          job.stop
+        each_pass(:copied_iris_closing) do |job|
+          light.radius -= 4
+          if light.radius <= 0
+            light.radius = 0
+            job.stop
+          end
         end
+        each_pass(:copied_iris_opening) do |job|
+          light.radius += 4
+          if light.radius > 150
+            light.dark = 0
+            job.stop
+          end
+        end
+        light
       end
-      light
     end
   end
 
@@ -85,13 +91,17 @@ class TestGameDefinedIrisOnTheAdvance < Minitest::Test
       image(:white_tile, "#" => :white) { (["#" * 8] * 8).join("\n") }
       tiles :set, "#" => :white_tile
       background :room, tiles: :set, map: ["#" * 32] * 32
-      turn = var :turn, 0
-      closed = var :closed, 0
+      turn = 0
+      closed = 0
       game_loop do
-        turn.add! 1
-        (turn == CLOSES).then { close_iris at: [120, 80] }
-        (turn == OPENS).then { open_iris at: [184, 96] }
-        iris_closed?.then { closed.set! 1 }.else { closed.set! 0 }
+        turn += 1
+        close_iris at: [120, 80] if turn == CLOSES
+        open_iris at: [184, 96] if turn == OPENS
+        if iris_closed?
+          closed = 1
+        else
+          closed = 0
+        end
       end
     end
     b.finalize_program

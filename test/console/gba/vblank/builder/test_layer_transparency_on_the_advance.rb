@@ -267,18 +267,18 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       image(:walker, "#" => :red) { tile }
       tiles :floors, "d" => :dim_floor
       tiles :panes, "d" => :dim_pane
-      where = var :where, 0
-      pass = var :pass, 0
+      where = 0
+      pass = 0
       rooms ? layers(:ground, :mist, :panelling, :walkers) : layers(:ground, :mist, :walkers)
       scene :title do
         screen :bitmap
-        paints == :once ? (pass == 1).then { clear_screen :blue } : clear_screen(:blue)
+        paints == :once ? (clear_screen :blue if pass == 1) : clear_screen(:blue)
         fade :black, 50
       end
       scene :room do
         layer(:ground) { background :floor, tiles: :floors, map: Array.new(20) { "d" * 30 } }
         layer(:mist, transparency: 50) { background :pane, tiles: :panes, map: Array.new(20) { "d" * 30 } }
-        layer(:walkers) { sprite :walker, at: [40, 40] }.x.add! 1
+        layer(:walkers) { sprite :walker, at: [40, 40] }.x += 1
         instance_exec(pass, &says) if says && rooms != :hall
       end
       if rooms
@@ -325,7 +325,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       image(:dim_pane, "#" => rgb(16, 8, 2)) { tile }
       tiles :floors, "d" => :dim_floor
       tiles :panes, "d" => :dim_pane
-      pass = var :pass, 0
+      pass = 0
       layers :ground, :mist, :top
       layer(:ground) { background :floor, tiles: :floors, map: Array.new(20) { "d" * 30 } }
       layer(:mist, transparency: 50) { background :pane, tiles: :panes, map: Array.new(20) { "d" * 30 } }
@@ -436,7 +436,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
           sprite :front, at: [64, 64]
         end
       end
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tick += 1
         flash_screen :black, frames: 6 if tick == FLASH_AT
@@ -468,7 +468,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       tiles :otherset, "#" => :other
       full = Array.new(20) { "#" * 30 }
       layers :banner, :sky, :deep, :glass
-      var :state, 0
+      state = 0
 
       scene :title do
         layer(:banner) { background :banner, tiles: :otherset, map: full }
@@ -480,10 +480,10 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
         layer(:glass, transparency: 50) { background :pane, tiles: :frontset, map: full }
       end
 
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tick += 1
-        set! :state, 1 if tick > SWITCH_AT
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
@@ -508,7 +508,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       tiles :floors, "d" => :dim_floor
       tiles :panes, "d" => :dim_pane
       where = var :where, first == :title ? 0 : 1
-      pass = var :pass, 0
+      pass = 0
       layers :ground, :mist
       scene :title do
         screen :bitmap
@@ -550,7 +550,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       full = Array.new(20) { "#" * 30 }
       layers :deep, :mist, :fog, :walkers
       where = var :where, title ? 2 : 0
-      pass = var :pass, 0
+      pass = 0
       if title
         scene :title do
           screen :bitmap
@@ -560,7 +560,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       scene :misty do
         layer(:deep) { background :floor, tiles: :backset, map: full }
         layer(:mist, transparency: 50) { background :pane, tiles: :frontset, map: full }
-        layer(:walkers) { sprite :walker, at: [40, 40] }.x.add! 1 if walker
+        layer(:walkers) { sprite :walker, at: [40, 40] }.x += 1 if walker
       end
       scene :foggy do
         layer(:deep) { background :fog_floor, tiles: :backset, map: full }
@@ -568,7 +568,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       end
       game_loop do
         pass += 1
-        (pass == 3).then { where.set! 0 } if title
+        where = 0 if title && pass == 3
         where = 1 if pass == (title ? 6 : 4)
         where = 0 if pass == (title ? 9 : 8)
         case_var(:where) do
@@ -725,7 +725,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
   # The same in a game whose rooms each tell the display what they blend on every pass: the
   # fade is still there on the passes after the room took over, and lifts when it is lifted.
   def test_that_fade_stays_where_each_room_says_what_it_blends_every_pass
-    room = faded_title_then_misty_room(rooms: :room) { |pass| (pass == 10).then { fade :black, 0 } }
+    room = faded_title_then_misty_room(rooms: :room) { |pass| fade :black, 0 if pass == 10 }
 
     assert_backends_agree_through_the_fade(room, [5, 8, 10, 11, 14])
   end
@@ -733,7 +733,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
   # In that game the fade can be lifted in a room that sees through nothing. What it hands
   # the blend back to is that room's layers, both solid, and not the misty room's.
   def test_that_fade_lifted_in_a_room_with_nothing_seen_through_leaves_its_layers_solid
-    hall = faded_title_then_misty_room(rooms: :hall) { |pass| (pass == 6).then { fade :black, 0 } }
+    hall = faded_title_then_misty_room(rooms: :hall) { |pass| fade :black, 0 if pass == 6 }
 
     assert_backends_agree_through_the_fade(hall, [5, 6, 7, 10])
     assert_equal rgb5(16, 8, 2), game_player.run(hall, frames: 10).screen.pixel(200, 100),
@@ -742,7 +742,7 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
 
   # ...and the room lifting it brings the mist back see-through, on the same frame on both.
   def test_lifting_that_fade_in_the_room_brings_the_layer_back_see_through
-    room = faded_title_then_misty_room { |pass| (pass == 8).then { fade :black, 0 } }
+    room = faded_title_then_misty_room { |pass| fade :black, 0 if pass == 8 }
 
     assert_backends_agree_through_the_fade(room, [7, 8, 9, 12])
     assert_equal seen_through_mist, game_player.run(room, frames: 12).screen.pixel(200, 100),
@@ -804,20 +804,20 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
 
   # A flash on the title shows there, done by the display.
   def test_a_flash_on_the_title_shows_on_the_title
-    game = title_and_misty_room(first: :title, swap_at: 12, title: ->(pass) { (pass == 3).then { flash_screen frames: 8 } })
+    game = title_and_misty_room(first: :title, swap_at: 12, title: ->(pass) { flash_screen frames: 8 if pass == 3 })
     assert_backends_agree_through_the_fade(game, [3, 4, 5, 7, 9, 11])
   end
 
   # A flash said on the title's last pass reaches the room's first frame, and walks on in the
   # room's colors from there.
   def test_a_flash_from_the_title_goes_on_in_the_room
-    game = title_and_misty_room(first: :title, swap_at: 4, title: ->(pass) { (pass == 3).then { flash_screen frames: 8 } })
+    game = title_and_misty_room(first: :title, swap_at: 4, title: ->(pass) { flash_screen frames: 8 if pass == 3 })
     assert_backends_agree_through_the_fade(game, [3, 4, 5, 6, 9])
   end
 
   # A fade out in the room leaves the title that follows it dark, until something lifts it.
   def test_a_fade_out_in_the_room_leaves_the_title_dark
-    game = title_and_misty_room(first: :room, swap_at: 8, room: ->(pass) { (pass == 3).then { fade_out frames: 4 } })
+    game = title_and_misty_room(first: :room, swap_at: 8, room: ->(pass) { fade_out frames: 4 if pass == 3 })
     assert_backends_agree_through_the_fade(game, [4, 6, 7, 8, 9, 12])
     assert_equal [0], game_player.run(game, frames: 10).screen.shown.uniq, "the title, faded all the way to black"
   end

@@ -23,7 +23,11 @@ class TestSaveVarRecordOnTheAdvance < Minitest::Test
       best = save_var :best, 3
       save_var :wins, 5 if more
       game_loop do
-        best = 7 if every_frame ? best.add!(1) : pressed(:a)
+        if every_frame
+          best += 1
+        elsif pressed(:a)
+          best = 7
+        end
       end
     end
   end

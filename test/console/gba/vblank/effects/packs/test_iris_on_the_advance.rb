@@ -78,7 +78,7 @@ class TestIrisOnTheAdvance < Minitest::Test
                      spotlight at: [120, 80], radius: 40, dark: 75
                      iris_out frames: 4
                    },
-                   each: -> { iris_shut?.then { iris_in frames: 4 } })
+                   each: -> { iris_in frames: 4 if iris_shut? })
     screen = shown(lantern, frames: 20)
 
     assert_equal WHITE, screen.pixel(120, 80)
@@ -92,7 +92,7 @@ class TestIrisOnTheAdvance < Minitest::Test
                       spotlight at: [120, 80], radius: 40, dark: 75
                       iris_out frames: 4
                     },
-                    each: -> { iris_shut?.then { iris_in frames: 4, dark: 0 } })
+                    each: -> { iris_in frames: 4, dark: 0 if iris_shut? })
 
     assert all_one_color?(shown(daylight, frames: 20), WHITE)
     assert_backends_agree(daylight, frames: 20)
@@ -106,7 +106,7 @@ class TestIrisOnTheAdvance < Minitest::Test
                       spotlight at: [120, 80], radius: 20, dark: 75
                       iris_out frames: 4
                     },
-                    each: -> { iris_shut?.then { iris_in frames: 20, dark: 0 } })
+                    each: -> { iris_in frames: 20, dark: 0 if iris_shut? })
     part_way = shown(daylight, frames: 18)
 
     assert_equal WHITE, part_way.pixel(120 + 45, 80), "part way open, the circle is already past the lantern's size"
@@ -145,8 +145,10 @@ class TestIrisOnTheAdvance < Minitest::Test
       turn += 1
       instance_exec(&walk) if turn == 3
       closed = 1 if iris_shut?
-      var(:size_now, 0).set! light.radius
-      var(:dark_now, 0).set! light.dark
+      size_now = var(:size_now, 0)
+      size_now = light.radius
+      dark_now = var(:dark_now, 0)
+      dark_now = light.dark
     })
     seen = []
     run = game_player

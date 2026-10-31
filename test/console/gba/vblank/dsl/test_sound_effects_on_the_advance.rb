@@ -76,7 +76,7 @@ class TestSoundEffectsOnTheAdvance < Minitest::Test
   # The same Score named as a tune comes round, as any tune does: played as an effect it is walked
   # once as written, and played as a tune it is put right for coming round.
   def test_an_effect_named_as_a_tune_comes_round
-    program = game([every_ten_ticks(:C5, :E5, length: 5)]) { |_sfx, pass| (pass == 1).then { play_song :"sfx.0" } }
+    program = game([every_ten_ticks(:C5, :E5, length: 5)]) { |_sfx, pass| play_song :"sfx.0" if pass == 1 }
     starts = notes_by_frame(program, 80).values.flatten(1).count([:"sfx.0", NOTES[:C5]])
 
     assert_operator starts, :>=, 2, "the tune plays its first note again each time it comes round"
@@ -97,7 +97,7 @@ class TestSoundEffectsOnTheAdvance < Minitest::Test
 
   # How many voices sounded at once counts an effect's, with no song playing.
   def test_the_most_voices_at_once_counts_an_effects
-    program = game([recorded_hit(68, parts: 3)]) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    program = game([recorded_hit(68, parts: 3)]) { |sfx, pass| sfx.play 0 if pass == 3 }
 
     assert_equal 3, game_player.run(program, frames: 10).peak_voices
   end
