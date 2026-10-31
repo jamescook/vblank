@@ -17,7 +17,7 @@ class TestNativeSaves < Minitest::Test
   private def counting_up
     program_of do
       best = save_var :best, 5
-      game_loop { best.add! 2 }
+      game_loop { best += 2 }
     end
   end
 
@@ -68,8 +68,8 @@ class TestNativeSaves < Minitest::Test
     Reference.new(save: store).run(counting_up, frames: 3)
     before = store.to_sav
     program = program_of do
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
 
     HeadlessRun.new(save: store).run(program, frames: 2)
@@ -146,9 +146,9 @@ class TestNativeSaves < Minitest::Test
   # What each file holds, and what state it is in, is read every frame without loading it.
   private def three_files(save_memory: nil)
     program_with(save_memory) do
-      hearts = var :hearts, 3
+      hearts = 3
       name = list :name, capacity: 3, width: :byte
-      slot = var :slot, 0
+      slot = 0
       files = save_data(:file, copies: 3) { keep hearts, name }
       shown = Array.new(3) { |n| var :"shown#{n}", 0 }
       named = Array.new(3) { |n| var :"named#{n}", 0 }
@@ -265,11 +265,11 @@ class TestNativeSaves < Minitest::Test
   # and the passes one finished on, and loads what is saved as it starts.
   private def slow_save(save_memory)
     program_with(save_memory) do
-      hearts = var :hearts, 3
+      hearts = 3
       trail = list :trail, capacity: 60
-      busy = var :busy, 0
-      done = var :done, 0
-      failed = var :failed, 0
+      busy = 0
+      done = 0
+      failed = 0
       file = save_data(:file) { keep hearts, trail }
       file[0].load
       game_loop do
@@ -321,7 +321,7 @@ class TestNativeSaves < Minitest::Test
   # second save or the third.
   def test_a_save_on_flash_cut_off_keeps_the_last_good_one
     program = program_with(64) do
-      hearts = var :hearts, 3
+      hearts = 3
       trail = list :trail, capacity: 2100, width: :byte
       repeat(2100) { trail.push 5 }
       file = save_data(:file) { keep hearts, trail }

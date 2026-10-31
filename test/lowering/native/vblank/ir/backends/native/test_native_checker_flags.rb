@@ -85,8 +85,8 @@ class TestNativeCheckerFlags < Minitest::Test
   # or not that game has been built before.
   def test_building_a_game_as_c_puts_a_stale_file_right
     program = program_of do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end
     File.write(Zig::CHECKER_FLAGS_FILE, "-Wnothing\n")
 

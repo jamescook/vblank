@@ -69,10 +69,10 @@ class TestNativeRefusals < Minitest::Test
   def test_a_routine_nothing_calls_leaves_nothing_behind
     program = program_of do
       odd = table :odd, [1, 2, 3]
-      n = var :n, 0
-      func(:helper) { n.set! odd[n] }
+      n = 0
+      func(:helper) { n = odd[n] }
       func(:never) { call :helper }
-      game_loop { n.add! 1 }
+      game_loop { n += 1 }
     end
 
     assert_native_matches_reference program, frames: 2

@@ -13,8 +13,8 @@ class TestNativeHeadlessRun < Minitest::Test
 
   def test_a_variable_reads_back_after_the_run
     program = program_of do
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
 
     assert_equal 6, HeadlessRun.new.run(program, frames: 6)[:ticks]
@@ -24,8 +24,8 @@ class TestNativeHeadlessRun < Minitest::Test
   # game may call a variable by either word.
   def test_a_variable_may_share_a_name_with_the_lines_around_it
     program = program_of do
-      frame = var :frame, 0
-      picture = var :picture, 7
+      frame = 0
+      picture = 7
       game_loop do
         frame += 1
         picture += 2
@@ -42,7 +42,7 @@ class TestNativeHeadlessRun < Minitest::Test
   # saw the game a frame late, or not at all, would hold RIGHT once too often.
   def test_buttons_for_each_frame_can_depend_on_the_game_so_far
     program = program_of do
-      x = var :x, 0
+      x = 0
       game_loop { x += 1 if held(:right) }
     end
     run = HeadlessRun.new
@@ -53,7 +53,7 @@ class TestNativeHeadlessRun < Minitest::Test
 
   def test_buttons_held_for_the_whole_run
     program = program_of do
-      x = var :x, 0
+      x = 0
       game_loop { x += 1 if held(:left) }
     end
 
@@ -69,8 +69,8 @@ class TestNativeHeadlessRun < Minitest::Test
   # machine can keep a program from starting for that long.)
   def test_a_run_slower_than_the_limit_is_not_taken_to_be_stuck
     program = program_of do
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
     run = HeadlessRun.new.allowing_each_frame(3)
     run.input_each_frame do |_frame|
@@ -102,8 +102,8 @@ class TestNativeHeadlessRun < Minitest::Test
   # And one that is stuck is stopped, saying how far it got: here one that prints nothing.
   def test_a_game_that_never_reaches_a_frame_is_stopped
     assert_stopped_before_its_first_frame(game_with_no_frames do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end)
   end
 
@@ -122,7 +122,7 @@ class TestNativeHeadlessRun < Minitest::Test
   private def moving_dot
     program_of do
       screen :bitmap
-      x = var :x, 0
+      x = 0
       game_loop do
         clear_screen :black
         draw_rect_at x, 20, 1, 1, :green
@@ -155,7 +155,7 @@ class TestNativeHeadlessRun < Minitest::Test
   def test_a_watched_frame_reads_the_stored_picture_too
     program = program_of do
       screen :bitmap, tear_free: true
-      level = var :level, 0
+      level = 0
       game_loop do
         clear_screen :blue
         draw_rect_at 100, 60, 40, 40, :yellow
@@ -185,7 +185,7 @@ class TestNativeHeadlessRun < Minitest::Test
   def test_an_input_script_can_read_the_picture_so_far
     program = program_of do
       screen :bitmap
-      x = var :x, 0
+      x = 0
       game_loop do
         clear_screen :black
         draw_rect_at x, 20, 1, 1, :green
@@ -274,8 +274,8 @@ class TestNativeHeadlessRun < Minitest::Test
   def test_every_variable_reads_back_together
     program = program_of do
       a = var :a, 2
-      b = var :b, 0
-      game_loop { b.add! a }
+      b = 0
+      game_loop { b += a }
     end
 
     assert_equal({ a: 2, b: 6 }, HeadlessRun.new.run(program, frames: 3).vars.slice(:a, :b))
@@ -284,8 +284,8 @@ class TestNativeHeadlessRun < Minitest::Test
   # Told no number of frames, it plays as many as the interpreter does when it is not told.
   def test_a_run_given_no_frame_count_plays_the_interpreters_default
     program = program_of do
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
 
     assert_equal Reference::DEFAULT_FRAMES, HeadlessRun.new.run(program)[:ticks]

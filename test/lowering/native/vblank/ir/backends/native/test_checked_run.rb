@@ -4,6 +4,7 @@ require "test_helper"
 require "native_comparison"
 require "open3"
 require "rbconfig"
+require "tempfile"
 
 # The game played as C, and then the same buttons played on the interpreter, with the run
 # stopped at the first frame the two do not agree on (Native::CheckedRun) — which is what a test
@@ -23,8 +24,8 @@ class TestCheckedRun < Minitest::Test
     require "vblank"
 
     game = VBlank.game "CHECKED", consoles: %i[gba] do
-      x = var :x, 0
-      game_loop { held(:right).then { x.add! 1 } }
+      x = 0
+      game_loop { x += 1 if held(:right) }
     end
     run = VBlank::IR::Backends::Native::CheckedRun.new.hold(:right).run(game.program, frames: 6)
     puts run[:x]
@@ -55,7 +56,11 @@ class TestCheckedRun < Minitest::Test
   RUBY
 
   def test_a_game_of_its_own_plays_checked_with_only_the_library
-    out, err, status = Open3.capture3(RbConfig.ruby, "-I", LIB, "-", stdin_data: GAME_OF_ITS_OWN)
+    out, err, status = Tempfile.create(["game", ".rb"]) do |file|
+      file.write(GAME_OF_ITS_OWN)
+      file.flush
+      Open3.capture3(RbConfig.ruby, "-I", LIB, file.path)
+    end
 
     assert status.success?, "the game's own process failed:\n#{err}"
     assert_equal %w[6 nil], out.lines(chomp: true), "x after six frames held right, and no minitest loaded"
@@ -79,8 +84,8 @@ class TestCheckedRun < Minitest::Test
       def play_on_interpreter(...) = super.tap { |_, moments| moments.first.variables[:x] = 99 }
     end
     program = program_of do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end
 
     error = assert_raises(Minitest::Assertion) { wrapper.new.run(program, frames: 2) }
@@ -90,8 +95,8 @@ class TestCheckedRun < Minitest::Test
 
   def test_a_run_both_agree_on_answers_like_the_native_one
     program = program_of do
-      x = var :x, 0
-      game_loop { held(:right).then { x.add! 1 } }
+      x = 0
+      game_loop { x += 1 if held(:right) }
     end
     run = CheckedRun.new
     run.input_each_frame { |_frame| run[:x] < 3 ? [:right] : [] }
@@ -103,8 +108,8 @@ class TestCheckedRun < Minitest::Test
   # the C plays that many: the answer is the interpreter's for the same budget.
   def test_a_step_budget_plays_the_frames_the_interpreter_fits_in_it
     program = program_of do
-      x = var :x, 0
-      game_loop { held(:right).then { x.add! 1 } }
+      x = 0
+      game_loop { x += 1 if held(:right) }
     end
     interpreter = Reference.new.hold(:right).run(program, max_steps: 60)
 
@@ -120,7 +125,7 @@ class TestCheckedRun < Minitest::Test
   def test_a_button_held_for_the_whole_run_is_down_before_the_first_frame
     program = program_of do
       early = var :early, 0
-      held(:a).then { early.set! 1 }
+      early = 1 if held(:a)
       game_loop {}
     end
 
@@ -135,7 +140,7 @@ class TestCheckedRun < Minitest::Test
   def test_the_replay_that_finds_the_pixel_holds_buttons_from_power_on
     program = program_of do
       early = var :early, 0
-      held(:a).then { early.set! 1 }
+      early = 1 if held(:a)
       game_loop {}
     end
 
@@ -149,8 +154,8 @@ class TestCheckedRun < Minitest::Test
   def test_a_step_budget_on_a_game_that_never_waits_for_the_screen_cannot_be_played
     builder = Builder.new(options: VBlank::Cartridge::Options.new(frame_sync: :manual))
     builder.instance_eval do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end
     builder.finalize_program
     program = builder.program
@@ -165,8 +170,8 @@ class TestCheckedRun < Minitest::Test
   def test_a_frame_count_on_a_game_that_never_waits_for_the_screen_cannot_be_played
     builder = Builder.new(options: VBlank::Cartridge::Options.new(frame_sync: :manual))
     builder.instance_eval do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end
     builder.finalize_program
     program = builder.program
@@ -179,8 +184,8 @@ class TestCheckedRun < Minitest::Test
   # A game with no frames that comes to an end by itself is played as it is.
   def test_a_game_with_no_frames_that_ends_is_played
     program = program_of do
-      x = var :x, 0
-      repeat(5) { x.add! 3 }
+      x = 0
+      repeat(5) { x += 3 }
     end
 
     assert_equal 15, CheckedRun.new.run(program, frames: 4)[:x]
@@ -191,8 +196,8 @@ class TestCheckedRun < Minitest::Test
   # reads the game as C, at each frame boundary.
   def test_a_watched_run_is_still_a_checked_one
     program = program_of do
-      x = var :x, 0
-      game_loop { x.add! 2 }
+      x = 0
+      game_loop { x += 2 }
     end
     seen = []
     run = CheckedRun.new
@@ -258,7 +263,7 @@ class TestCheckedRun < Minitest::Test
   def test_a_run_from_save_memory_is_replayed_from_the_same_save_memory
     program = program_of do
       best = save_var :best, 5
-      game_loop { best.add! 2 }
+      game_loop { best += 2 }
     end
     store = SaveImage.new
     CheckedRun.new(save: store).run(program, frames: 3)

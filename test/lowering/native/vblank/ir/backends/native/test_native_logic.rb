@@ -11,8 +11,8 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_counter_in_a_game_loop_counts_every_frame
     program = program_of do
-      ticks = var :ticks, 0
-      game_loop { ticks.add! 1 }
+      ticks = 0
+      game_loop { ticks += 1 }
     end
 
     assert_native_matches_reference program, frames: 6
@@ -22,7 +22,7 @@ class TestNativeLogic < Minitest::Test
   # and is handed the place the answer already is. It changes nothing, and it has to build.
   def test_a_variable_set_to_itself_builds_and_changes_nothing
     program = program_of do
-      x = var :x, 4
+      x = 4
       game_loop do
         x += 3
         copy! :x, :x
@@ -42,20 +42,20 @@ class TestNativeLogic < Minitest::Test
   # that is read and never started.
   def test_timers_tick_and_run_their_handlers_as_the_interpreters_do
     program = program_of do
-      n = var :n, 0
+      n = 0
       uneven = timer :uneven, per_second: 100
       fast = timer :fast, per_second: 250
       restarted = timer :restarted, per_second: 60
       once = timer :once, per_second: 90
-      var :uneven_hits, 0
-      var :fast_hits, 0
-      var :replaced, 0
-      var :once_hits, 0
-      var :reads, 0
-      func(:count_once) { add! :once_hits, 1 }
-      func(:nobody_calls_this) { uneven.on_tick { add! :uneven_hits, 1 } }
-      fast.on_tick { add! :replaced, 1 }
-      fast.on_tick { add! :fast_hits, 1 }
+      uneven_hits = 0
+      fast_hits = 0
+      replaced = 0
+      once_hits = 0
+      reads = 0
+      func(:count_once) { once_hits += 1 }
+      func(:nobody_calls_this) { uneven.on_tick { uneven_hits += 1 } }
+      fast.on_tick { replaced += 1 }
+      fast.on_tick { fast_hits += 1 }
       once.on_tick do
         call :count_once
         once.stop
@@ -64,7 +64,7 @@ class TestNativeLogic < Minitest::Test
         n += 1
         restarted.stop if n == 5
         timer :restarted, per_second: 60 if n == 8
-        set! :reads, uneven.ticks + (fast.ticks * 100) + (restarted.ticks * 10_000) +
+        reads = uneven.ticks + (fast.ticks * 100) + (restarted.ticks * 10_000) +
                      VBlank::DSL::Timer.new(self, :never_started).ticks
       end
     end
@@ -87,11 +87,11 @@ class TestNativeLogic < Minitest::Test
   # shifts keep Ruby's and the console's meanings, not C's.
   def test_numbers_wrap_divide_and_shift_the_way_the_interpreter_does
     program = program_of do
-      big = var :big, 2_147_483_600
+      big = 2_147_483_600
       neg = var :neg, -7
-      quotient = var :quotient, 0
-      left = var :left, 0
-      shifted = var :shifted, 0
+      quotient = 0
+      left = 0
+      shifted = 0
       game_loop do
         big += 20
         quotient = neg / 2
@@ -105,8 +105,8 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_button_held_and_a_button_pressed_are_read_each_frame
     program = program_of do
-      x = var :x, 0
-      presses = var :presses, 0
+      x = 0
+      presses = 0
       game_loop do
         x += 1 if held(:right)
         presses += 1 if pressed(:a)
@@ -120,8 +120,8 @@ class TestNativeLogic < Minitest::Test
 
   def test_branches_with_else_and_joined_conditions
     program = program_of do
-      n = var :n, 0
-      kind = var :kind, 0
+      n = 0
+      kind = 0
       game_loop do
         n += 1
         if n > 2 && n < 5
@@ -138,12 +138,12 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_counted_loop_and_one_that_stops_early
     program = program_of do
-      total = var :total, 0
-      found = var :found, 0
+      total = 0
+      found = 0
       game_loop do
         total = 0
-        repeat(5) { |i| total.add! i }
-        repeat(10, stop_when: found >= 3) { found.add! 1 }
+        repeat(5) { |i| total += i }
+        repeat(10, stop_when: found >= 3) { found += 1 }
       end
     end
 
@@ -152,11 +152,11 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_beat_and_a_one_shot_count_frames
     program = program_of do
-      beats = var :beats, 0
-      shot = var :shot, 0
+      beats = 0
+      shot = 0
       game_loop do
-        every(3) { beats.add! 1 }
-        after(4) { shot.add! 1 }
+        every(3) { beats += 1 }
+        after(4) { shot += 1 }
       end
     end
 
@@ -165,10 +165,10 @@ class TestNativeLogic < Minitest::Test
 
   def test_scenes_take_turns_by_a_state_variable
     program = program_of do
-      state = var :state, 0
-      in_title = var :in_title, 0
-      in_play = var :in_play, 0
-      func(:bump) { in_play.add! 1 }
+      state = 0
+      in_title = 0
+      in_play = 0
+      func(:bump) { in_play += 1 }
       scene(:title) do
         in_title += 1
         state = 1 if in_title >= 2
@@ -187,10 +187,10 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_routine_picked_by_a_number
     program = program_of do
-      which = var :which, -1
-      hits = var :hits, 0
-      func(:one) { hits.add! 1 }
-      func(:ten) { hits.add! 10 }
+      which = -1
+      hits = 0
+      func(:one) { hits += 1 }
+      func(:ten) { hits += 10 }
       game_loop do
         call %i[one ten], number: which
         which += 1
@@ -202,9 +202,9 @@ class TestNativeLogic < Minitest::Test
 
   def test_numbers_holding_a_fraction
     program = program_of do
-      speed = var :speed, 1.5
-      pos = var :pos, 0.0
-      ratio = var :ratio, 0.0
+      speed = 1.5
+      pos = 0.0
+      ratio = 0.0
       game_loop do
         pos += speed
         speed = speed * 1.25
@@ -219,9 +219,9 @@ class TestNativeLogic < Minitest::Test
     program = program_of do
       sine = table :sine, [0, 3, 6, 9]
       odd = table :odd, [5, 6, 7]
-      i = var :i, -2
-      a = var :a, 0
-      b = var :b, 0
+      i = -2
+      a = 0
+      b = 0
       game_loop do
         a = sine[i]
         b = odd[i]
@@ -236,10 +236,10 @@ class TestNativeLogic < Minitest::Test
     program = program_of do
       trail = list :trail, capacity: 4
       small = list :small, capacity: 2, width: :byte
-      n = var :n, 0
-      first = var :first, 0
-      size = var :size, 0
-      squeezed = var :squeezed, 0
+      n = 0
+      first = 0
+      size = 0
+      squeezed = 0
       game_loop do
         n += 1
         trail.shift if trail.length >= 4
@@ -259,8 +259,8 @@ class TestNativeLogic < Minitest::Test
   def test_a_pool_spawns_walks_and_retires_its_things
     program = program_of do
       sparks = pool :spark, x: 0, life: 0, capacity: 3
-      total = var :total, 0
-      alive = var :alive, 0
+      total = 0
+      alive = 0
       game_loop do
         sparks.spawn(x: 5, life: 3)
         total = 0
@@ -282,10 +282,10 @@ class TestNativeLogic < Minitest::Test
 
   def test_a_once_a_frame_body_runs_every_frame
     program = program_of do
-      ticks = var :ticks, 0
-      passes = var :passes, 0
-      once_a_frame { ticks.add! 1 }
-      game_loop { passes.add! 1 }
+      ticks = 0
+      passes = 0
+      once_a_frame { ticks += 1 }
+      game_loop { passes += 1 }
     end
 
     assert_native_matches_reference program, frames: 5
@@ -294,12 +294,12 @@ class TestNativeLogic < Minitest::Test
   def test_calling_the_routine_a_named_state_says
     program = program_of do
       mode = var :mode, :idle
-      score = var :score, 0
+      score = 0
       func(:idle) do
         score += 1
         mode = :chase
       end
-      func(:chase) { score.add! 10 }
+      func(:chase) { score += 10 }
       game_loop { call mode }
     end
 
@@ -323,7 +323,7 @@ class TestNativeLogic < Minitest::Test
     program = program_of do
       seed 1234
       var :r, 0
-      hits = var :hits, 0
+      hits = 0
       game_loop do
         roll :r, 1..6
         hits += 1 if chance(30)

@@ -53,7 +53,7 @@ class TestNativeDesktop < Minitest::Test
   def test_the_program_is_built_as_the_console_asked_for
     game = VBlank.game("CORNERS", consoles: %i[gba gbc]) do
       screen :bitmap
-      x = var :x, 0
+      x = 0
       game_loop do
         clear_screen :black
         fill_rect screen_width - 8, 0, 8, 8, :green
@@ -133,14 +133,14 @@ class TestNativeDesktop < Minitest::Test
     VBlank.game("CLOCKED", consoles: %i[gba]) do
       screen :bitmap
       now = clock
-      present = var :present, 0
-      set = var :set, 0
+      present = 0
+      set = 0
       readings = %i[year month day hour minute].to_h { |name| [name, var(name, -1)] }
       game_loop do
         clear_screen :black
         present = 1 if now.present?
         set = 1 if now.set?
-        readings.each { |name, reading| reading.set! now.public_send(name) }
+        readings.each_key { |name| readings[name] = now.public_send(name) }
       end
     end
   end
@@ -199,12 +199,12 @@ class TestNativeDesktop < Minitest::Test
         end
       end
       play_song :tune
-      frames = var :frames, 0
+      frames = 0
       counters = TestNativeDesktop::BUTTONS.to_h { |name| [name, var(:"held_#{name}", 0)] }
       game_loop do
         clear_screen :black
         frames += 1
-        counters.each { |name, counter| held(name).then { counter.add! 1 } }
+        counters.each { |name, counter| counter += 1 if held(name) }
       end
     end
   end
