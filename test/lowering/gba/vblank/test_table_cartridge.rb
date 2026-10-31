@@ -36,8 +36,8 @@ class TestTableCartridge < Minitest::Test
       screen :bitmap
       clear_screen :black
       dy = table :dy, [-24, 0, 24], width: :half # signed inferred; index 0 is -24
-      var :y, 80
-      add! :y, dy[0]                              # y = 80 + (-24) = 56
+      y = var :y, 80
+      y += dy[0]                              # y = 80 + (-24) = 56
       draw_rect_at 100, :y, 8, 8, :white
       halt
     end

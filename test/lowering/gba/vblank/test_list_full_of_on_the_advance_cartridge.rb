@@ -11,7 +11,7 @@ class TestListFullOfOnTheAdvanceCartridge < Minitest::Test
   include ListFullOfOnTheAdvanceGames
 
   def test_the_console_starts_every_width_full_as_the_interpreter_does
-    rom = VBlank.build("LISTFULL", console: :gba, out: StringIO.new, err: StringIO.new, profile: false, &WIDTHS)
+    rom = VBlank.build("LISTFULL", console: :gba, out: StringIO.new, err: StringIO.new, profile: false, &ListFullOfOnTheAdvanceGames.widths)
     v = assert_emulator_loads_rom(rom, frames: 4, vars: rom.var_addresses)
 
     assert_equal EXPECTED, READINGS.map { |name| v.var(name) }, "on the Advance's cartridge"
