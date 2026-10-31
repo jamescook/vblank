@@ -27,7 +27,7 @@ class TestSNESSoundEffects < Minitest::Test
       enable_sound
       music = songs :music, [tune]
       sfx = sound_effects :sfx, { hit: hit }
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         music.play 0 if pass < (stop_on || 99)
@@ -66,7 +66,7 @@ class TestSNESSoundEffects < Minitest::Test
       enable_sound
       music = songs :music, [tune]
       sfx = sound_effects :sfx, effects
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         music.play 0 if pass < stop_on
@@ -83,7 +83,7 @@ class TestSNESSoundEffects < Minitest::Test
   # keeps the order keys came in). A new level then reaches the second part first.
   def test_a_new_level_reaches_held_notes_in_the_order_they_took_their_voices_again
     hit = Score.new(tempo: 150, priority: 10, parts: [Part.new(notes: [Note.new(at: 0, key: :E5, length: 3)])])
-    run = band(frames: 16, effects: [hit]) { |pass| (pass == 14).then { music_volume 50 } }
+    run = band(frames: 16, effects: [hit]) { |pass| music_volume 50 if pass == 14 }
 
     assert_equal [[:loudness, 2, 6], [:loudness, 1, 6]], run.audio.select { |entry| entry.first == :loudness }.last(2)
   end
@@ -130,7 +130,7 @@ class TestSNESSoundEffects < Minitest::Test
       enable_sound
       music = songs :music, [hum, lead]
       sfx = sound_effects :sfx, { hit: hit }
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         music.play 0 if pass == 1

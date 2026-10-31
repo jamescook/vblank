@@ -16,12 +16,12 @@ class TestSNESWave < Minitest::Test
 
   TUNE = VBlank.game("TUNE", consoles: %i[gba snes]) do
     enable_sound
-    n = var :n, 0
+    n = 0
     game_loop do
-      n.add! 1
-      (n == 2).then { wave :triangle, :C4 }
-      (n == 4).then { wave :sine, 440, volume: :half }
-      (n == 6).then { stop_wave }
+      n += 1
+      wave :triangle, :C4 if n == 2
+      wave :sine, 440, volume: :half if n == 4
+      stop_wave if n == 6
     end
   end
 
@@ -63,12 +63,12 @@ class TestSNESWave < Minitest::Test
   def test_a_wave_after_stop_wave_sounds_again
     again = VBlank.game("AGAIN", consoles: %i[gba snes]) do
       enable_sound
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 1).then { wave :square, 440 }
-        (n == 3).then { stop_wave }
-        (n == 6).then { wave :square, 440 }
+        n += 1
+        wave :square, 440 if n == 1
+        stop_wave if n == 3
+        wave :square, 440 if n == 6
       end
     end
     dsp = SNES::CheckedRun.new.run(again.program(console: :snes), frames: 9).dsp_registers
@@ -108,8 +108,8 @@ class TestSNESWave < Minitest::Test
     game = VBlank.game("WAVE", consoles: %i[gba snes]) do
       enable_sound
       wave shape, frequency
-      n = var :n, 0
-      game_loop { n.add! 1 }
+      n = 0
+      game_loop { n += 1 }
     end
     SNES::CheckedRun.new.run(game.program(console: :snes), frames: 3).dsp_registers
   end

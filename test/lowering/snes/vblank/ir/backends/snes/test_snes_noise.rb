@@ -16,12 +16,12 @@ class TestSNESNoise < Minitest::Test
 
   HITS = VBlank.game("HITS", consoles: %i[gba snes]) do
     enable_sound
-    n = var :n, 0
+    n = 0
     game_loop do
-      n.add! 1
-      (n == 2).then { noise :hit }
-      (n == 4).then { noise :hat }
-      (n == 5).then { noise :explosion }
+      n += 1
+      noise :hit if n == 2
+      noise :hat if n == 4
+      noise :explosion if n == 5
     end
   end
 

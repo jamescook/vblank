@@ -12,9 +12,9 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_arithmetic_that_wraps_divides_and_shifts_agrees_with_the_interpreter
     run = checked(frames: 40) do
-      a = var :a, 7
-      b = var :b, -3
-      c = var :c, 0
+      a = 7
+      b = -3
+      c = 0
       game_loop do
         a = (a * 1103) + 12_345
         b = (b - a) / 7
@@ -27,9 +27,9 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_comparisons_clamps_and_turning_round_agree_with_the_interpreter
     run = checked(frames: 30) do
-      a = var :a, -40
-      b = var :b, 0
-      flags = var :flags, 0
+      a = -40
+      b = 0
+      flags = 0
       game_loop do
         a += 3
         b = a.clamp(-20, 20)
@@ -50,8 +50,8 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_fractions_multiplied_and_divided_agree_with_the_interpreter
     run = checked(frames: 30) do
-      speed = var :speed, 1.25
-      at = var :at, -3.5
+      speed = 1.25
+      at = -3.5
       game_loop do
         at = (at * speed) / 1.75
         speed += 0.125
@@ -64,8 +64,8 @@ class TestSNESCheckedRun < Minitest::Test
   def test_a_list_pushed_shifted_and_read_agrees_with_the_interpreter
     run = checked(frames: 24) do
       trail = list :trail, capacity: 5, width: :byte
-      n = var :n, 120
-      sum = var :sum, 0
+      n = 120
+      sum = 0
       game_loop do
         n += 3
         trail.push n
@@ -84,8 +84,8 @@ class TestSNESCheckedRun < Minitest::Test
       lut = table :lut, [10, 20, 30, 40, 50], width: :byte, signed: false
       first = list :first, capacity: 3
       narrow = list :narrow, capacity: 4, width: :byte
-      at = var :at, 0
-      got = var :got, 0
+      at = 0
+      got = 0
       first.push 5
       game_loop do
         narrow.copy_from lut, at: at, count: 3
@@ -102,8 +102,8 @@ class TestSNESCheckedRun < Minitest::Test
       checked(frames: 5) do
         body = list :body, capacity: 4
         body.push 10
-        x = var :x, 0
-        game_loop { x.set! body[3] }
+        x = 0
+        game_loop { x = body[3] }
       end
     end
 
@@ -113,9 +113,9 @@ class TestSNESCheckedRun < Minitest::Test
   def test_buttons_held_and_pressed_reach_the_game_on_the_frames_they_are_held
     run = SNES::CheckedRun.new
     run.input_each_frame { |frame| frame % 3 == 1 ? %i[a right] : [] }.run(program_of do
-      held_a = var :held_a, 0
-      presses = var :presses, 0
-      shoulders = var :shoulders, 0
+      held_a = 0
+      presses = 0
+      shoulders = 0
       game_loop do
         held_a += 1 if held(:a)
         presses += 1 if pressed(:right)
@@ -136,7 +136,7 @@ class TestSNESCheckedRun < Minitest::Test
     run.run(program_of do
       BUTTONS.each do |button|
         count = var :"#{button}_count", 0
-        game_loop_part = -> { pressed(button).then { count.add! 1 } }
+        game_loop_part = -> { count += 1 if pressed(button) }
         once_a_frame(&game_loop_part)
       end
       game_loop {}
@@ -149,7 +149,7 @@ class TestSNESCheckedRun < Minitest::Test
   def test_buttons_held_from_power_on_are_pressed_at_the_first_frame
     run = SNES::CheckedRun.new.hold(:start, :b)
     run.run(program_of do
-      started = var :started, 0
+      started = 0
       game_loop do
         started += 1 if pressed(:start)
         started += 10 if held(:b)
@@ -166,7 +166,7 @@ class TestSNESCheckedRun < Minitest::Test
     run = SNES::CheckedRun.new
     run.input_each_frame { |frame| frame == 1 ? [:a] : [] }.run(program_of do
       screen :bitmap
-      presses = var :presses, 0
+      presses = 0
       game_loop do
         clear_screen :black
         presses += 1 if pressed(:a)
@@ -181,8 +181,8 @@ class TestSNESCheckedRun < Minitest::Test
   # % 16 is 15. Counted down through nought and far below it, by 1, 2, 16, 1024 and 2^30.
   def test_what_is_left_by_a_power_of_two_takes_the_divisors_sign
     run = checked(frames: 12) do
-      a = var :a, 2_000_037
-      left = var :left, 0
+      a = 2_000_037
+      left = 0
       game_loop do
         left = (a % 1) + ((a % 2) * 10) + ((a % 16) * 100) + ((a % 1024) * 10_000) + (a % 1_073_741_824)
         a -= 777_781
@@ -201,8 +201,8 @@ class TestSNESCheckedRun < Minitest::Test
       image(:wall, "#" => :gray) { "########\n" * 8 }
       tiles :set, "#" => :wall
       background :room, tiles: :set, map: ["##", "##"]
-      n = var :n, 0
-      game_loop { n.add! 1 }
+      n = 0
+      game_loop { n += 1 }
     end
 
     assert_equal Color.resolve(:white), run.screen.pixel(3, 3)
@@ -211,8 +211,8 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_scenes_picked_by_a_variable_agree_with_the_interpreter
     run = checked(frames: 20) do
-      state = var :state, 0
-      ticks = var :ticks, 0
+      state = 0
+      ticks = 0
       scene(:title) { ticks += 1; state = 1 if ticks > 3 }
       scene(:play) { ticks += 10; if ticks > 50 then state = 0; ticks = 0 end }
       game_loop do
@@ -228,15 +228,15 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_a_routine_picked_by_a_number_and_a_counted_loop_agree_with_the_interpreter
     run = checked(frames: 12) do
-      total = var :total, 0
-      pick = var :pick, 0
-      func(:one) { total.add! 1 }
-      func(:two) { total.add! 20 }
-      func(:three) { total.add! 300 }
+      total = 0
+      pick = 0
+      func(:one) { total += 1 }
+      func(:two) { total += 20 }
+      func(:three) { total += 300 }
       game_loop do
         call %i[one two three], number: pick
         pick = (pick + 1) % 4
-        repeat(3) { |i| total.add! i }
+        repeat(3) { |i| total += i }
       end
     end
 
@@ -245,7 +245,7 @@ class TestSNESCheckedRun < Minitest::Test
 
   def test_a_game_that_halts_ends_where_the_interpreter_ends
     run = checked(frames: 60) do
-      x = var :x, 0
+      x = 0
       game_loop do
         x += 1
         halt if x >= 9
@@ -267,11 +267,11 @@ class TestSNESCheckedRun < Minitest::Test
   def test_randomness_and_timers_agree_with_the_interpreter
     run = checked(frames: 40) do
       seed 777
-      hits = var :hits, 0
-      ticks = var :ticks, 0
-      rings = var :rings, 0
+      hits = 0
+      ticks = 0
+      rings = 0
       beat = timer :beat, per_second: 13
-      beat.on_tick { rings.add! 1 }
+      beat.on_tick { rings += 1 }
       game_loop do
         hits += 1 if chance(50)
         ticks = beat.ticks
@@ -285,13 +285,13 @@ class TestSNESCheckedRun < Minitest::Test
   # moves on by every frame the pass took, on the interpreter too.
   def test_a_pass_that_takes_several_frames_keeps_real_time_as_the_interpreter_does
     run = checked(frames: 12) do
-      x = var :x, 1
-      frames = var :frames, 0
-      passes = var :passes, 0
-      once_a_frame { frames.add! 1 }
+      x = 1
+      frames = 0
+      passes = 0
+      once_a_frame { frames += 1 }
       game_loop do
         passes += 1
-        repeat(60) { x.set! (x * 1103) + 12_345 }
+        repeat(60) { x = (x * 1103) + 12_345 }
       end
     end
 

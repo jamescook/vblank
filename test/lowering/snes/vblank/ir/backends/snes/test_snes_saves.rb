@@ -10,21 +10,21 @@ class TestSNESSaves < Minitest::Test
 
   COUNTING_UP = VBlank.game("COUNT", consoles: %i[gba snes]) do
     best = save_var :best, 5
-    game_loop { best.add! 2 }
+    game_loop { best += 2 }
   end
 
   # A record in save memory, written, read back and summed by the game itself.
   RECORDS = VBlank.game("RECORDS", consoles: %i[gba snes]) do
-    score = var :score, 0
-    loaded = var :loaded, 0
+    score = 0
+    loaded = 0
     files = save_data(:files) { keep score }
     game_loop do
-      score.add! 3
-      (score == 9).then { files[0].save }
-      (score == 15).then do
-        score.set! 0
+      score += 3
+      files[0].save if score == 9
+      if score == 15
+        score = 0
         files[0].load
-        loaded.set! score
+        loaded = score
       end
     end
   end
@@ -32,8 +32,8 @@ class TestSNESSaves < Minitest::Test
   # A saved number only read, so what it holds after a pass is what it started with.
   READING = VBlank.game("READING", consoles: %i[gba snes]) do
     best = save_var :best, 5
-    seen = var :seen, 0
-    game_loop { seen.set! best }
+    seen = 0
+    game_loop { seen = best }
   end
 
   private def counting_up = COUNTING_UP.program(console: :snes)
@@ -195,7 +195,7 @@ class TestSNESSaves < Minitest::Test
   def test_save_memory_other_than_32k_of_battery_is_refused_in_plain_words
     game = VBlank.game("FLASHY", consoles: %i[gba snes], save_memory: 128) do
       best = save_var :best, 5
-      game_loop { best.add! 1 }
+      game_loop { best += 1 }
     end
 
     error = assert_raises(SNES::LoweringError) { SNES.new.build(game.program(console: :snes)) }
@@ -208,7 +208,7 @@ class TestSNESSaves < Minitest::Test
   def test_a_save_on_a_super_fx_cartridge_is_refused_in_plain_words
     game = VBlank.game("FXSAVE", consoles: %i[gba snes], variants: { snes: :superfx }) do
       best = save_var :best, 5
-      game_loop { best.add! 1 }
+      game_loop { best += 1 }
     end
 
     error = assert_raises(SNES::LoweringError) { SNES.new.build(game.program(console: :snes)) }

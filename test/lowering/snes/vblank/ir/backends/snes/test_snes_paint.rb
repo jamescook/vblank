@@ -18,7 +18,7 @@ class TestSNESPaint < Minitest::Test
       fill_rect 6, 2, 13, 4, :yellow    # across three tiles
       fill_rect 250, 218, 20, 20, :green # off the right and bottom edges
       fill_rect(-5, -3, 9, 6, :white)   # off the left and top
-      x = var :x, 17
+      x = 17
       game_loop do
         draw_rect_at x, 40, 1, 1, :magenta
         draw_rect_at x, 60, x / 4, 3, rgb(10, 20, 30)
@@ -59,7 +59,7 @@ class TestSNESPaint < Minitest::Test
           .bbbbbbbbbb.
         ART
       end
-      x = var :x, -6
+      x = -6
       game_loop do
         clear_screen :black
         blit :gem, x, 7 + x
@@ -75,7 +75,7 @@ class TestSNESPaint < Minitest::Test
   def test_text_and_digits_in_a_picked_colour
     run = checked(frames: 12) do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       game_loop do
         clear_screen :black
         draw_text "SCORE", 3, 4, :white
@@ -97,7 +97,7 @@ class TestSNESPaint < Minitest::Test
         ".oo.\noooo\noooo\n.oo.\n"
       end
       ball = sprite :ball, at: [30, 30]
-      x = var :x, 30
+      x = 30
       game_loop do
         x += 3
         ball.move_to x, 30 + (x / 8)
@@ -140,7 +140,7 @@ class TestSNESPaint < Minitest::Test
   def test_a_big_change_and_its_colours_arrive_on_the_same_frame
     program = program_of do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       game_loop do
         clear_screen :black
         fade :black, (n % 4) * 20
@@ -165,14 +165,14 @@ class TestSNESPaint < Minitest::Test
   def test_a_tile_painted_again_in_a_big_change_arrives_with_the_rest
     program = program_of do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       game_loop do
         clear_screen :black
-        (n % 2 == 0).then do
+        if n % 2 == 0
           draw_text "SNAKE", 8, 8, :green
           fill_rect 0, 112, 256, 56, :red
         end
-        (n % 2 == 1).then do
+        if n % 2 == 1
           draw_text "SNAKE", 8, 8, :white
           fill_rect 0, 168, 256, 56, :blue
         end
@@ -191,15 +191,17 @@ class TestSNESPaint < Minitest::Test
   def test_a_tile_painted_again_as_the_generations_come_round_arrives_with_the_rest
     program = program_of do
       screen :bitmap
-      n = var :n, 0
+      n = 0
       game_loop do
         clear_screen :black
-        (n < 250).then { n.add! 1 }.else do
-          (n % 2 == 0).then do
+        if n < 250
+          n += 1
+        else
+          if n % 2 == 0
             draw_text "SNAKE", 8, 8, :green
             fill_rect 0, 112, 256, 56, :red
           end
-          (n % 2 == 1).then do
+          if n % 2 == 1
             draw_text "SNAKE", 8, 8, :white
             fill_rect 0, 168, 256, 56, :blue
           end
@@ -219,7 +221,7 @@ class TestSNESPaint < Minitest::Test
   def test_a_tile_painted_before_the_generations_come_round_is_cleared_after
     run = checked(frames: 257) do # the run ends on the pass n is 256 in
       screen :bitmap
-      n = var :n, 0
+      n = 0
       game_loop do
         clear_screen :blue
         fill_rect 0, 0, 8, 8, :red if n == 0
@@ -247,7 +249,7 @@ class TestSNESPaint < Minitest::Test
       fill_rect 0, 216, 256, 8, :green    # the bottom edge
       fill_rect 0, 0, 8, 224, :blue       # the left edge
       fill_rect 248, 0, 8, 224, :yellow   # the right edge
-      t = var :t, 0
+      t = 0
       game_loop do
         camera (((t * 7) % 17) * 41) - 330, (t * 40) - 330
         camera 65_546, 3 if t == 16
@@ -265,7 +267,7 @@ class TestSNESPaint < Minitest::Test
       screen :bitmap
       clear_screen :gray
       fill_rect 100, 100, 20, 20, :red
-      n = var :n, 0
+      n = 0
       game_loop do
         shake_screen intensity: 3, frames: 6 if n == 2
         n += 1
@@ -319,7 +321,7 @@ class TestSNESPaint < Minitest::Test
       image(:dot, "o" => :red) { "oooooooooooooooo\n" * 4 }
       image(:ball, "." => :transparent, "o" => :white) { "oooooooooooo\n" * 6 }
       ball = sprite :ball, at: [0, 2]
-      x = var :x, 0
+      x = 0
       game_loop do
         inside(0, 0, 12, 12) { blit :dot, 0, 0 }
         x += 2
@@ -333,7 +335,7 @@ class TestSNESPaint < Minitest::Test
   private def clear_and_draw_program
     program_of do
       screen :bitmap
-      x = var :x, 3
+      x = 3
       game_loop do
         clear_screen :blue
         draw_rect_at x, 21, 30, 30, :yellow

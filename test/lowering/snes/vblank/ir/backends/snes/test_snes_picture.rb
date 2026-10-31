@@ -22,9 +22,9 @@ class TestSNESPicture < Minitest::Test
         ART
       end
       ship = sprite :ship, at: [0, 0]
-      x = var :x, -20
-      y = var :y, -10
-      laps = var :laps, 0
+      x = -20
+      y = -10
+      laps = 0
       game_loop do
         x += 7
         y += 6
@@ -55,7 +55,7 @@ class TestSNESPicture < Minitest::Test
          tiles :front, "o" => :hole, "g" => :gem
          back = background :back, tiles: :back, map: big
          front = background :front, tiles: :front, map: "#{'o' * 32}\n" * 32
-         changed = var :changed, 0
+         changed = 0
          game_loop do
            if pressed(:a)
              back.set_tile 40, 40, "g"
@@ -78,7 +78,7 @@ class TestSNESPicture < Minitest::Test
       image(:bar, "#" => :magenta) { "################\n" * 4 }
       a = sprite :block, at: [20, 20]
       b = sprite :bar, at: [16, 22]
-      t = var :t, 0
+      t = 0
       game_loop do
         t += 1
         a.move_to 20 + t, 20
@@ -106,7 +106,7 @@ class TestSNESPicture < Minitest::Test
            one: "##########\n#~~~~~~~~#\n#~~~##~~~#\n##########\n",
            two: "~~~~~~~~~~\n~########~\n~~~~~~~~~~\n~~~~~~~~~~\n"
          }
-         x = var :x, 0
+         x = 0
          game_loop do
            x += 3
            room.scroll_to x, x / 2
@@ -151,7 +151,7 @@ class TestSNESPicture < Minitest::Test
       image(:gem, "g" => :green) { "gggggggg\n" * 8 }
       tiles :set, "#" => :wall, "g" => :gem
       room = background :room, tiles: :set, map: "#{'#' * 32}\n" * 32
-      i = var :i, 0
+      i = 0
       game_loop do
         if pressed(:a)
           i = 0
@@ -188,7 +188,7 @@ class TestSNESPicture < Minitest::Test
       bar = status_bar :score, tiles: :bar_tiles, map: ["[oooo[", "[[[[[["], top: 200
       ball = sprite :ball, at: [20, 190]
       tops = table :tops, [200, 0, 127, 128, 150, 224, 300, -5, 60, 126, 223]
-      t = var :t, 0
+      t = 0
       game_loop do
         field.scroll_by 1, -1
         ball.move_to 20 + (t * 3), 190
@@ -240,7 +240,7 @@ class TestSNESPicture < Minitest::Test
         background :sky, tiles: :heavens, map: Array.new(32) { |row| (0...32).map { |col| (row + col) % 7 == 0 ? "c" : "." }.join }
       end
       ball = sprite :ball, at: [40, 150]
-      t = var :t, 0
+      t = 0
       game_loop do
         far.scroll_by 1, 0
         near.scroll_by 2, 0
@@ -272,7 +272,7 @@ class TestSNESPicture < Minitest::Test
       walker = layer(:walkers) { sprite :walker, at: [10, 40] }
       layer(:fence) { background :fence, tiles: :fencing, map: Array.new(32) { "|" * 32 } }
       bird = layer(:sky) { sprite :bird, at: [60, 42] }
-      t = var :t, 0
+      t = 0
       game_loop do
         walker.move_to 10 + (t * 3), 40
         bird.move_to 60 - (t * 3), 42
@@ -317,7 +317,7 @@ class TestSNESPicture < Minitest::Test
       sky = background :sky, tiles: :above, map: Array.new(32) { "#" * 32 }
       water = background :water, tiles: :below, map: Array.new(32) { |row| row < 10 ? " " * 32 : "~" * 32 }
       ripple = table :ripple, (0...16).map { |i| (Math.sin(i * 2 * Math::PI / 16) * 5).round }
-      phase = var :phase, 0
+      phase = 0
       rows = var :rows, 0
       water.scroll_each_row do |row|
         rows += 1
@@ -343,9 +343,9 @@ class TestSNESPicture < Minitest::Test
       tiles :below, "~" => :water
       water = background :water, tiles: :below, map: Array.new(32) { "~" * 32 }
       ripple = table :ripple, (0...16).map { |i| (Math.sin(i * 2 * Math::PI / 16) * 5).round }
-      phase = var :phase, 0
+      phase = 0
       water.scroll_each_row { |row| ripple[(row - phase) % 16] }
-      game_loop { phase.add! 1 }
+      game_loop { phase += 1 }
     end
     run = SNES::HeadlessRun.new.run(program, frames: 6)
 
@@ -388,8 +388,8 @@ class TestSNESPicture < Minitest::Test
       background :under, tiles: :painted, map: [[1, 2, "#"], ["#", "#", "#"]]
       background :over, tiles: :partial, map: [[nil, nil, nil], [1, nil, nil]]
       64.times { pixels.push 0 }
-      t = var :t, 0
-      i = var :i, 0
+      t = 0
+      i = 0
       game_loop do
         i = 0
         repeat(64) do
@@ -416,7 +416,7 @@ class TestSNESPicture < Minitest::Test
       board = canvas :board, width: 32, height: 8, colors: %i[transparent yellow]
       background :board_bg, tiles: :board, map: board.cells
       mark = sprite :tag, at: [40, 40]
-      t = var :t, 0
+      t = 0
       game_loop do
         tag.pixel (t * 5) % 16, (t * 3) % 16, :green
         board.fill_rect t * 3, 2, 3, 3, :yellow
@@ -439,7 +439,7 @@ class TestSNESPicture < Minitest::Test
       ball = sprite :ball, at: [10, 10]
       tag = canvas :tag, width: 16, height: 16, colors: %i[transparent white green], as: :sprite
       sprite :tag, at: [40, 40]
-      t = var :t, 0
+      t = 0
       game_loop do
         tag.pixel t, t, :green
         ball.move_to 10 + t, 10
@@ -457,7 +457,7 @@ class TestSNESPicture < Minitest::Test
       screen :tiled
       box = canvas :box, width: 192, height: 16, colors: %i[transparent white blue], as: :sprite
       sprite :box, at: [24, 144]
-      t = var :t, 0
+      t = 0
       game_loop do
         box.clear :blue if t == 0
         box.fill_rect 4 + (t * 30), 4, 20, 8, :white
@@ -495,7 +495,7 @@ class TestSNESPicture < Minitest::Test
       image :face, width: 16, height: 16, data: face_art, colors: %i[transparent yellow red orange]
       face = sprite :face, at: [20, 20]
       sprite :face, at: [60, 20]
-      t = var :t, 0
+      t = 0
       game_loop do
         if t < 8
           face.draw_with %i[flash dim], showing: (t >> 1) & 1
@@ -532,7 +532,7 @@ class TestSNESPicture < Minitest::Test
         background :air, tiles: :air_tiles, map: Array.new(32) { |row| row.even? ? "o" * 32 : "o " * 16 }
       end
       ball = sprite :ball, at: [30, 30]
-      t = var :t, 0
+      t = 0
       game_loop do
         air.scroll_by 1, 1
         ball.move_to 30 + t, 30
@@ -558,7 +558,7 @@ class TestSNESPicture < Minitest::Test
       floor = layer(:world) { background :world, tiles: :world_tiles, map: Array.new(32) { "#" * 32 } }
       layer(:actors) { sprite :hero, at: [40, 40] }
       ghost = layer(:ghosts, transparency: 50) { sprite :ghost, at: [20, 36] }
-      t = var :t, 0
+      t = 0
       game_loop do
         floor.scroll_by 1, 0
         ghost.move_to 20 + (t * 3), 36
@@ -592,10 +592,10 @@ class TestSNESPicture < Minitest::Test
       tiles :air_tiles, "o" => :mist
       layers :world, :air
       layer(:world) { background :world, tiles: :world_tiles, map: Array.new(32) { "#" * 32 } }
-      mist = var :mist, 0
+      mist = 0
       transparency = amount == :game ? 100 - mist : amount
       layer(:air, transparency: transparency) { background :air, tiles: :air_tiles, map: ["oo"] }
-      game_loop { mist.add! 1 }
+      game_loop { mist += 1 }
     end
   end
 

@@ -36,12 +36,12 @@ class TestSNESSongs < Minitest::Test
         note :A3, :half
       end
     end
-    n = var :n, 0
+    n = 0
     game_loop do
-      n.add! 1
-      (n < 20).then { play_song :tune }
-      (n == 20).then { stop_music }
-      (n == 24).then { play_song :tune }
+      n += 1
+      play_song :tune if n < 20
+      stop_music if n == 20
+      play_song :tune if n == 24
     end
   end
 
@@ -98,12 +98,12 @@ class TestSNESSongs < Minitest::Test
       enable_sound
       song(:tune) { voice(:lead) { note :A4, :whole } }
       define_sound :ping, frequency: 880, decay: :none
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 1).then { play_song :tune }
-        (n == 3).then { stop_music }
-        (n == 5).then { beep :ping }
+        n += 1
+        play_song :tune if n == 1
+        stop_music if n == 3
+        beep :ping if n == 5
       end
     end
     dsp = SNES::CheckedRun.new.run(game.program(console: :snes), frames: 7).dsp_registers
@@ -119,12 +119,12 @@ class TestSNESSongs < Minitest::Test
       enable_sound
       song(:tune) { voice(:lead) { note :A4, :whole } }
       define_sound :ping, frequency: 880, decay: :none
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 1).then { play_song :tune }
-        (n == 3).then { beep :ping }
-        (n == 4).then { stop_music }
+        n += 1
+        play_song :tune if n == 1
+        beep :ping if n == 3
+        stop_music if n == 4
       end
     end
     dsp = SNES::CheckedRun.new.run(game.program(console: :snes), frames: 7).dsp_registers
@@ -293,16 +293,16 @@ class TestSNESSongs < Minitest::Test
         voice(:hum, plays: :sine) { note :A3, :half }
         voice(:drum, plays: :noise) { note :C6, :eighth; rest :eighth; note :C6, :eighth; rest :eighth }
       end
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 2).then { music_volume 25 }
-        (n == 4).then { play_song :band }
-        (n == 12).then { stop_music }
-        (n == 14).then { music_volume 75 }
-        (n == 15).then { play_song :band, this_frame: true }
-        (n == 20).then { fade_music_out frames: 4 }
-        (n == 28).then { fade_music_in frames: 4 }
+        n += 1
+        music_volume 25 if n == 2
+        play_song :band if n == 4
+        stop_music if n == 12
+        music_volume 75 if n == 14
+        play_song :band, this_frame: true if n == 15
+        fade_music_out frames: 4 if n == 20
+        fade_music_in frames: 4 if n == 28
       end
     end
     dsp = SNES::CheckedRun.new.run(game.program(console: :snes), frames: 36).dsp_registers
@@ -385,12 +385,12 @@ class TestSNESSongs < Minitest::Test
           note :A3, :whole
         end
       end
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 1).then { play_song :tune }
-        (n == 5).then { music_volume 50 }
-        (n == 10).then { fade_music_out frames: 6 }
+        n += 1
+        play_song :tune if n == 1
+        music_volume 50 if n == 5
+        fade_music_out frames: 6 if n == 10
       end
     end
     SNES::CheckedRun.new.run(game.program(console: :snes), frames: frames).dsp_registers

@@ -12,13 +12,13 @@ class TestSNESBeep < Minitest::Test
 
   BEEPING = VBlank.game("BEEPS", consoles: %i[gba snes]) do
     enable_sound
-    n = var :n, 0
+    n = 0
     define_sound :ping, frequency: 440, duty: :quarter, decay: :slow, volume: 9
     game_loop do
-      n.add! 1
-      (n == 2).then { beep :high }
-      (n == 4).then { beep :ping }
-      (n == 5).then { beep 1000, duty: :eighth, decay: :none }
+      n += 1
+      beep :high if n == 2
+      beep :ping if n == 4
+      beep 1000, duty: :eighth, decay: :none if n == 5
     end
   end
 
@@ -83,10 +83,10 @@ class TestSNESBeep < Minitest::Test
   private def frames_to_fade(volume, decay)
     game = VBlank.game("FADE", consoles: %i[gba snes]) do
       enable_sound
-      n = var :n, 0
+      n = 0
       game_loop do
-        n.add! 1
-        (n == 1).then { beep 440, volume: volume, decay: decay }
+        n += 1
+        beep 440, volume: volume, decay: decay if n == 1
       end
     end
     run = SNES::HeadlessRun.new.run(game.program(console: :snes), frames: 100)
