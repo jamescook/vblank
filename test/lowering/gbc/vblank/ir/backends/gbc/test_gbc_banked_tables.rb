@@ -67,6 +67,39 @@ class TestGBCBankedTables < Minitest::Test
     b.program
   end
 
+  # +count+ tables of the game's own, +entries+ long and each smaller than a table is kept in banks
+  # for by itself, but too many together for the part always in view. The game reads every one of
+  # them each pass, at an index that moves.
+  private def many_tables(count, entries)
+    b = Builder.new(options: VBlank::Cartridge::Options.new(console: :gbc))
+    b.instance_eval do
+      screen :bitmap
+      tables = (0...count).map { |n| table :"forces#{n}", Array.new(entries) { |i| ((i * 37) + (n * 11)) % 900 - 450 } }
+      at = 0
+      total = 0
+      game_loop do
+        at += 13
+        tables.each { |forces| total += forces[at] }
+      end
+    end
+    b.finalize_program
+    b.program
+  end
+
+  def test_a_game_can_keep_more_tables_than_fit_in_view
+    game_player.run(many_tables(40, 256), frames: 4)
+  end
+
+  def test_a_game_can_keep_more_small_tables_than_fit_in_view
+    game_player.run(many_tables(230, 40), frames: 4)
+  end
+
+  def test_tables_that_fit_in_view_stay_in_view
+    built = VBlank::Console.for(:gbc).builder.cartridge_for(many_tables(4, 256), title: "INVIEW").built
+
+    assert_empty built.code.keys.grep(/\Atable .* part /), "no table goes to a bank while they fit"
+  end
+
   def test_sprites_whose_pose_rows_do_not_fit_in_view_still_build_and_play
     game_player.run(many_posed_sprites_walking_many_lists, frames: 12)
   end

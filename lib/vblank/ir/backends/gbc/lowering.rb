@@ -150,6 +150,7 @@ module VBlank
           # +banked_songs+ keeps its songs' notes in the cartridge's banks (GBC::Music#sections), and
           # +bank_pose_tables+ the tables of its sprites' poses in each list (Picture#picture_and_attributes_drawn),
           # and +bank_background_colors+ the tables of its backgrounds' colours (Picture#emit_background_colors_for_declaration).
+          # +banked_table_bytes+ is how big one of the game's tables has to be to go to a bank (#banked_tables).
           # +known+ holds what is worked out from +program+ alone, kept from one attempt at a build to
           # the next (GBC#build): nothing in it depends on how this one is built.
           # +scene_pictures+ says each scene brings its own sprite pictures in (Art::TooManySpriteTiles),
@@ -157,8 +158,9 @@ module VBlank
           # need rooms too.
           def initialize(program, memory:, lends_sprite_colors: false, tile_rooms: false, room_colors: false,
                          banked_songs: false, bank_pose_tables: false, bank_background_colors: false, known: {},
-                         scene_pictures: false)
+                         scene_pictures: false, banked_table_bytes: BANKED_TABLE_BYTES)
             @program = program
+            @banked_table_bytes = banked_table_bytes
             @known = known
             @plans_scene_pictures = scene_pictures
             @memory = memory
@@ -346,6 +348,12 @@ module VBlank
           # in view, since the list's copy reads it in a loop of its own.
           BANKED_TABLE_BYTES = 1024
 
+          # MANY SMALLER TABLES CAN COME TO THE SAME. A game they do not fit in view for is built
+          # again with tables of each of these sizes going to banks too, the bigger first, so its
+          # short tables are the last to pay for a read. Below the last, a table's place in the
+          # list of parts would take nearly what the table does.
+          SMALLER_BANKED_TABLE_BYTES = [256, 16].freeze
+
           # The names of the tables kept in banks of their own.
           def banked_tables
             @banked_tables ||= begin
@@ -354,7 +362,7 @@ module VBlank
                 next if copied.include?(table.name)
 
                 bytes, = table_keeping(table)
-                table.name if bytes * table.values.length >= BANKED_TABLE_BYTES
+                table.name if bytes * table.values.length >= @banked_table_bytes
               end
             end
           end
