@@ -458,6 +458,7 @@ module VBlank
         attr_reader :answer
 
         alias picked_value answer
+        alias tail_value answer
 
         def initialize(value)
           @value = value
@@ -468,6 +469,7 @@ module VBlank
         def open_no_side = !@value
         def close_side(value) = @answer = value
         def keep_side_value(value) = @answer = value
+        def keep_tail_value(value) = @answer = value
         def refuse_jump!(_word) = nil
       end
 
@@ -509,6 +511,17 @@ module VBlank
           PlainRubySteps.store_in_variable(@kept, value)
           @condition.close_branch
         end
+
+        # A ternary ending a method, which may be there for what its sides do. Only a side a game
+        # can keep a value of keeps one. A verb's nil or a handle leaves nothing to answer with.
+        def keep_tail_value(value)
+          keepable = [true, false].include?(value) || value.is_a?(Condition) || value.is_a?(Integer)
+          return keep_side_value(value) if keepable || (value.is_a?(Value) && !value.handle?)
+
+          close_side(value)
+        end
+
+        def tail_value = @kept
 
         def picked_value
           return @kept if @other_side

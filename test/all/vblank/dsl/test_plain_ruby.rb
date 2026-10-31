@@ -1039,6 +1039,40 @@ class TestPlainRuby < Minitest::Test
     assert_empty builder.hidden_variable_notes
   end
 
+  def test_a_method_ending_in_a_ternary_on_a_game_test_gives_back_the_answer
+    player = played do
+      def alive(hp) = hp > 0 ? true : false
+      def speed(hp)
+        hp > 3 ? 2 : 1
+      end
+      hp = var :hp, 5
+      none = var :none, 0
+      seen_alive = 0
+      seen_dead = 0
+      fast = 0
+      slow = 0
+      game_loop do
+        seen_alive = 1 if alive(hp)
+        seen_dead = 1 if alive(none)
+        fast = speed(hp)
+        slow = speed(none)
+      end
+    end
+
+    assert_equal [1, 0, 2, 1], %i[seen_alive seen_dead fast slow].map { |name| player[name] }
+  end
+
+  def test_a_method_ending_in_a_ternary_of_verbs_still_runs_one_side
+    player = played do
+      def nudge(hp, tally) = hp > 3 ? tally[:high] += 1 : tally[:low] += 1
+      hp = var :hp, 5
+      tally = { high: var(:high, 0), low: var(:low, 0) }
+      game_loop { nudge(hp, tally) }
+    end
+
+    assert_equal [3, 0], [player[:high], player[:low]]
+  end
+
   def test_an_ivar_made_by_var_copies_another_variable
     player = played do
       @a = var :a, 5

@@ -169,6 +169,7 @@ module VBlank
           @answers = 0
           @open_tests = []
           @lone_joins = {}.compare_by_identity
+          @tail_ternaries = {}.compare_by_identity
         end
 
         def rewritten_block = rewritten(@block_node)
@@ -240,10 +241,13 @@ module VBlank
         def own_scope_text(node)
           outer = @open_tests
           @open_tests = []
+          @tail_ternaries[node.body.body.last] = true if method_body?(node)
           copied_text(node)
         ensure
           @open_tests = outer
         end
+
+        def method_body?(node) = node.is_a?(Prism::DefNode) && node.body.is_a?(Prism::StatementsNode)
 
         def under_open_test(test, &block) = under_open_tests([test], &block)
 
@@ -529,6 +533,8 @@ module VBlank
         # A conditional as two real `if`s, one for each side. A plain test takes one; a game
         # test takes both, once each. +kept+ is for one whose value is used, by `x = ...`.
         def conditional_text(node, kept: false)
+          # A ternary is written for its value, so one ending a method is that method's answer.
+          kept = :tail if @tail_ternaries.key?(node) && node.is_a?(Prism::IfNode) && node.if_keyword_loc.nil?
           return nested_conditional_text(node) if nestable?(node, kept)
 
           answer = "__plain_ruby_#{@answers += 1}"
@@ -537,8 +543,13 @@ module VBlank
           sides = under_open_test(answer) do
             "#{yes_side_text(node, answer, shut_at, kept)}#{no_side_text(node, answer, shut_at, kept)}"
           end
-          "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{promotions}#{sides}" \
-            "#{answer}.#{kept ? 'picked_value' : 'answer'})"
+          "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{promotions}#{sides}#{answer}.#{value_step(kept)})"
+        end
+
+        def value_step(kept)
+          return "tail_value" if kept == :tail
+
+          kept ? "picked_value" : "answer"
         end
 
         # `case` as a chain of tests. Each `when` is asked in turn, in Ruby's way on a plain value
@@ -636,7 +647,11 @@ module VBlank
 
         def other_side(node) = node.is_a?(Prism::UnlessNode) ? node.else_clause : node.subsequent
 
-        def side_step(kept) = kept ? "keep_side_value" : "close_side"
+        def side_step(kept)
+          return "keep_tail_value" if kept == :tail
+
+          kept ? "keep_side_value" : "close_side"
+        end
 
         def yes_side_text(node, answer, shut_at, kept)
           body = side_body_text(node, other_side(node)&.location&.start_offset || shut_at)
