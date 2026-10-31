@@ -12,7 +12,7 @@ module VBlank
     #   hero = sprite :hero, at: [100, 60]
     #   game_loop do
     #     wait_vblank
-    #     held(:right).then { hero.x.add! 2 }          # steer with the expression DSL
+    #     hero.x += 2 if held(:right)                  # steer the way any number is changed
     #     # no draw call — the framework draws the sprite for you each frame
     #   end
     #
@@ -108,7 +108,7 @@ module VBlank
       def layer = @object_node.layer
 
       # The sprite's position, as {Value} handles — steer them with the expression DSL
-      # (`hero.x.add! 2`, `hero.y.clamp! 0, 150`). The framework reads them each frame to
+      # (`hero.x += 2`, `hero.y.clamp! 0, 150`). The framework reads them each frame to
       # know where to draw.
       def x
         Value.new(@builder, Build.var_ref(@x_var), name: @x_var)
@@ -154,7 +154,7 @@ module VBlank
           face(direction_or_dx) if faceted? && @facing_dirs.key?(direction_or_dx)
         else
           step(:x, direction_or_dx) if direction_or_dx != 0
-          step(:y, dy) if dy && dy != 0
+          step(:y, dy) if !dy.nil? && dy != 0
         end
         self
       end
@@ -169,7 +169,7 @@ module VBlank
       #   hero.blocked_by world
       #   game_loop do
       #     wait_vblank
-      #     held(:right).then { hero.move :right }   # walks until a wall, then stops
+      #     hero.move :right if held(:right)   # walks until a wall, then stops
       #   end
       #
       # You keep full manual control too: `can_move?` asks before moving so you can do
@@ -184,7 +184,7 @@ module VBlank
       # Whether this sprite could step +by+ pixels in +direction+ without hitting a wall
       # — a {Condition} to branch on, for taking collision into your own hands:
       #
-      #   hero.can_move?(:left).then { hero.move :left }   # or do something else if not
+      #   hero.move :left if hero.can_move?(:left)   # or do something else if not
       #
       # Needs `blocked_by` to have named the walls first.
       def can_move?(direction, by: 1)
@@ -196,10 +196,10 @@ module VBlank
         clear_of_walls(x + (step_x * by), y + (step_y * by))
       end
 
-      # Jump the sprite to an exact spot — sugar for x.set! / y.set!.
+      # Jump the sprite to an exact spot: its `x` and `y` set in one call.
       def move_to(px, py)
-        x.set!(px)
-        y.set!(py)
+        self.x = px
+        self.y = py
         self
       end
 
@@ -282,7 +282,7 @@ module VBlank
         if fixed
           record(Build.set(@angle_var, Build.int(fixed % 360)))
         else
-          angle.set!(degrees)
+          self.angle = degrees
           wrap_angle
         end
         self
@@ -290,11 +290,11 @@ module VBlank
 
       # Turn the sprite by +degrees+ from the way it points now: a positive number turns it
       # clockwise, a negative one counter-clockwise. Call it each frame to spin steadily or
-      # to steer — `held(:left).then { ship.turn(-3) }`. The angle wraps, so it can keep
+      # to steer — `ship.turn(-3) if held(:left)`. The angle wraps, so it can keep
       # turning either way. Makes this a rotating sprite (see #face_angle).
       def turn(degrees)
         ensure_rotatable
-        angle.add!(degrees)
+        self.angle += degrees
         wrap_angle
         self
       end
@@ -302,7 +302,7 @@ module VBlank
       # The sprite's heading as a {Value} you can read and compare — degrees clockwise from
       # upright, always 0..359. Reading it makes this a rotating sprite.
       #
-      #   (ship.angle == 0).then { ... }   # pointing straight up?
+      #   if ship.angle == 0 ...   # pointing straight up?
       def angle
         ensure_rotatable
         Value.new(@builder, Build.var_ref(@angle_var), name: @angle_var)
@@ -333,8 +333,15 @@ module VBlank
                 "a sprite's size must be more than 0. You gave #{size.inspect}. " \
                 "1.0 is the size it was drawn at, 0.5 is half. To make it vanish, use `hide`."
         end
-        scale_value.set!(size)
+        self.scale_value = size
         self
+      end
+
+      # The size variable as a handle. It carries a fraction, so `scale.approach! 2.0, 0.1`
+      # and `scale * 2` mean what they read as.
+      def scale_value
+        Value.new(@builder, Build.var_ref(@scale_var), name: @scale_var,
+                            fraction_bits: Fraction::DEFAULT_BITS)
       end
 
       # Play a named animation from the sprite's Aseprite sheet (a frameTag). It runs from
@@ -413,11 +420,13 @@ module VBlank
       # against).
       def step(axis, delta)
         var = axis == :x ? x : y
-        return var.add!(delta) if @solid_cells.nil? && (@walls.nil? || @walls.empty?)
-
-        target_x = axis == :x ? x + delta : x
-        target_y = axis == :y ? y + delta : y
-        clear_of_walls(target_x, target_y).then { var.add!(delta) }
+        if @solid_cells.nil? && (@walls.nil? || @walls.empty?)
+          var += delta
+        else
+          target_x = axis == :x ? x + delta : x
+          target_y = axis == :y ? y + delta : y
+          var += delta if clear_of_walls(target_x, target_y)
+        end
       end
 
       # A {Condition} true when the sprite's box, placed at (target_x, target_y), doesn't
@@ -432,8 +441,8 @@ module VBlank
         right = left + @hit_w
         bottom = top + @hit_h
         @walls.map do |wall|
-          (right <= wall.x) | (wall.right <= left) | (bottom <= wall.y) | (wall.bottom <= top)
-        end.reduce(:&)
+          right <= wall.x || wall.right <= left || bottom <= wall.y || wall.bottom <= top
+        end.reduce { |clear, test| clear && test }
       end
 
       # A {Condition} true when the sprite's box, placed at (target_x, target_y), is clear of
@@ -474,21 +483,13 @@ module VBlank
         @builder.make_object_scalable(@object_node, @scale_var)
       end
 
-      # The size variable as a handle. It carries a fraction, so `scale.approach! 2.0, 0.1`
-      # and `scale * 2` mean what they read as.
-      def scale_value
-        Value.new(@builder, Build.var_ref(@scale_var), name: @scale_var,
-                            fraction_bits: Fraction::DEFAULT_BITS)
-      end
-
       # Fold the angle variable back into 0..359 after a set or turn. One truncated-
       # division modulo (a - (a / 360) * 360, the BIOS Div on hardware) lands it in
       # (-360, 360); a single conditional add of 360 then lifts a negative result into
       # range. Cheap, and it runs at most once per turn.
       def wrap_angle
-        a = angle
-        a.set!(a - (a / 360 * 360))
-        (angle < 0).then { angle.add!(360) }
+        self.angle = angle - (angle / 360 * 360)
+        self.angle += 360 if angle < 0
       end
 
       def record(node)

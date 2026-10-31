@@ -81,15 +81,15 @@ module VBlank
       def fill_rect(x, y, w, h, color)
         refuse_written_position_outside!(x, y)
         place = place_of(color)
-        left = scratch(:left)
-        right = scratch(:right)
-        row_y = scratch(:row_y)
-        left.set! value(x).clamp(0, @width)
-        right.set! plus(x, w).clamp(0, @width)
-        @place.set! place
+        left = var(:left, 0)
+        right = var(:right, 0)
+        row_y = var(:row_y, 0)
+        left = value(x).clamp(0, @width)
+        right = plus(x, w).clamp(0, @width)
+        @place = place
         @builder.repeat(h) do |row|
-          row_y.set! plus(y, row)
-          ((row_y >= 0) & (row_y < @height) & (left < right)).then { @builder.call(fill_row_routine) }
+          row_y = plus(y, row)
+          @builder.call(fill_row_routine) if row_y >= 0 && row_y < @height && left < right
         end
         changed
         nil
@@ -104,7 +104,7 @@ module VBlank
         across = @builder.image_size(image).first
         @builder.repeat(table.length) do |i|
           place = table[i]
-          (place != 0).then { paint_at(plus(x, i % across), plus(y, i / across), place) }
+          paint_at(plus(x, i % across), plus(y, i / across), place) if place != 0
         end
         changed
         nil
@@ -127,14 +127,14 @@ module VBlank
           wide = widths[code]
           @builder.repeat(tables.widest) do |col|
             lit = ((bits >> (wide - 1 - col)) & 1) == 1
-            ((col < wide) & lit).then { paint_at(plus(x, col), plus(y, row), place) }
+            paint_at(plus(x, col), plus(y, row), place) if col < wide && lit
           end
         end
         changed
         # Kept in a variable rather than handed back as a sum, so a game that draws a letter
         # and has no use for where it ended is not told it worked out a number for nothing.
-        @advance ||= @builder.var(part(:advance), 0)
-        @advance.set! widths[code] + tables.spacing
+        @advance ||= var(:advance, 0)
+        @advance = widths[code] + tables.spacing
         @advance
       end
 
@@ -157,9 +157,7 @@ module VBlank
           power = 10**from_right
           digit = (value(number) / power) % 10
           at = plus(x, (digits - 1 - from_right) * cell)
-          shown = from_right.zero? ? nil : (value(number) >= power)
-          draw = -> { draw_letter(digit + 48, at, y, color, font: font) }
-          shown ? shown.then(&draw) : draw.call
+          draw_letter(digit + 48, at, y, color, font: font) if from_right.zero? || value(number) >= power
         end
         nil
       end
@@ -169,9 +167,10 @@ module VBlank
       def part(what) = Messages::MadeNames.make(:canvas_part, canvas: @name, part: what)
 
       # A variable of the canvas's own for a word's working, made the first time it is asked for.
-      def scratch(what)
-        @scratch ||= {}
-        @scratch[what] ||= @builder.var(part(what), 0)
+      # Named as a game's `var` is, so a name given one here is read as a variable too.
+      def var(what, start)
+        @variables ||= {}
+        @variables[what] ||= @builder.var(part(what), start)
       end
 
       # +count+ bytes of the list from +from+ set to +byte+, in one statement.
@@ -187,9 +186,9 @@ module VBlank
       def fill_row_routine
         @fill_row_routine ||= begin
           name = part(:fill_row)
-          row_y = scratch(:row_y)
-          left = scratch(:left)
-          right = scratch(:right)
+          row_y = var(:row_y, 0)
+          left = var(:left, 0)
+          right = var(:right, 0)
           place = @place
           canvas = self
           @builder.func(name) { canvas.send(:fill_row, row_y, left, right, place) }
@@ -200,25 +199,25 @@ module VBlank
       # One row of a rectangle at +row_y+, from column +left+ up to but not including +right+:
       # the odd end pixels one at a time, the whole bytes between a run per tile.
       def fill_row(row_y, left, right, place)
-        from = scratch(:from_x)
-        upto = scratch(:upto_x)
-        tile = scratch(:tile)
-        from.set! left
-        upto.set! right
-        ((from & 1) == 1).then do
+        from = var(:from_x, 0)
+        upto = var(:upto_x, 0)
+        tile = var(:tile, 0)
+        from = left
+        upto = right
+        if (from & 1) == 1
           paint_at(from, row_y, place)
-          from.add! 1
+          from += 1
         end
-        ((upto & 1) == 1).then do
+        if (upto & 1) == 1
           paint_at(upto - 1, row_y, place)
-          upto.sub! 1
+          upto -= 1
         end
-        (from < upto).then do
-          tile.set! from >> 3
+        if from < upto
+          tile = from >> 3
           tiles = ((upto - 1) >> 3) - tile + 1
           @builder.repeat(tiles) do
             fill_row_in_tile(row_y, tile, from, upto, place)
-            tile.add! 1
+            tile += 1
           end
         end
       end
@@ -240,9 +239,9 @@ module VBlank
       # Paint one pixel through the canvas's own routine: three variables set and a call,
       # where the arithmetic would otherwise be written out again at every place it is used.
       def paint_at(x, y, place)
-        @x.set! x
-        @y.set! y
-        @place.set! place
+        @x = x
+        @y = y
+        @place = place
         @builder.call(pixel_routine)
       end
 
@@ -259,12 +258,15 @@ module VBlank
           across = @width / 8
           wide = @width
           tall = @height
-          at = @builder.var(part(:at), 0)
+          at = var(:at, 0)
           @builder.func(name) do
-            ((x >= 0) & (x < wide) & (y >= 0) & (y < tall)).then do
-              at.set! ((((y >> 3) * across) + (x >> 3)) * 32) + ((y & 7) * 4) + ((x & 7) >> 1)
-              ((x & 1) == 0).then { list[at] = (list[at] & 0xF0) | place }
-                            .else { list[at] = (list[at] & 0x0F) | (place << 4) }
+            if x >= 0 && x < wide && y >= 0 && y < tall
+              at = ((((y >> 3) * across) + (x >> 3)) * 32) + ((y & 7) * 4) + ((x & 7) >> 1)
+              if (x & 1) == 0
+                list[at] = (list[at] & 0xF0) | place
+              else
+                list[at] = (list[at] & 0x0F) | (place << 4)
+              end
             end
           end
           name

@@ -493,7 +493,7 @@ module VBlank
             slot = Value.new(@builder, Build.var_ref(at), name: at)
             # The walk can pass a thing removed before its turn, so the body is only for a live
             # one.
-            (active[slot] == 1).then do
+            if active[slot] == 1
               record_current_slot(slot)
               block.call(Instance.new(pool, slot))
             end
@@ -894,7 +894,7 @@ module VBlank
             face(direction_or_dx) if @pool.facing_row(direction_or_dx)
           else
             step(:x, direction_or_dx) if direction_or_dx != 0
-            step(:y, dy) if dy && dy != 0
+            step(:y, dy) if !dy.nil? && dy != 0
           end
           self
         end
@@ -928,11 +928,13 @@ module VBlank
         def step(axis, delta)
           var = field(axis)
           cells = @pool.solid_cells
-          return var.add!(delta) if cells.nil?
-
-          target_x = axis == :x ? field(:x) + delta : field(:x)
-          target_y = axis == :y ? field(:y) + delta : field(:y)
-          emit_tile_check(cells, target_x, target_y).then { var.add!(delta) }
+          if cells.nil?
+            var += delta
+          else
+            target_x = axis == :x ? field(:x) + delta : field(:x)
+            target_y = axis == :y ? field(:y) + delta : field(:y)
+            var += delta if emit_tile_check(cells, target_x, target_y)
+          end
         end
 
         # The same shared routine a `sprite` calls — see Builder::Collision. A pool of

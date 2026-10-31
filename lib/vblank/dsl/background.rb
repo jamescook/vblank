@@ -141,7 +141,7 @@ module VBlank
       def show_map(which)
         refuse_on_bitmap_screen!("show_map", instead: "Draw the new picture with `blit`")
         refuse_with_one_map!
-        @builder.set!(shown_map_var, Value.node_for(resolve_map_number(which)))
+        self.showing = resolve_map_number(which)
         # Recorded here as well as remembered, the same way a scroll is: a program with no
         # game loop has no gap between frames to hold the copy for, and then the copy simply
         # happens where it was asked for. The builder drops these once it knows there is a
@@ -350,7 +350,7 @@ module VBlank
         if fixed
           write_affine_var(angle_var, fixed % 360, declaring)
         else
-          angle.set!(degrees)
+          self.angle = degrees
           wrap_angle
         end
         record_affine_write
@@ -378,7 +378,7 @@ module VBlank
           _, scale_var = affine_vars
           write_affine_var(scale_var, Fraction.scale(size.to_f, Fraction::DEFAULT_BITS), true)
         else
-          affine_scale_value.set!(size)
+          self.affine_scale_value = size
         end
         record_affine_write
         extend_declaration_tail if declaring
@@ -390,6 +390,13 @@ module VBlank
       def angle
         angle_var, = affine_vars
         Value.new(@builder, Build.var_ref(angle_var), name: angle_var)
+      end
+
+      # The size variable as a fraction-carrying handle, the same way a sprite's does.
+      def affine_scale_value
+        _, scale_var = affine_vars
+        Value.new(@builder, Build.var_ref(scale_var), name: scale_var,
+                            fraction_bits: Fraction::DEFAULT_BITS)
       end
 
       # WHICH POINT THE PICTURE TURNS AROUND — the one place on screen that stays still
@@ -673,19 +680,11 @@ module VBlank
         record(Build.set(var, Build.int(value)))
       end
 
-      # The size variable as a fraction-carrying handle, the same way a sprite's does.
-      def affine_scale_value
-        _, scale_var = affine_vars
-        Value.new(@builder, Build.var_ref(scale_var), name: scale_var,
-                            fraction_bits: Fraction::DEFAULT_BITS)
-      end
-
       # A turn past 359 or below 0 wraps around, same as a sprite's #face_angle — see
       # HardwareSprite#wrap_angle, whose exact steps this mirrors.
       def wrap_angle
-        a = angle
-        a.set!(a - (a / 360 * 360))
-        (angle < 0).then { angle.add!(360) }
+        self.angle = angle - (angle / 360 * 360)
+        self.angle += 360 if angle < 0
       end
 
       # Write this frame's angle/scale to the display — recorded at the call site, like
