@@ -342,6 +342,19 @@ module VBlank
       game(title, **options, &DSL::PlainRuby.rewrite(block, allow: allow))
     end
 
+    # `require_relative` for a file of a game written in normal Ruby (see DSL::PlainRuby): a part
+    # the game splits out, which the block given to #new_dsl does not reach. Returns false for a
+    # file already brought in, as `require` does.
+    def require_game_file(name)
+      from = caller_locations(1, 1).first.path
+      path = File.expand_path("#{name}.rb", File.dirname(from))
+      return false if $LOADED_FEATURES.include?(path)
+
+      TOPLEVEL_BINDING.eval(DSL::PlainRuby.rewritten_file(path), path, 1)
+      $LOADED_FEATURES << path
+      true
+    end
+
     private
 
     def refuse_unsaid_consoles!(title)

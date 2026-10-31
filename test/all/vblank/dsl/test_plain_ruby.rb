@@ -2,14 +2,16 @@
 
 require "test_helper"
 
+VBlank.require_game_file "../../../plain_ruby_helper_part"
+
 # A game block written in normal Ruby, the way an author sees it: each test plays a tiny game
 # and reads the variables it leaves, on every lowering. What a line is rewritten into is
 # test_plain_ruby_rewrite.rb's business, and what is refused test_plain_ruby_refusals.rb's.
 class TestPlainRuby < Minitest::Test
   # Plays the block, rewritten, for +frames+ frames and hands back the player.
-  private def played(frames: 3, &block)
+  private def played(frames: 3, allow: [], &block)
     builder = Builder.new
-    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(block))
+    builder.instance_eval(&VBlank::DSL::PlainRuby.rewrite(block, allow: allow))
     builder.finalize_program
     player = game_player
     player.run(builder.program, frames: frames)
@@ -393,6 +395,21 @@ class TestPlainRuby < Minitest::Test
     end
 
     assert_equal 9, player[:shown]
+  end
+
+  def test_a_game_part_keeps_its_frozen_strings_and_its_line_numbers
+    assert_predicate PlainRubyHelperPart::NAME, :frozen?
+    assert_equal 8, PlainRubyHelperPart::WRITTEN_ON
+  end
+
+  def test_a_game_part_in_a_file_of_its_own_can_be_written_in_normal_ruby
+    player = played(frames: 5, allow: %w[PlainRubyHelperPart]) do
+      part = PlainRubyHelperPart.new(self)
+      game_loop { part.step }
+    end
+
+    assert_equal 3, player[:part_count]
+    assert_equal 9, player[:part_flips]
   end
 
   def test_assignment_changes_a_variable_made_with_var

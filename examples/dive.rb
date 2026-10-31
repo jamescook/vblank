@@ -16,11 +16,11 @@
 #   ruby examples/dive.rb
 
 require_relative "../lib/vblank"
-require_relative "dive/title"
-require_relative "dive/sea"
-require_relative "dive/diver"
-require_relative "dive/fish"
-require_relative "dive/gauge"
+VBlank.require_game_file "dive/title"
+VBlank.require_game_file "dive/sea"
+VBlank.require_game_file "dive/diver"
+VBlank.require_game_file "dive/fish"
+VBlank.require_game_file "dive/gauge"
 
 module Dive
   # The colours the whole game is drawn in, named in one place so the parts agree about

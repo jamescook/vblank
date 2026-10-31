@@ -66,13 +66,13 @@ module Shmup
 
     # A ship was lost: the next one cannot be hit for a moment.
     def hurt
-      @safe.set! SAFE
+      @safe = SAFE
     end
 
     # Steer, keep on screen, fire, and fly the shot — one frame's worth.
     def update
-      @build.held(:left).then  { @ship.move :left,  by: SPEED }
-      @build.held(:right).then { @ship.move :right, by: SPEED }
+      @ship.move :left,  by: SPEED if @build.held(:left)
+      @ship.move :right, by: SPEED if @build.held(:right)
       @ship.clamp_to_screen # keep the ship on screen — it works out its own size
 
       glow_while_safe
@@ -83,13 +83,13 @@ module Shmup
     # Let an enemy that got shot take the shot out of play, so the player can fire again.
     def reclaim_shot
       @shot.hide
-      @shot_live.set! 0
+      @shot_live = 0
     end
 
     # Back to the start: ship centred, no shot in flight, and hittable.
     def reset
       @ship.move_to 112, 132
-      @safe.set! 0
+      @safe = 0
       reclaim_shot
     end
 
@@ -99,28 +99,28 @@ module Shmup
     # The pulse steps every four frames, so `(@safe >> 2) & 3` walks through the four
     # lists and round again; the ship's picture is the same picture throughout.
     def glow_while_safe
-      (@safe > 0).then do
-        @safe.sub! 1
+      if @safe > 0
+        @safe -= 1
         @ship.draw_with WARM, showing: (@safe >> 2) & 3
-      end.else do
+      else
         @ship.draw_with :own
       end
     end
 
     def fire_when_ready
-      (@shot_live == 0).then do
-        @build.pressed(:a).then do
+      if @shot_live == 0
+        if @build.pressed(:a)
           @shot.move_to @ship.x + NOSE, @ship.y - 6
           @shot.show
-          @shot_live.set! 1
+          @shot_live = 1
         end
       end
     end
 
     def fly_the_shot
-      (@shot_live == 1).then do
+      if @shot_live == 1
         @shot.move 0, -SHOT_SPEED # travel up
-        @shot.above_top?.then { reclaim_shot } # gone off the top: ready to fire again
+        reclaim_shot if @shot.above_top? # gone off the top: ready to fire again
       end
     end
   end

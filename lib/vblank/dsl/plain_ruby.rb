@@ -47,6 +47,16 @@ module VBlank
         Rewriter.new(File.binread(file), line).rewritten_block
       end
 
+      # A whole file of a game in normal Ruby, the file a game splits a part into, as source.
+      def rewritten_file(path)
+        source = File.binread(path)
+        root = Prism.parse(source).value
+        # What stands before the first line of code stays: the magic comment that freezes the
+        # file's strings is there, and so is every line the numbers after it count from.
+        opening = source.byteslice(0, root.location.start_offset).force_encoding(Encoding::UTF_8)
+        "#{opening}#{Rewriter.new(source).rewritten(root)}"
+      end
+
       # The block's source with its constructs written out as calls. It builds new text rather
       # than editing in place, since a trailing `if` is evaluated before what stands to its left.
       class Rewriter
@@ -55,17 +65,22 @@ module VBlank
         # The first block opening on +line+ of +source+.
         attr_reader :block_node
 
-        def initialize(source, line)
+        def initialize(source, line = nil)
           @source = source
-          @block_node = block_nodes(Prism.parse(source).value).find { |block| block.location.start_line == line }
-          raise ArgumentError, "No block starts on line #{line}, so this game cannot be read." unless @block_node
-
-          @names = LocalNames.new(@block_node)
           @answers = 0
           @open_tests = []
+          return unless line
+
+          @block_node = block_nodes(Prism.parse(source).value).find { |block| block.location.start_line == line }
+          raise ArgumentError, "No block starts on line #{line}, so this game cannot be read." unless @block_node
         end
 
-        def rewritten_block = text(@block_node)
+        def rewritten_block = rewritten(@block_node)
+
+        def rewritten(node)
+          @names = LocalNames.new(node)
+          text(node)
+        end
 
         private
 
@@ -89,6 +104,8 @@ module VBlank
           when Prism::CallNode then call_text(node)
           when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
           when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
+          when Prism::InstanceVariableWriteNode then instance_variable_write_text(node)
+          when Prism::InstanceVariableOperatorWriteNode then change_text(node)
           when Prism::IndexOperatorWriteNode then place_change_text(node, index_text(node))
           when Prism::CallOperatorWriteNode then place_change_text(node, "#{text(node.receiver)}.#{node.read_name}")
           when Prism::ReturnNode, Prism::BreakNode, Prism::NextNode then jump_text(node)
@@ -175,6 +192,12 @@ module VBlank
 
           recording = "(respond_to?(:recording_game_code?) && recording_game_code?)"
           "(#{STEPS}.refuse_lost_number!(:#{node.name}, #{recording}); #{written})"
+        end
+
+        # A part of a game keeps its variables in these, so one holding a game variable is changed.
+        def instance_variable_write_text(node)
+          prefix = between(node.location.start_offset, node.value.location.start_offset)
+          "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
         end
 
         def write_text(node)

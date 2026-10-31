@@ -134,16 +134,19 @@ module Dive
     # round again. One counter, shifted to slow it and masked to wrap it — no test per step,
     # and nothing to put back when it comes round.
     def shimmer
-      @shimmering.add! 1
+      @shimmering += 1
       @near.draw_with(SHIMMER, showing: (@shimmering >> SHIMMER_HELD) & (SHIMMER.length - 1))
     end
 
     # In and out, for ever: turn round at each end and ease toward the other one.
     def breathe
-      (@sun.scale >= BIGGEST).then { @swelling.set! 0 }
-      (@sun.scale <= SMALLEST).then { @swelling.set! 1 }
-      (@swelling == 1).then { @sun.scale.approach! BIGGEST, BREATH }
-                      .else { @sun.scale.approach! SMALLEST, BREATH }
+      @swelling = 0 if @sun.scale >= BIGGEST
+      @swelling = 1 if @sun.scale <= SMALLEST
+      if @swelling == 1
+        @sun.scale.approach! BIGGEST, BREATH
+      else
+        @sun.scale.approach! SMALLEST, BREATH
+      end
     end
 
     # The water's own colours, in the order the shimmer lists follow: a swap goes by PLACE,

@@ -53,11 +53,11 @@ module Dive
     # Breathing out, and breathing in at the surface. Neither one tidies the number up —
     # `update` below holds it inside the tank once, however many places spent from it.
     def spend(breaths)
-      @air.sub! breaths
+      @air -= breaths
     end
 
     def refill(breaths)
-      @air.add! breaths
+      @air += breaths
     end
 
     def empty? = @air == 0
@@ -65,7 +65,7 @@ module Dive
     # A fresh tank. The bars themselves come back one a frame, from `update` below, which
     # is why there is nothing to redraw here.
     def reset
-      @air.set! FULL
+      @air = FULL
     end
 
     # Move the picture one bar toward what the tank actually holds. One cell a frame is
@@ -74,12 +74,12 @@ module Dive
     def update
       @air.clamp! 0, FULL
       wanted = @air / PER_BAR
-      (wanted < @lit).then do
+      if wanted < @lit
         @panel.set_tile((COL - 1) + @lit, ROW, "-")
-        @lit.sub! 1
+        @lit -= 1
       end
-      (wanted > @lit).then do
-        @lit.add! 1
+      if wanted > @lit
+        @lit += 1
         @panel.set_tile((COL - 1) + @lit, ROW, "|")
       end
     end

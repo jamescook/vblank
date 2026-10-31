@@ -126,15 +126,15 @@ module Shmup
       # Taking fire is the same wherever the boss is, so it sits out here and is built once
       # rather than in each of the phases that can be shot at. No hits left means no boss:
       # none has arrived yet, or one is breaking up.
-      (@hits > 0).then { take_fire }
+      take_fire if @hits > 0
     end
 
     # Back to a fresh game: no boss, and a full wave to run before the next one.
     def reset
       @boss.hide
-      @phase.set! :away
-      @hits.set! 0
-      @due.set! WAVE
+      @phase = :away
+      @hits = 0
+      @due = WAVE
     end
 
     private
@@ -150,57 +150,63 @@ module Shmup
 
     # Nothing on screen: let the wave of enemies run, and enter when it is over.
     def wait_out_the_wave
-      @due.sub! 1
-      (@due <= 0).then do
+      @due -= 1
+      if @due <= 0
         @boss.move_to EDGE, -H
         @boss.face :left
-        @drift.set!(-SWEEP)
-        @hits.set! HITS
-        @flash.set! 0
-        @rammed.set! 0
+        @drift = -SWEEP
+        @hits = HITS
+        @flash = 0
+        @rammed = 0
         @boss.show
-        @phase.set! :arriving
+        @phase = :arriving
       end
     end
 
     # Down from above the screen until it settles on its row.
     def come_down
-      @boss.y.add! DIVE
-      (@boss.y >= TOP).then do
-        @fuse.set! FUSE
-        @phase.set! :sweeping
+      @boss.y += DIVE
+      if @boss.y >= TOP
+        @fuse = FUSE
+        @phase = :sweeping
       end
       glow_while_hurt
     end
 
     # Along the top, banking the way it goes, until the fuse runs out.
     def slide_along_the_top
-      @boss.x.add! @drift
-      (@boss.x <= 0).then { @drift.set! SWEEP; @boss.face :right }
-      (@boss.x >= EDGE).then { @drift.set!(-SWEEP); @boss.face :left }
-      @fuse.sub! 1
-      (@fuse <= 0).then { @phase.set! :diving }
+      @boss.x += @drift
+      if @boss.x <= 0
+        @drift = SWEEP
+        @boss.face :right
+      end
+      if @boss.x >= EDGE
+        @drift = -SWEEP
+        @boss.face :left
+      end
+      @fuse -= 1
+      @phase = :diving if @fuse <= 0
       glow_while_hurt
     end
 
     # Straight down the screen. Dodge sideways or lose a ship — and `overlaps?` reads the
     # boss's whole picture, so the left arm hits you as surely as the middle does.
     def drop_on_the_ship
-      @boss.y.add! DIVE
-      ((@rammed == 0) & @player.hittable & @player.ship.overlaps?(@boss)).then do
+      @boss.y += DIVE
+      if @rammed == 0 && @player.hittable && @player.ship.overlaps?(@boss)
         @hud.hit
         @player.hurt
-        @rammed.set! 1
+        @rammed = 1
       end
-      @boss.below_bottom?.then { climb_back }
+      climb_back if @boss.below_bottom?
       glow_while_hurt
     end
 
     # Out of the bottom of the screen and round to the top again.
     def climb_back
       @boss.move_to EDGE, -H
-      @rammed.set! 0
-      @phase.set! :arriving
+      @rammed = 0
+      @phase = :arriving
     end
 
     # The last shot landed: flicker out, pay the bonus, and start the next wave of enemies.
@@ -208,27 +214,31 @@ module Shmup
     # than a corner of it.
     def break_up
       glow_while_hurt
-      ((@flash % 8) < 4).then { @boss.show }.else { @boss.hide }
-      (@flash <= 0).then do
+      if (@flash % 8) < 4
+        @boss.show
+      else
+        @boss.hide
+      end
+      if @flash <= 0
         @boss.hide
         @hud.bonus BONUS
-        @due.set! WAVE
-        @phase.set! :away
+        @due = WAVE
+        @phase = :away
       end
     end
 
     # A shot that lands scores, frees the shot, and knocks a hit off. The last one starts
     # the break-up instead.
     def take_fire
-      (@player.shot_live == 1).then do
-        @player.shot.overlaps?(@boss).then do
+      if @player.shot_live == 1
+        if @player.shot.overlaps?(@boss)
           @hud.score_up
           @player.reclaim_shot
-          @hits.sub! 1
-          @flash.set! HURT
-          (@hits <= 0).then do
-            @flash.set! DEATH
-            @phase.set! :dying
+          @hits -= 1
+          @flash = HURT
+          if @hits <= 0
+            @flash = DEATH
+            @phase = :dying
           end
         end
       end
@@ -238,10 +248,10 @@ module Shmup
     # steps every other frame, and like hiding and showing, the colours reach every part of
     # the picture at once.
     def glow_while_hurt
-      (@flash > 0).then do
-        @flash.sub! 1
+      if @flash > 0
+        @flash -= 1
         @boss.draw_with WARM, showing: (@flash >> 1) & 3
-      end.else do
+      else
         @boss.draw_with :own
       end
     end

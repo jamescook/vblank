@@ -105,7 +105,7 @@ module Dive
     # Put the scenery where this depth says. Every layer is told where to be rather than
     # nudged along, so none of them can drift out of step with the number they follow.
     def follow(depth)
-      @current.add! DRIFT
+      @current += DRIFT
       @cliff.scroll_to 0, depth / 2
       @reef.scroll_to 0, depth
       @water.scroll_to @current, depth

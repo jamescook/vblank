@@ -25,10 +25,10 @@
 #   ruby examples/shmup.rb
 
 require_relative "../lib/vblank"
-require_relative "shmup/player"
-require_relative "shmup/enemies"
-require_relative "shmup/boss"
-require_relative "shmup/hud"
+VBlank.require_game_file "shmup/player"
+VBlank.require_game_file "shmup/enemies"
+VBlank.require_game_file "shmup/boss"
+VBlank.require_game_file "shmup/hud"
 
 module Shmup
   PLAYING = 0

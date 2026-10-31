@@ -67,13 +67,17 @@ module Dive
     # fish coming back round from below arrives under it rather than in the sky.
     def update(sank, surface)
       @fish.each do |fish|
-        fish.x.add! fish.speed
-        fish.y.sub! sank
-        (fish.speed > 0).then { fish.face :right }.else { fish.face :left }
-        (fish.x > SCREEN_W).then { fish.x.set!(-SIZE) }
-        (fish.x < -SIZE).then { fish.x.set! SCREEN_W }
-        (fish.y > SCREEN_H).then { fish.y.set! surface } # you came up past this one
-        (fish.y < -SIZE).then { fish.y.set! SCREEN_H }   # you went down past it
+        fish.x += fish.speed
+        fish.y -= sank
+        if fish.speed > 0
+          fish.face :right
+        else
+          fish.face :left
+        end
+        fish.x = -SIZE if fish.x > SCREEN_W
+        fish.x = SCREEN_W if fish.x < -SIZE
+        fish.y = surface if fish.y > SCREEN_H # you came up past this one
+        fish.y = SCREEN_H if fish.y < -SIZE   # you went down past it
         fish.draw_with SPECIES, showing: fish.kind
       end
     end

@@ -80,16 +80,20 @@ module Shmup
 
     def update(player, hud)
       @enemies.each do |enemy|
-        enemy.y.add! SPEED                           # drift down
+        enemy.y += SPEED                           # drift down
         # Turn to face the ship it is diving at. `face` is the same verb a single sprite
         # takes, and each instance holds its own direction — so this one test, written
         # once, leaves three enemies leaning three different ways in the same frame.
-        (enemy.x < player.ship.x).then { enemy.face :right }.else { enemy.face :left }
-        enemy.below_bottom?.then { respawn enemy }   # off the bottom: come round again
+        if enemy.x < player.ship.x
+          enemy.face :right
+        else
+          enemy.face :left
+        end
+        respawn enemy if enemy.below_bottom?   # off the bottom: come round again
 
         # A live shot that lands: score it, take the shot out of play, send this one back.
-        (player.shot_live == 1).then do
-          player.shot.overlaps?(enemy).then do
+        if player.shot_live == 1
+          if player.shot.overlaps?(enemy)
             hud.score_up
             player.reclaim_shot
             respawn enemy
@@ -98,7 +102,7 @@ module Shmup
 
         # Touched the ship: cost a life, send this one back. A ship just lost cannot be hit
         # for a moment, so an enemy flies straight through it then.
-        (player.hittable & player.ship.overlaps?(enemy)).then do
+        if player.hittable && player.ship.overlaps?(enemy)
           hud.hit
           player.hurt
           respawn enemy
@@ -115,8 +119,8 @@ module Shmup
     private
 
     def respawn(enemy)
-      enemy.x.set! @build.rand(0..(240 - SIZE)) # a fresh column, back at the top
-      enemy.y.set! 0
+      enemy.x = @build.rand(0..(240 - SIZE)) # a fresh column, back at the top
+      enemy.y = 0
     end
   end
 end
