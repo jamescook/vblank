@@ -16,7 +16,6 @@ Integer is a literal, a `Value` (from `var`) is an expression. Handles (`Value`,
 
 **Mistakes that raise nothing** (each in full in its group file):
 
-- In a pack's module, outside the game block, `flags |= 4` changes only the Ruby name; write `flags.set! flags | 4`. (effects)
 - A fraction divide that saturates, then has something added, wraps negative; floor the divisor (`d.clamp(NEAR, FAR)`). (variables)
 - A `:byte`/`:half` slot keeps the low bits: 200 in a `:byte` reads -56. (lists)
 - `pressed` inside `once_a_frame` fires once per caught-up frame; test presses in the loop. (control-flow)
