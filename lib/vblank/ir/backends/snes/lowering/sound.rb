@@ -72,8 +72,7 @@ module VBlank
             # The section of the game's songs (SNES::Music), each note's sound-log entries numbered
             # among the rest.
             def music_section
-              words = @music.words(sound_voicing, recording_row: method(:recorded_note_row),
-                                                  shape_of: ->(name) { Assets::Sample.of(declared_sample(name)).envelope }) do |entry|
+              words = @music.words(sound_voicing, recording_row: method(:recorded_note_row)) do |entry|
                 sound_entry_number(entry)
               end
               @music.section(words)
@@ -85,9 +84,10 @@ module VBlank
 
             # THE ROW A NOTE OF A RECORDED PART PLAYS (Reference::Mixer#start_music_note): recording +name+
             # read at +frequency+, from its start, back to where it holds from at its end (or played
-            # once, for one that does not hold), at its written +volume+ as a mixer voice's loudness.
+            # once, for one that does not hold), at its written +volume+ as a mixer voice's loudness,
+            # shaped by +envelope+ (the note's or its part's), or by the recording's own when it has none.
             # Nothing is logged as it comes round. Its number in "recording_plays".
-            def recorded_note_row(name, frequency, volume)
+            def recorded_note_row(name, frequency, volume, envelope = nil)
               declared = declared_sample(name)
               info = Assets::Sample.of(declared)
               clock = Console::SUPER_NINTENDO.sample_clock(declared.rate)
@@ -100,7 +100,7 @@ module VBlank
                 pitch: [step / RECORDING_STEP_TO_PITCH, 1].max,
                 volume: (IR::Tunes.mix_loudness(volume) * DSPWrites::MAIN_VOLUME / IR::Tunes::MIX_FULL.to_f).round,
                 length: info.length, back: back, advance: step * clock.samples_a_frame,
-                logged: Runtime::Recordings::NOT_LOGGED, name: @samples.keys.index(name)
+                logged: Runtime::Recordings::NOT_LOGGED, name: @samples.keys.index(name), shape: shape_of(envelope || info.envelope)
               )
               @plays << row unless @plays.include?(row)
               @plays.index(row)
@@ -128,7 +128,6 @@ module VBlank
             # and the runtime handed its number.
             def emit_play_sample(node)
               declared = @samples.fetch(node.name) { raise LoweringError, "the sample #{node.name.inspect} is not declared" }
-              refuse_shaped_sample!(declared)
               info = Assets::Sample.of(declared)
               clock = Console::SUPER_NINTENDO.sample_clock(declared.rate)
               frequency = VBlank::Audio::Music::NOTE_FREQUENCIES.fetch(node.pitch || info.note || :C4)
@@ -142,7 +141,8 @@ module VBlank
                 pitch: [step / RECORDING_STEP_TO_PITCH, 1].max,
                 volume: (loudness * DSPWrites::MAIN_VOLUME / VBlank::Audio::Sound::MIX_LEVELS[:full].to_f).round,
                 length: info.length, back: back, advance: step * clock.samples_a_frame,
-                logged: sound_entry_number([:sample, node.name]), name: @samples.keys.index(node.name)
+                logged: sound_entry_number([:sample, node.name]), name: @samples.keys.index(node.name),
+                shape: shape_of(info.envelope)
               )
               @plays << row unless @plays.include?(row)
               runtime_call("rt_recordings_play", [Build.int(@plays.index(row))])
@@ -154,15 +154,9 @@ module VBlank
               runtime_call("rt_recordings_stop", [Build.int(name), Build.int(sound_entry_number([:stop_sample]))])
             end
 
-            # A recording with a shape of its own (an envelope) climbs and falls by the interpreter's
-            # mix, which the Super Nintendo build does not keep yet.
-            def refuse_shaped_sample!(declared)
-              return unless declared.envelope
-
-              raise NotMadeYet.new("The sample #{declared.name.inspect} has an envelope. The Super Nintendo build does " \
-                                   "not make that yet. To fix this, build the game for the Game Boy Advance alone for " \
-                                   "now (`consoles: %i[gba]`).", part: "the sound")
-            end
+            # The loudness shape a play climbs and falls by (Reference::Mixer#recording_fields): the
+            # envelope it was given, unless that envelope is plain and sounds flat out like none.
+            def shape_of(envelope) = (envelope unless envelope.nil? || envelope.plain?)
 
             # A play the sound unit cannot keep with the interpreter's count: one read more than four
             # times as fast as the DSP plays (fullsnes: the pitch register reads at most $3FFF), and

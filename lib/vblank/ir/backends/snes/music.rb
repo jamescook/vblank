@@ -191,10 +191,9 @@ module VBlank
           # The table, as words. +voicing+ is the game's (DSPWrites::Voicing), and the block gives
           # the number the cartridge's sound log keeps an entry as. +recording_row+ gives the row of
           # "recording_plays" a recorded part's note plays (Lowering::Sound#recorded_note_row), for
-          # its recording, its pitch and its volume as written.
-          def words(voicing, recording_row: nil, shape_of: nil, &number_of)
+          # its recording, its pitch, its volume as written and its shape (the note's or the part's).
+          def words(voicing, recording_row: nil, &number_of)
             @recording_row = recording_row
-            @shapes_of = shape_of
             @songs.each { |song| refuse_parts!(song) }
             @groups = [] # every group's commands, each once, in the order first met
             # A tune stopping logs its own stop (Music.stop_entry); the voices it lets go of are worked
@@ -361,10 +360,10 @@ module VBlank
           # voice of the console's own; its row of "recording_plays" (#recording_row, one up), nought
           # for a rest.
           def recorded_note_layout(song, part, event, &number_of)
-            frame, frequency, instrument, volume = event
+            frame, frequency, instrument, volume, envelope = event
             volume ||= part.volume
             head = keep_group([[GROUP_LOG, number_of.call([:note, song.name, frequency]), 0]])
-            row = frequency.zero? ? 0 : @recording_row.call(instrument || part.instrument, frequency, volume) + 1
+            row = frequency.zero? ? 0 : @recording_row.call(instrument || part.instrument, frequency, volume, envelope || part.envelope) + 1
             [frame, head, keep_group([]), frequency.zero? ? 0 : volume, frequency.positive?, row]
           end
 
@@ -463,15 +462,13 @@ module VBlank
           end
 
           # A PART THAT PLAYS A RECORDING, where the build does not make it yet: in a sound effect, in a
-          # game that sets its music volume, with a shape (an envelope: the note's, the part's or the
-          # recording's), or more of them in a song than recordings sound at once.
+          # game that sets its music volume, or more of them in a song than recordings sound at once.
           def refuse_unmade_recorded_parts!(song)
             recorded = song.voices.select { |part| IR::Tunes.part_kind(part) == :recorded }
             return if recorded.empty?
 
             unmade = if @effect_names.include?(song.name) then "a sound effect part that plays a recording"
                      elsif follows_level? then "a part that plays a recording in a game that sets its music volume"
-                     elsif recorded.any? { |part| shaped?(part) } then "a part that plays a recording with an envelope"
                      elsif recorded.size > RECORDED_PARTS then "more than #{RECORDED_PARTS} parts that play recordings"
                      end
             return unless unmade
@@ -480,14 +477,6 @@ module VBlank
               "The song #{song.name.inspect} has #{unmade}. The Super Nintendo build does not make that yet. To fix " \
               "this, build the game for the Game Boy Advance alone for now (`consoles: %i[gba]`).", part: "the sound"
             )
-          end
-
-          # Whether a recorded part's notes have a shape: one a note or the part says, or one the
-          # recording was declared with (Reference::Mixer#recording_fields).
-          def shaped?(part)
-            shapes = part.events.filter_map { |event| event[4] } + [part.envelope] +
-                     part.events.map { |event| @shapes_of.call(event[2] || part.instrument) }
-            shapes.compact.any? { |shape| !shape.plain? }
           end
 
           # A NOTE THAT CHANGES AS IT PLAYS — fading out or swelling in, sliding or wobbling its

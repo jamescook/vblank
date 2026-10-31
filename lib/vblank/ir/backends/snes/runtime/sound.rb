@@ -224,6 +224,7 @@ module VBlank
                 asm.label("rt_sound_frame_tick")
                 asm.jsr(asm.abs("rt_recordings_frame")) if samples
                 asm.jsr(asm.abs("rt_music_frame")) if songs
+                asm.jsr(asm.abs("rt_recordings_shapes")) if samples # every note's shape, after the music
                 asm.dec(asm.abs(memory[TICKS_LEFT]))
                 asm.bne("rt_sound_frame_tick")
               end

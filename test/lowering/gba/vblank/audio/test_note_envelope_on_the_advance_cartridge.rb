@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "console/gba/vblank/audio/test_note_envelope_on_the_advance"
+require "note_envelope_tests"
 
 # THE VOICES A FALLING NOTE HOLDS ON THE ADVANCE'S CARTRIDGE, read in the emulator. What every run
 # of an Advance game has sounding is in
 # test/console/gba/vblank/audio/test_note_envelope_on_the_advance.rb.
 class TestNoteEnvelopeOnTheAdvanceCartridge < Minitest::Test
   include EmulatorSupport
-  include NoteEnvelopeAdvanceGames
+  include NoteEnvelopeVoiceGames
 
   # What the Advance's cartridge has sounding +frames+ in, and what it could not play, given two
   # frames more to get there.

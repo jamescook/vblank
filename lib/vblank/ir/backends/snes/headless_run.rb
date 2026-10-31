@@ -91,7 +91,20 @@ module VBlank
           # The recordings sounding as the run ended, in the order of their places, as the
           # interpreter says them (Reference#active_samples): the cartridge's own count
           # (Runtime::Recordings), heard or not.
-          def active_samples = @active_samples || []
+          def active_samples = (@sounding || []).map(&:first)
+
+          # How far through its shape the first place sounding recording +name+ is, out of
+          # Audio::Envelope::FULL, at the same moment as #active_samples (Reference#level_of): FULL
+          # for one with no shape. Nil when none sounds it.
+          def level_of(name) = (@sounding || []).find { |sounding, _| sounding == name }&.last
+
+          # The plays and notes that found every place busy, and the most places songs held at one of
+          # those moments (Reference#sound_drops), as the cartridge had counted them at the moment the
+          # run ended or a watching block asks at.
+          def sound_drops
+            dropped, held = @drops || [0, 0]
+            Diagnostics::SoundDrops::Reading.new(dropped: dropped, music_held: held, voices: Runtime::Recordings::PLACES)
+          end
 
           # The sound unit's 64K of memory as the run ended — its program, the sample table and the
           # recordings — for a test to read a recording the DSP plays. Nil for a game with no sound.
@@ -147,7 +160,8 @@ module VBlank
             @audio_handed = 0
             @dsp_reads = []
             @apu_ram = nil
-            @active_samples = nil
+            @sounding = nil
+            @drops = nil
             @loudest_each_frame = []
             @black_each_frame = []
             @picture_each_frame = []
@@ -212,9 +226,11 @@ module VBlank
             @sounds = frame == :end || !sound? ? sounds : logged_by_pass(frame)
             read_sound_entries(@sounds) if sound?
             @apu_ram = @core.apu_ram if frame == :end && sound?
-            @active_samples = recordings_at(frame)
+            @sounding = recordings_at(frame)
+            @drops = drops_now
             @moments << Moment.new(frame: frame, variables: variables, picture: HeadlessRun.moment_picture(picture.shown, @near),
-                                   sounds: @sounds, sprites: @sprites, collections: game_state.except(:vars), sounding: @active_samples)
+                                   sounds: @sounds, sprites: @sprites, collections: game_state.except(:vars),
+                                   sounding: active_samples.map { |name| [name, level_of(name)] })
             @on_vblank&.call(frame) unless frame == :end
           end
 
@@ -232,22 +248,36 @@ module VBlank
 
           def sound? = @places.runtime.key?(Runtime::Sound::LOGGED)
 
-          # The recordings the cartridge's places held at the moment of +frame+, by name, in the order
-          # of their places: as the pass's wait ended (Runtime::Recordings::KEPT_BY_PASS), the
-          # interpreter's mix at that frame boundary, or as they are now for the moment the run ended.
-          # None for a game that plays none.
+          # The recordings the cartridge's places held at the moment of +frame+, each [name, level], in
+          # the order of their places: as the pass's wait ended (Runtime::Recordings::KEPT_BY_PASS and
+          # LEVELS_BY_PASS), the interpreter's mix at that frame boundary, or as they are now for the
+          # moment the run ended. None for a game that plays none.
           def recordings_at(frame)
             recordings = Runtime::Recordings
             return [] unless @places.runtime.key?(recordings::PLACES_STATE)
 
             held = if frame == :end
                      state = runtime_place(recordings::PLACES_STATE)
-                     Array.new(recordings::PLACES) { |place| half(state + (place * recordings::PLACE_BYTES)) }
+                     Array.new(recordings::PLACES) do |place|
+                       at = state + (place * recordings::PLACE_BYTES)
+                       [half(at), half(at + recordings::LEVEL)]
+                     end
                    else
-                     kept = runtime_place(recordings::KEPT_BY_PASS) + ((frame % Runtime::Frame::STEPS_KEPT) * recordings::PLACES)
-                     Array.new(recordings::PLACES) { |place| byte(kept + place) }
+                     slot = (frame % Runtime::Frame::STEPS_KEPT) * recordings::PLACES
+                     names = runtime_place(recordings::KEPT_BY_PASS) + slot
+                     levels = runtime_place(recordings::LEVELS_BY_PASS) + slot
+                     Array.new(recordings::PLACES) { |place| [byte(names + place), byte(levels + place)] }
                    end
-            held.reject(&:zero?).map { |number| @places.recording_names.fetch(number - 1) }
+            held.reject { |number, _| number.zero? }.map { |number, level| [@places.recording_names.fetch(number - 1), level] }
+          end
+
+          # The cartridge's count of drops now (Runtime::Recordings::DROPS and DROPS_MUSIC); none for a
+          # game that plays no recording.
+          def drops_now
+            recordings = Runtime::Recordings
+            return [0, 0] unless @places.runtime.key?(recordings::DROPS)
+
+            [half(runtime_place(recordings::DROPS)), half(runtime_place(recordings::DROPS_MUSIC))]
           end
 
           # How many entries the sound log held as pass +pass+'s wait ended.

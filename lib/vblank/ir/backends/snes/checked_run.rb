@@ -116,8 +116,13 @@ module VBlank
           def moment_of(interpreter, frame, width, height)
             Moment.new(frame: frame, variables: interpreter.vars.dup, picture: picture_check(interpreter.screen, width, height),
                        sounds: interpreter.audio.size, sprites: interpreter.sprites,
-                       collections: interpreter.game_state.except(:vars), sounding: interpreter.active_samples.dup)
+                       collections: interpreter.game_state.except(:vars), sounding: sounding_levels(interpreter))
           end
+
+          # The recordings sounding, each with how far through its shape the first place sounding it
+          # is, as the cartridge's moments keep them (HeadlessRun#record_moment), so a shape that climbs or
+          # falls a step apart from the interpreter's is found on the pass it happens.
+          def sounding_levels(run) = run.active_samples.map { |name| [name, run.level_of(name)] }
 
           # THE SOUND UNIT ITSELF, held to the sound log: the first time the game was found waiting with
           # a register of the S-DSP holding something other than what the interpreter's log says it

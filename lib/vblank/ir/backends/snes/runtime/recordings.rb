@@ -46,6 +46,11 @@ module VBlank
             ADVANCE_FRACTION = 18
             LOGGED = 20
             NAME = 22
+            # ...and its shape (Audio::Envelope): its attack and decay, its sustain and release, a byte
+            # each, two to a word; and 1 when it has one.
+            SHAPE_AD = 24
+            SHAPE_SR = 26
+            SHAPED = 28
             ROW_BYTES = 32
 
             # A place's state, PLACE_BYTES apart: which recording (its number plus one, nought when the
@@ -67,13 +72,33 @@ module VBlank
             OWNER = 24
             RANK = 26
             TICKET = 28
-            PLACE_BYTES = 32
+            # ...and its SHAPE (Reference::Mixer#step_envelopes): the row's two words of it, its level
+            # (out of Audio::Envelope::FULL), which part of the shape it is in (PLAIN for a note with
+            # none), and its volume as the row says it, which the level scales.
+            PLACE_AD = 32
+            PLACE_SR = 34
+            LEVEL = 36
+            PHASE = 38
+            LOUD = 40
+            PLACE_BYTES = 64
             LOOPS = 0x8000
+            PLAIN = 0
+            CLIMBING = 1
+            HOLDING = 2
+            FALLING = 3
+            DONE = 4 # fallen to nothing: the place comes free on the frame after
+            FULL = Audio::Envelope::FULL
             # A row's LOGGED for a note of a song: nothing is logged as it comes round again.
             NOT_LOGGED = 0xFFFF
             # ...and, for each of the last Frame::STEPS_KEPT passes, by the pass's number less its
-            # multiples of STEPS_KEPT, each place's recording as its wait ended: a byte a place.
+            # multiples of STEPS_KEPT, each place's recording as its wait ended: a byte a place; and its
+            # level beside, in a table of its own.
             KEPT_BY_PASS = "rt recordings kept by pass"
+            LEVELS_BY_PASS = "rt recordings levels by pass"
+            # WHAT COULD NOT BE PLAYED (Reference::Mixer#drops): how many plays and notes found every
+            # place busy, and the most places songs held at one of those moments.
+            DROPS = "rt recordings drops"
+            DROPS_MUSIC = "rt recordings drops music"
 
             # Where the row being played is, the place it takes, that place's voice's first register,
             # and which recording a stop names (or ALL) and its entry in the log.
@@ -97,21 +122,28 @@ module VBlank
             # A play's row of "recording_plays", as words: its voice's +source+, +pitch+ and +volume+;
             # the recording's +length+ and the +back+ it reads at its end (32 bits each); the +advance+
             # a frame, in samples and 65536ths (48 bits, of which the whole samples take 32); the
-            # number of its +logged+ entry; and the +name+'s number.
-            def row(source:, pitch:, volume:, length:, back:, advance:, logged:, name:)
+            # number of its +logged+ entry; the +name+'s number; and its +shape+ (an Audio::Envelope), or
+            # nil for a note that sounds flat out from its first sample to its last.
+            def row(source:, pitch:, volume:, length:, back:, advance:, logged:, name:, shape: nil)
               words = Array.new(ROW_BYTES / 2, 0)
               { SOURCE => source, PITCH => pitch, VOLUME => volume, LENGTH => length & 0xFFFF, LENGTH + 2 => length >> 16,
                 BACK => back & 0xFFFF, BACK + 2 => back >> 16, ADVANCE => (advance >> 16) & 0xFFFF,
                 ADVANCE + 2 => advance >> 32, ADVANCE_FRACTION => advance & 0xFFFF, LOGGED => logged,
                 NAME => name }.each { |at, value| words[at / 2] = value }
+              if shape
+                words[SHAPE_AD / 2] = shape.attack | (shape.decay << 8)
+                words[SHAPE_SR / 2] = shape.sustain | (shape.release << 8)
+                words[SHAPED / 2] = 1
+              end
               words
             end
 
             def reserve(memory)
               [ROW, PLACE, REGISTERS, STOP_NAME, STOP_LOGGED, TICKETS, NOTE_OWNER, NOTE_RANK, BEST, BEST_RANK,
-               BEST_TICKET].each { |name| memory.reserve(name, 2) }
+               BEST_TICKET, DROPS, DROPS_MUSIC].each { |name| memory.reserve(name, 2) }
               memory.reserve(PLACES_STATE, PLACES * PLACE_BYTES)
               memory.reserve(KEPT_BY_PASS, Frame::STEPS_KEPT * PLACES)
+              memory.reserve(LEVELS_BY_PASS, Frame::STEPS_KEPT * PLACES)
             end
 
             def emit(asm, memory)
@@ -122,6 +154,7 @@ module VBlank
               emit_stop(asm, at, memory)
               emit_frame(asm, at, memory)
               emit_kept_for_pass(asm, memory)
+              emit_shapes(asm, at, memory)
             end
 
             # rt_recordings_kept_for_pass: which recording each place holds (its byte of HELD) copied
@@ -137,6 +170,8 @@ module VBlank
               PLACES.times do |place|
                 asm.lda(asm.abs(memory[PLACES_STATE], (place * PLACE_BYTES) + HELD))
                 asm.sta(asm.abs_x(memory[KEPT_BY_PASS], place))
+                asm.lda(asm.abs(memory[PLACES_STATE], (place * PLACE_BYTES) + LEVEL))
+                asm.sta(asm.abs_x(memory[LEVELS_BY_PASS], place))
               end
               asm.rep(0x20)
               asm.rts
@@ -166,7 +201,9 @@ module VBlank
               asm.tay
               asm.cpy(PLACES * PLACE_BYTES)
               asm.bcc("rt_recordings_play_find")
-              asm.rtl # every place busy: dropped, as the mixer drops it
+              asm.jsr(asm.abs("rt_recordings_quietest")) # none free: the quietest note falling away
+              asm.bcc("rt_recordings_play_found")
+              asm.jmp(asm.abs("rt_recordings_drop")) # every place busy: dropped, as the mixer drops it
               asm.label("rt_recordings_play_found")
               asm.lda(0) # the game's own, below every song, with the next ticket
               asm.sta(place.call(OWNER))
@@ -195,10 +232,25 @@ module VBlank
               [POSITION, POSITION + 2, FRACTION].each { |field| asm.sta(place.call(field)) }
               { LENGTH => PLACE_LENGTH, LENGTH + 2 => PLACE_LENGTH + 2, BACK => PLACE_BACK, BACK + 2 => PLACE_BACK + 2,
                 ADVANCE => PLACE_ADVANCE, ADVANCE + 2 => PLACE_ADVANCE + 2, ADVANCE_FRACTION => PLACE_ADVANCE_FRACTION,
-                LOGGED => PLACE_LOGGED }.each do |from, to|
+                LOGGED => PLACE_LOGGED, SHAPE_AD => PLACE_AD, SHAPE_SR => PLACE_SR, VOLUME => LOUD }.each do |from, to|
                 asm.lda(row.call(from))
                 asm.sta(place.call(to))
               end
+              # Its shape: one with none sounds at full from its first sample; one with a shape starts at
+              # nothing and climbs (Reference::Mixer#recording_fields).
+              asm.lda(row.call(SHAPED))
+              asm.beq("rt_recordings_take_plain")
+              asm.lda(0)
+              asm.sta(place.call(LEVEL))
+              asm.lda(CLIMBING)
+              asm.sta(place.call(PHASE))
+              asm.bra("rt_recordings_take_shaped")
+              asm.label("rt_recordings_take_plain")
+              asm.lda(FULL)
+              asm.sta(place.call(LEVEL))
+              asm.lda(PLAIN)
+              asm.sta(place.call(PHASE))
+              asm.label("rt_recordings_take_shaped")
               # Its voice, for one of the first four places: the voice's registers, and key-on last.
               asm.lda(at.call(PLACE))
               asm.cmp(VOICES_HEARD * PLACE_BYTES)
@@ -208,8 +260,8 @@ module VBlank
               asm.label("rt_recordings_play_heard")
               emit_registers(asm, at)
               dsp = DSPWrites
-              { dsp::VOLUME_LEFT => VOLUME, dsp::VOLUME_RIGHT => VOLUME, dsp::PITCH_LOW => PITCH,
-                dsp::SOURCE => SOURCE }.each do |register, field|
+              asm.jsr(asm.abs("rt_recordings_volume")) # the volume its level scales it to
+              { dsp::PITCH_LOW => PITCH, dsp::SOURCE => SOURCE }.each do |register, field|
                 emit_voice_write(asm, at, register) do
                   asm.ldx(at.call(ROW))
                   asm.lda(row.call(field))
@@ -250,20 +302,24 @@ module VBlank
               asm.sta(at.call(NOTE_OWNER))
               asm.lda(asm.direct(Sound::R2))
               asm.sta(at.call(NOTE_RANK))
-              # The part's own place, still sounding its note.
-              each_place(asm, "rt_recordings_note_own") do |next_place|
-                asm.lda(place.call(HELD))
-                asm.beq(next_place)
-                asm.lda(place.call(OWNER))
-                asm.cmp(at.call(NOTE_OWNER))
-                asm.branch_long(:beq, "rt_recordings_note_found")
-              end
+              # The part's own place, still sounding its note — unless that note has a shape: then it
+              # is told to fall away there, and this note takes another place.
+              asm.jsr(asm.abs("rt_recordings_sounding"))
+              asm.bcs("rt_recordings_note_elsewhere")
+              asm.lda(place.call(PHASE))
+              asm.branch_long(:beq, "rt_recordings_note_found") # a plain note: taken over
+              asm.lda(FALLING)
+              asm.sta(place.call(PHASE))
               # The first free place.
+              asm.label("rt_recordings_note_elsewhere")
               each_place(asm, "rt_recordings_note_free") do |next_place|
                 asm.lda(place.call(HELD))
                 asm.branch_long(:beq, "rt_recordings_note_found")
                 asm.bra(next_place)
               end
+              # The quietest note falling away.
+              asm.jsr(asm.abs("rt_recordings_quietest"))
+              asm.branch_long(:bcc, "rt_recordings_note_found")
               # The lowest-ranked place below the note's rank: BEST is the place offset one up, nought
               # while none is found.
               asm.stz(at.call(BEST))
@@ -290,7 +346,7 @@ module VBlank
               end
               asm.lda(at.call(BEST))
               asm.bne("rt_recordings_note_lowest")
-              asm.rtl # none: the note is not played, and A is nought
+              asm.jmp(asm.abs("rt_recordings_drop")) # none: the note is not played, and A is nought
               asm.label("rt_recordings_note_lowest")
               asm.dec
               asm.tay
@@ -313,14 +369,10 @@ module VBlank
               asm.label("rt_recordings_note_release")
               asm.lda(asm.direct(Sound::R0))
               asm.sta(at.call(NOTE_OWNER))
-              each_place(asm, "rt_recordings_note_release") do |next_place|
-                asm.lda(place.call(HELD))
-                asm.beq(next_place)
-                asm.lda(place.call(OWNER))
-                asm.cmp(at.call(NOTE_OWNER))
-                asm.bne(next_place)
-                asm.jsr(asm.abs("rt_recordings_free"))
-              end
+              asm.jsr(asm.abs("rt_recordings_sounding"))
+              asm.bcs("rt_recordings_note_release_none")
+              asm.jsr(asm.abs("rt_recordings_end_note"))
+              asm.label("rt_recordings_note_release_none")
               asm.rtl
 
               asm.label("rt_recordings_release_music")
@@ -329,8 +381,94 @@ module VBlank
                 asm.beq(next_place)
                 asm.lda(place.call(OWNER))
                 asm.beq(next_place) # the game's own
-                asm.jsr(asm.abs("rt_recordings_free"))
+                asm.lda(place.call(PHASE))
+                asm.cmp(FALLING)
+                asm.bcs(next_place) # falling already: it carries on as it was
+                asm.jsr(asm.abs("rt_recordings_end_note"))
               end
+              asm.rtl
+
+              # rt_recordings_end_note: the note in the place Y holds has ended — one with a shape falls
+              # away there, one without stops. Keeps Y.
+              asm.label("rt_recordings_end_note")
+              asm.lda(place.call(PHASE))
+              asm.branch_long(:beq, "rt_recordings_free")
+              asm.lda(FALLING)
+              asm.sta(place.call(PHASE))
+              asm.rts
+
+              # rt_recordings_sounding: Y = the place NOTE_OWNER's part sounds a note in now — held, its
+              # own, and not falling away — with carry clear; carry set when it has none.
+              asm.label("rt_recordings_sounding")
+              each_place(asm, "rt_recordings_sounding") do |next_place|
+                asm.lda(place.call(HELD))
+                asm.beq(next_place)
+                asm.lda(place.call(OWNER))
+                asm.cmp(at.call(NOTE_OWNER))
+                asm.bne(next_place)
+                asm.lda(place.call(PHASE))
+                asm.cmp(FALLING)
+                asm.bcs(next_place)
+                asm.clc
+                asm.rts
+              end
+              asm.sec
+              asm.rts
+
+              # rt_recordings_quietest: Y = the place of the quietest song's note falling away, the first
+              # of two as quiet, with carry clear; carry set when no note is falling away
+              # (Reference::Mixer#quietest_releasing_slot).
+              asm.label("rt_recordings_quietest")
+              asm.stz(at.call(BEST))
+              each_place(asm, "rt_recordings_quietest") do |next_place|
+                asm.lda(place.call(HELD))
+                asm.beq(next_place)
+                asm.lda(place.call(OWNER))
+                asm.beq(next_place)
+                asm.lda(place.call(PHASE))
+                asm.cmp(FALLING)
+                asm.bcc(next_place)
+                asm.lda(at.call(BEST))
+                asm.beq("rt_recordings_quietest_best")
+                asm.lda(place.call(LEVEL))
+                asm.cmp(at.call(BEST_RANK))
+                asm.bcs(next_place)
+                asm.label("rt_recordings_quietest_best")
+                asm.lda(place.call(LEVEL))
+                asm.sta(at.call(BEST_RANK))
+                asm.tya
+                asm.inc
+                asm.sta(at.call(BEST))
+              end
+              asm.lda(at.call(BEST))
+              asm.bne("rt_recordings_quietest_found")
+              asm.sec
+              asm.rts
+              asm.label("rt_recordings_quietest_found")
+              asm.dec
+              asm.tay
+              asm.clc
+              asm.rts
+
+              # rt_recordings_drop: a play or a note found no place (Reference::Mixer#record_drop):
+              # counted, with the most places songs held at such a moment. A = nought, and back to the
+              # caller's caller.
+              asm.label("rt_recordings_drop")
+              asm.inc(at.call(DROPS))
+              asm.stz(at.call(BEST))
+              each_place(asm, "rt_recordings_drop") do |next_place|
+                asm.lda(place.call(HELD))
+                asm.beq(next_place)
+                asm.lda(place.call(OWNER))
+                asm.beq(next_place)
+                asm.inc(at.call(BEST))
+              end
+              asm.lda(at.call(BEST))
+              asm.cmp(at.call(DROPS_MUSIC))
+              asm.bcc("rt_recordings_drop_done")
+              asm.sta(at.call(DROPS_MUSIC))
+              asm.label("rt_recordings_drop_done")
+              asm.lda(0)
               asm.rtl
 
               # rt_recordings_free: the place Y holds freed, and its voice let go if it is heard. Keeps Y.
@@ -347,6 +485,113 @@ module VBlank
               asm.jsl(asm.long("rt_sound_key_off_bits"))
               asm.ply
               asm.label("rt_recordings_free_done")
+              asm.rts
+            end
+
+            # rt_recordings_shapes: one frame of every place's shape (Reference::Mixer#step_envelopes,
+            # by Audio::Envelope#step's rule), after the frame's music: a place done falling comes free;
+            # one climbing climbs by its attack to full, and then holds; one holding falls by its decay
+            # to its sustain; one falling falls by its release, and once at nothing is done. A heard
+            # place's voice is told its new volume.
+            #
+            # rt_recordings_volume: the voice of the place at PLACE (its registers at REGISTERS) told the
+            # place's volume scaled by its level — the whole of it at full.
+            def emit_shapes(asm, at, memory)
+              place = place_field(asm, memory)
+              h = Console::SNESHardware
+              asm.label("rt_recordings_shapes")
+              each_place(asm, "rt_recordings_shapes") do |next_place|
+                asm.lda(place.call(HELD))
+                asm.branch_long(:beq, next_place)
+                asm.lda(place.call(PHASE))
+                asm.branch_long(:beq, next_place) # no shape
+                asm.cmp(DONE)
+                asm.bne("rt_recordings_shapes_step")
+                asm.jsr(asm.abs("rt_recordings_free"))
+                asm.brl(next_place)
+                asm.label("rt_recordings_shapes_step")
+                asm.cmp(CLIMBING)
+                asm.bne("rt_recordings_shapes_holding")
+                asm.lda(place.call(PLACE_AD))
+                asm.and_a(0xFF) # the attack
+                asm.clc
+                asm.adc(place.call(LEVEL))
+                asm.cmp(FULL)
+                asm.bcc("rt_recordings_shapes_level")
+                asm.lda(HOLDING)
+                asm.sta(place.call(PHASE))
+                asm.lda(FULL)
+                asm.bra("rt_recordings_shapes_level")
+                asm.label("rt_recordings_shapes_holding")
+                asm.cmp(HOLDING)
+                asm.bne("rt_recordings_shapes_falling")
+                asm.lda(place.call(PLACE_SR))
+                asm.and_a(0xFF) # the sustain
+                asm.sta(at.call(BEST_RANK))
+                asm.lda(place.call(LEVEL))
+                asm.cmp(at.call(BEST_RANK))
+                asm.branch_long(:bcc, next_place) # at the sustain or under it: held there
+                asm.branch_long(:beq, next_place)
+                asm.lda(place.call(PLACE_AD))
+                asm.xba
+                asm.and_a(0xFF) # the decay
+                asm.jsr(asm.abs("rt_recordings_level_times"))
+                asm.cmp(at.call(BEST_RANK))
+                asm.bcs("rt_recordings_shapes_level")
+                asm.lda(at.call(BEST_RANK)) # no lower than the sustain
+                asm.bra("rt_recordings_shapes_level")
+                asm.label("rt_recordings_shapes_falling")
+                asm.lda(place.call(PLACE_SR))
+                asm.xba
+                asm.and_a(0xFF) # the release
+                asm.jsr(asm.abs("rt_recordings_level_times"))
+                asm.sta(place.call(LEVEL))
+                asm.bne("rt_recordings_shapes_heard")
+                asm.lda(DONE)
+                asm.sta(place.call(PHASE))
+                asm.bra("rt_recordings_shapes_heard")
+                asm.label("rt_recordings_shapes_level")
+                asm.sta(place.call(LEVEL))
+                asm.label("rt_recordings_shapes_heard")
+                asm.cpy(VOICES_HEARD * PLACE_BYTES)
+                asm.branch_long(:bcs, next_place)
+                asm.sty(at.call(PLACE))
+                emit_registers(asm, at)
+                asm.jsr(asm.abs("rt_recordings_volume"))
+                asm.ldy(at.call(PLACE))
+              end
+              asm.rts
+
+              # rt_recordings_level_times: A = the level of the place Y holds times A (a byte), over 256.
+              asm.label("rt_recordings_level_times")
+              asm.sta(at.call(BEST_TICKET))
+              asm.sep(0x20)
+              asm.lda(place.call(LEVEL))
+              asm.sta(asm.abs(h::WRMPYA))
+              asm.lda(at.call(BEST_TICKET))
+              asm.sta(asm.abs(h::WRMPYB))
+              4.times { asm.nop } # the eight cycles the multiplier takes
+              asm.rep(0x20)
+              asm.lda(asm.abs(h::RDMPYL))
+              asm.xba
+              asm.and_a(0xFF)
+              asm.rts
+
+              asm.label("rt_recordings_volume")
+              asm.ldy(at.call(PLACE))
+              asm.lda(place.call(LEVEL))
+              asm.cmp(FULL)
+              asm.bne("rt_recordings_volume_scaled")
+              asm.lda(place.call(LOUD))
+              asm.bra("rt_recordings_volume_now")
+              asm.label("rt_recordings_volume_scaled")
+              asm.lda(place.call(LOUD))
+              asm.jsr(asm.abs("rt_recordings_level_times"))
+              asm.label("rt_recordings_volume_now")
+              asm.sta(at.call(BEST))
+              [DSPWrites::VOLUME_LEFT, DSPWrites::VOLUME_RIGHT].each do |register|
+                emit_voice_write(asm, at, register) { asm.lda(at.call(BEST)) }
+              end
               asm.rts
             end
 
@@ -377,6 +622,8 @@ module VBlank
               asm.stz(at.call(PLACE))
               asm.label("rt_recordings_stop_next")
               asm.ldy(at.call(PLACE))
+              asm.lda(place.call(OWNER))
+              asm.bne("rt_recordings_stop_walk") # a song's note is the music's to stop
               asm.lda(place.call(HELD))
               asm.beq("rt_recordings_stop_walk")
               asm.dec
