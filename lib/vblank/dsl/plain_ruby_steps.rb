@@ -14,6 +14,9 @@ module VBlank
 
       COMPARISONS = %i[< > <= >= == !=].freeze
 
+      # Bits on numbers, and on tests a join with both sides worked out.
+      BIT_JOINS = %i[& | ^].freeze
+
       module_function
 
       # Truthiness is Ruby's. Only a test, or a yes or no the game keeps, has an answer that waits
@@ -95,14 +98,25 @@ module VBlank
         [right, false]
       end
 
-      # `a & b` and `a | b`, bits on numbers and Ruby's own on anything else. Between tests a
-      # game writes `&&` and `||`, which the rest of these steps read.
+      # `a & b`, `a | b` and `a ^ b`: bits on numbers, and Ruby's own on anything else. Between
+      # tests they join, working out both sides as Ruby does for these on true and false.
       def bits(left, operator, right)
-        if left.is_a?(Condition)
-          refuse_game_code!("`#{operator}` does not join tests. To fix this, write `#{operator}#{operator}`.")
+        if game_test?(left) && game_test?(right)
+          as_condition(left).public_send(operator, as_condition(right))
+        elsif game_test?(left) then bits_beside_plain(as_condition(left), operator, right)
+        elsif game_test?(right) && (left.nil? || left == true || left == false)
+          bits_beside_plain(as_condition(right), operator, left)
+        else left.public_send(operator, right)
         end
+      end
 
-        left.public_send(operator, right)
+      # A test beside a plain value, which counts by its truthiness and decides now.
+      def bits_beside_plain(test, operator, plain)
+        case operator
+        when :& then plain ? test : test.discard
+        when :| then plain ? !test.discard : test
+        else plain ? !test : test
+        end
       end
 
       def loop_while(&test) = LoopTest.new(test, stops_when: false)
@@ -151,6 +165,7 @@ module VBlank
       # `x += amount`, and every operator like it.
       def change(target, operator, amount)
         return target.public_send(operator, amount) unless variable?(target)
+        return assign(target, bits(target, operator, amount)) if game_test?(target) && BIT_JOINS.include?(operator)
 
         verb = CHANGING_VERBS[operator]
         verb ? target.public_send(verb, amount) : target.set!(target.public_send(operator, amount))

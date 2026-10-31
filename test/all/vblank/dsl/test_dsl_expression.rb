@@ -516,16 +516,6 @@ class TestDSLExpression < Minitest::Test
     assert_match(/write `if`/, err.message)
   end
 
-  def test_composing_with_a_non_condition_is_a_friendly_error
-    err = assert_raises(VBlank::DSL::PlainRuby::Refused) do
-      tree do
-        x = var :x, 0
-        halt if (x > 1) & x # x is a Value, not a Condition
-      end
-    end
-    assert_match(/join tests/, err.message)
-  end
-
   def test_mutating_an_expression_is_a_friendly_error
     err = assert_raises(ArgumentError) do
       tree do

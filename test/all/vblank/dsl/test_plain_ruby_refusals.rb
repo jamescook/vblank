@@ -230,23 +230,6 @@ class TestPlainRubyRefusals < Minitest::Test
     assert_refused("A game does not need `add!`") { game_loop { add! :hp, 1 } }
   end
 
-  def test_tests_joined_by_a_bit_operator_are_refused
-    assert_refused("write `&&`") do
-      hp = 3
-      game_loop do
-        wait_vblank if (hp > 1) & (hp < 9)
-        hp -= 1
-      end
-    end
-    assert_refused("write `||`") do
-      hp = 3
-      game_loop do
-        wait_vblank if (hp > 1) | (hp < 9)
-        hp -= 1
-      end
-    end
-  end
-
   def test_the_librarys_own_branch_is_refused_in_a_game
     assert_refused("A game does not need `when_true`") { game_loop { held(:a).when_true { wait_vblank } } }
   end

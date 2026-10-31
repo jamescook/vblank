@@ -42,6 +42,11 @@ module VBlank
         compose(:or, other)
       end
 
+      # One test holds and the other does not: (a > b) ^ (c < d).
+      def ^(other)
+        compose(:!=, other)
+      end
+
       # Every Ruby object has `then`, which would run the block while the game is built and
       # record its body with no test around it. A test is branched on with `if`.
       def then(*)

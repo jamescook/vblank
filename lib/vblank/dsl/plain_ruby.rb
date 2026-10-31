@@ -156,7 +156,6 @@ module VBlank
       class Rewriter
         STEPS = "::VBlank::DSL::PlainRubySteps"
         JUMPS = [Prism::ReturnNode, Prism::BreakNode, Prism::NextNode].freeze
-        BIT_JOINS = %i[& |].freeze
 
         attr_reader :block_node
 
@@ -255,7 +254,7 @@ module VBlank
           return "#{STEPS}.opposite(#{argument(node.receiver)})" if node.name == :! && node.receiver
           return index_write_text(node) if node.name == :[]= && node.receiver
           return attribute_write_text(node) if node.attribute_write? && node.receiver
-          return bits_text(node) if BIT_JOINS.include?(node.name) && node.receiver && node.arguments
+          return bits_text(node) if PlainRubySteps::BIT_JOINS.include?(node.name) && node.receiver && node.arguments
           return "self.#{copied_text(node)}" if node.receiver.nil? && @outer_locals.include?(node.name)
 
           copied_text(node)

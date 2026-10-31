@@ -801,6 +801,70 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:hp]
   end
 
+  def test_bit_operators_join_tests_as_ruby_does_on_true_and_false
+    player = played do
+      a = var :a, 5
+      both = 0
+      neither = 0
+      either = 0
+      one = 0
+      game_loop do
+        both = 1 if (a > 1) & (a < 9)
+        neither = 1 if (a > 1) & (a > 9)
+        either = 1 if (a > 9) | (a > 1)
+        one = 1 if (a > 1) ^ (a > 9)
+      end
+    end
+
+    assert_equal [1, 0, 1, 1], %i[both neither either one].map { |name| player[name] }
+  end
+
+  def test_a_bit_operator_works_out_both_sides
+    player = played do
+      a = var :a, 5
+      n = 0
+      seen = 0
+      game_loop { seen = 1 if (a > 9) & ((n += 1) > 0) }
+    end
+
+    assert_equal 0, player[:seen]
+    assert_equal 3, player[:n]
+  end
+
+  def test_a_bit_operator_beside_a_plain_true_or_false_leaves_the_test
+    player = played do
+      a = var :a, 5
+      yes = true
+      no = false
+      kept = 0
+      dropped = 0
+      given = 0
+      number = 0
+      game_loop do
+        kept = 1 if yes & (a > 1)
+        dropped = 1 if no & (a > 1)
+        given = 1 if no | (a > 1)
+        number = 1 if (a > 1) & a
+      end
+    end
+
+    assert_equal [1, 0, 1, 1], %i[kept dropped given number].map { |name| player[name] }
+  end
+
+  def test_bit_assignment_changes_a_yes_or_no
+    player = played do
+      a = var :a, 5
+      lost = true
+      held = true
+      game_loop do
+        lost &= a > 9
+        held &= a > 1
+      end
+    end
+
+    assert_equal [0, 1], [player[:lost], player[:held]]
+  end
+
   def test_a_number_given_to_a_methods_argument_changes_the_game_variable
     player = played do
       def set_to_nine(hp) = hp = 9
