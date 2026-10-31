@@ -65,17 +65,17 @@ module ScenesGames
       state = var :state, first
       step = var :step, 0
       began = var :began, -1
-      scene(:title) { (step == 2).then { state.set! 1 } }
+      scene(:title) { state = 1 if step == 2 }
       scene(:play, loads_first: loads_first) do
         sprite :block, at: [40, 40]
-        (began == -1).then { began.set! step }
+        began = step if began == -1
       end
       game_loop do
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
         end
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program

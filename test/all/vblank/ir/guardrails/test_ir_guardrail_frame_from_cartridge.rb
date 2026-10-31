@@ -22,9 +22,9 @@ class TestFrameFromCartridgeGuardrail < Minitest::Test
       game_loop do
         fill_rect 0, 0, 40, 8, :green
         if cold_in_a_func
-          (spin == 1).then { call :thinking }
+          call :thinking if spin == 1
         else
-          (spin == 1).then { cold.call }
+          cold.call if spin == 1
         end
       end
     end
@@ -76,7 +76,9 @@ class TestFrameFromCartridgeGuardrail < Minitest::Test
       game_loop do
         fill_rect 0, 0, 40, 8, :green
         inline ? summing.call : call(:sums)
-        (spin == 1).then { 4000.times { spin.add! 1 } }
+        if spin == 1
+          4000.times { spin.add! 1 }
+        end
         next unless scenes
 
         case_var(:state) do

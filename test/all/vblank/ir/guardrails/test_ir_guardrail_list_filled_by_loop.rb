@@ -54,7 +54,7 @@ class TestIRGuardrailListFilledByLoop < Minitest::Test
     said = warnings do
       marks = list :marks, capacity: 8
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           repeat(marks.length) { marks.pop }
           repeat(8) { marks.push 0 }
         end

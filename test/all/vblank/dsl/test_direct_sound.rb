@@ -31,10 +31,10 @@ class TestDirectSound < Minitest::Test
       hello = sample :hello, pcm: ([80] * 16 + [-80] * 16) * 100
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 3).then { hello.play }
-        (count == 9).then { hello.stop }
-        (count == 12).then { hello.stop }
+        count += 1
+        hello.play if count == 3
+        hello.stop if count == 9
+        hello.stop if count == 12
       end
     end
     b.finalize_program
@@ -53,8 +53,8 @@ class TestDirectSound < Minitest::Test
       clips = %i[one two three].map { |name| sample name, pcm: ([80] * 16 + [-80] * 16) * 100 }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 2).then { clips.each(&:play) }
+        count += 1
+        clips.each(&:play) if count == 2
       end
     end
     b.finalize_program
@@ -79,8 +79,8 @@ class TestDirectSound < Minitest::Test
       hello = sample :hello, pcm: ([80] * 16 + [-80] * 16) * 100
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 3).then { hello.play }
+        count += 1
+        hello.play if count == 3
       end
     end
     b.finalize_program

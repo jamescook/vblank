@@ -97,8 +97,8 @@ class TestFollowCamera < Minitest::Test
       camera_follows hero, across: world
 
       game_loop do
-        held(:right).then { hero.move :right, by: 2 }
-        held(:left).then { hero.move :left, by: 2 }
+        hero.move :right, by: 2 if held(:right)
+        hero.move :left, by: 2 if held(:left)
       end
     end
 

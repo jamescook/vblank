@@ -25,9 +25,9 @@ module HardwareSpriteGames
       f = var :f, 0
       game_loop do
         wait_vblank
-        held(:right).then { hero.x.add! step }
-        f.add! 1
-        (f >= frames).then { halt }
+        hero.x += step if held(:right)
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program

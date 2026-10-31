@@ -28,7 +28,7 @@ module ScenePresentationGames
 
       scene :playing do
         sprite :reddot, at: [40, 40] # belongs to :playing
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene :over do
         sprite :bluedot, at: [100, 100] # belongs to :over

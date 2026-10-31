@@ -102,8 +102,8 @@ class TestSpriteFacing < Minitest::Test
       guy = sprite :guy, at: [40, 40], facing: { right: :big, left: :small }
       ticks = var :ticks, 0
       game_loop do
-        ticks.add! 1
-        (ticks == 3).then { guy.face :left }
+        ticks += 1
+        guy.face :left if ticks == 3
       end
     end
     b.finalize_program

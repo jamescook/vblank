@@ -46,14 +46,14 @@ module RowBendGames
       passes = var :passes, 0
       water = background :water, tiles: :stripes, map: Array.new(20) { "#" * 30 }
       water.scroll_each_row do |row|
-        asked.add! 1
+        asked += 1
         row % 5
       end
       boat = sprite :boat, at: [20, 40]
       game_loop do
         water.scroll_by 1, 0
         boat.move :right, by: 1
-        passes.add! 1
+        passes += 1
       end
     end
     b.finalize_program
@@ -252,7 +252,7 @@ class TestRowBend < Minitest::Test
       end
       boat = sprite :boat, at: [20, 40]
       game_loop do
-        phase.add! 1
+        phase += 1
         boat.move :right, by: 4
       end
     end
@@ -320,15 +320,15 @@ class TestRowBend < Minitest::Test
       scene(:sea) do
         sea = background :sea, tiles: :stripes, map: Array.new(20) { "#" * 30 }
         sea.scroll_each_row { |row| row % 8 }
-        (passes == 3).then { state.set! 1 }
+        state = 1 if passes == 3
       end
       scene(:shore) do
         shore = background :shore, tiles: :stripes, map: Array.new(20) { "#" * 30 }
         shore.scroll_each_row { |row| (row / 4) % 8 } if second_bends
-        (passes == 6).then { state.set! 0 }
+        state = 0 if passes == 6
       end
       game_loop do
-        passes.add! 1
+        passes += 1
         case_var(:state) do
           when_val 0, :sea
           when_val 1, :shore
@@ -394,7 +394,7 @@ class TestRowBend < Minitest::Test
     program = bars_program do |water|
       shift = var :shift, 0
       water.scroll_each_row do |row|
-        shift.set! row % 8
+        shift = row % 8
         shift
       end
     end

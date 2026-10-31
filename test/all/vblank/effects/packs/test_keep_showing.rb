@@ -34,8 +34,11 @@ class TestKeepShowing < Minitest::Test
       end
 
       game_loop do
-        n.add! 1
-        (n == bump_on_frame).then { shown.add! 1; bar.changed }
+        n += 1
+        if n == bump_on_frame
+          shown += 1
+          bar.changed
+        end
         bar.draw
       end
     end
@@ -100,10 +103,10 @@ class TestKeepShowing < Minitest::Test
       n = var :n, 0
       bar = keep_showing(:bar) { fill_rect 0, 0, 240, 40, :red }
       game_loop do
-        n.add! 1
-        (n == 1).then { bar.changed }
+        n += 1
+        bar.changed if n == 1
         bar.draw
-        (n == 3).then { draw_rect_at 100, 10, 20, 20, :green }
+        draw_rect_at 100, 10, 20, 20, :green if n == 3
       end
     end
     b.finalize_program

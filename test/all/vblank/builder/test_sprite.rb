@@ -44,7 +44,7 @@ module SpriteGames
       game_loop do
         wait_vblank
         after(frames) { halt }
-        hero.x.add! 2                    # drive right, across the blue detail
+        hero.x += 2                    # drive right, across the blue detail
       end
     end
     builder.finalize_program
@@ -136,9 +136,9 @@ class TestSprite < Minitest::Test
       front = sprite :blob_b, at: [54, 50] # overlaps the right half of the green one
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 2).then { front.move_to 120, 50 } # the front one leaves first...
-        (frame == 3).then { back.move_to 50, 130 }  # ...then the back one
+        frame += 1
+        front.move_to 120, 50 if frame == 2 # the front one leaves first...
+        back.move_to 50, 130 if frame == 3  # ...then the back one
       end
     end
     b.finalize_program
@@ -195,8 +195,8 @@ class TestSprite < Minitest::Test
 
     shown = game_player.input_each_frame { |f| f == 2 ? [:a] : (f == 4 ? [:b] : []) }
                 .run(sprite_program(frames: 8) do |hero|
-                  pressed(:a).then { hero.hide }
-                  pressed(:b).then { hero.show }
+                  hero.hide if pressed(:a)
+                  hero.show if pressed(:b)
                 end).screen
     assert_equal BLOCK * BLOCK, count_color(shown, :red), "show didn't bring the sprite back"
   end

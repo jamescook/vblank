@@ -23,7 +23,7 @@ class TestIRGuardrailScreenInsideScene < Minitest::Test
     findings = Check.new.detect(program do
       screen :tiled
       tick = var :tick, 0
-      scene(:title) { (tick > 3).then { screen :bitmap } }
+      scene(:title) { screen :bitmap if tick > 3 }
       var :state, 0
       game_loop { case_var(:state) { when_val 0, :title } }
     end)
@@ -64,7 +64,7 @@ class TestIRGuardrailScreenInsideScene < Minitest::Test
       VBlank.build("SCRN", console: :gba, out: StringIO.new, err: err) do
         screen :tiled
         tick = var :tick, 0
-        scene(:title) { (tick > 3).then { screen :bitmap } }
+        scene(:title) { screen :bitmap if tick > 3 }
         var :state, 0
         game_loop { case_var(:state) { when_val 0, :title } }
       end

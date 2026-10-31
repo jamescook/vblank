@@ -43,8 +43,8 @@ class TestReadingCollections < Minitest::Test
       n = var :n, 0
       queue = list :queue, capacity: 2
       game_loop do
-        n.add! 1
-        (queue.length == 2).then { queue.shift }
+        n += 1
+        queue.shift if queue.length == 2
         queue.push n
       end
     end

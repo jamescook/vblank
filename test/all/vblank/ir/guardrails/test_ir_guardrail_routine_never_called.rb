@@ -86,7 +86,11 @@ class TestIRGuardrailRoutineNeverCalled < Minitest::Test
       func(:step) do
         (count > 3).then { call :held }.else do
           call :failed
-          (count > 9).then { call :failed_then_held }.else { call :failed_twice }
+          if count > 9
+            call :failed_then_held
+          else
+            call :failed_twice
+          end
         end
       end
       game_loop { call :step }

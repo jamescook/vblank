@@ -27,7 +27,7 @@ class TestCanvas < Minitest::Test
       background :front, tiles: :board, map: board.cells
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         instance_exec(board, frame, &body)
       end
     end

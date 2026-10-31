@@ -25,7 +25,7 @@ module PerSceneModeGames
       var :state, 0
       scene :title do
         clear_screen :red
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene :play do
         screen :bitmap, tear_free: true # this scene is double-buffered

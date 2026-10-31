@@ -24,12 +24,12 @@ module RandomGames
         wait_vblank
         (done == 0).then do
           randomize
-          pressed(:start).then do
+          if pressed(:start)
             roll :rx, 0..200
-            done.set! 1
+            done = 1
           end
         end
-        (done > 0).then do
+        if done > 0
           draw_rect_at :rx, 80, 4, 4, :red
           halt
         end
@@ -169,7 +169,7 @@ class TestRandom < Minitest::Test
     # exercises the whole draw pipeline feeding an expression, deterministically.
     i = interpret do
       x = var :x, 0
-      x.set!(rand(0..0) + 100)
+      x = rand(0..0) + 100
     end
     assert_equal 100, i[:x]
   end
@@ -180,7 +180,7 @@ class TestRandom < Minitest::Test
     i = interpret do
       seed 42
       y = var :y, 0
-      y.set!(rand(10..10) * rand(2..2)) # fixed operands: 10 * 2, proves both draws ran
+      y = rand(10..10) * rand(2..2) # fixed operands: 10 * 2, proves both draws ran
     end
     assert_equal 20, i[:y]
   end
@@ -193,8 +193,8 @@ class TestRandom < Minitest::Test
       never = var :never, 0
       always = var :always, 0
       10.times do
-        chance(0).then   { never.add! 1 }
-        chance(100).then { always.add! 1 }
+        never += 1 if chance(0)
+        always += 1 if chance(100)
       end
     end
     assert_equal 0,  i[:never],  "chance(0) must never fire"

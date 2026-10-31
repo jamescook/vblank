@@ -73,7 +73,7 @@ class TestLayerTwoAmounts < Minitest::Test
       layer(:glass, shows: 57 - (step * 6), shows_behind: 57 + (step * 6)) do
         background :pane, tiles: :panes, map: Array.new(20) { "d" * 30 }
       end
-      game_loop { (step < 4).then { step.add! 1 } }
+      game_loop { step += 1 if step < 4 }
     end
   end
 
@@ -98,9 +98,9 @@ class TestLayerTwoAmounts < Minitest::Test
       end
       walker = layer(:walkers) { sprite :walker, at: [40, 40] }
       game_loop do
-        pass.add! 1
-        walker.x.add! 1
-        ((pass % 3) == 0).then { step.add! 1 }
+        pass += 1
+        walker.x += 1
+        step += 1 if (pass % 3) == 0
       end
     end
   end
@@ -125,7 +125,7 @@ class TestLayerTwoAmounts < Minitest::Test
       layer(:glass, shows: 57, shows_behind: 57) { background :pane, tiles: :panes, map: Array.new(20) { "d" * 30 } }
       walker = layer(:walkers) { sprite :walker, at: [40, 40] }
       game_loop do
-        walker.x.add! 2
+        walker.x += 2
         tint :white, 50
       end
     end
@@ -144,7 +144,7 @@ class TestLayerTwoAmounts < Minitest::Test
       layer(:deep) { background :floor, tiles: :floors, map: Array.new(20) { "d" * 30 } }
       ghost = layer(:spooks, shows: 57, shows_behind: 57) { sprite :ghost, at: [64, 64] }
       game_loop do
-        ghost.x.add! 1
+        ghost.x += 1
         tint :white, 50
       end
     end
@@ -179,9 +179,9 @@ class TestLayerTwoAmounts < Minitest::Test
         layer(:window, shows: 94, shows_behind: 63) { background :window, tiles: :windows, map: full }
       end
       game_loop do
-        pressed(:a).then { where.set! 1 }
-        pressed(:b).then { where.set! 0 }
-        glow.set! 6
+        where = 1 if pressed(:a)
+        where = 0 if pressed(:b)
+        glow = 6
         case_var(:where) do
           when_val 0, :title
           when_val 1, :files

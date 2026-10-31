@@ -114,7 +114,11 @@ class TestRedrawEverythingGuardrail < Minitest::Test
       end
       game_loop do
         wait_vblank
-        (paused == 1).then { draw_rect_at 0, 0, 8, 8, :white }.else { call :repaint }
+        if paused == 1
+          draw_rect_at 0, 0, 8, 8, :white
+        else
+          call :repaint
+        end
       end
     end
     assert_equal 1, Check.new.detect(prog).length
@@ -148,7 +152,7 @@ class TestRedrawEverythingGuardrail < Minitest::Test
       end
       game_loop do
         wait_vblank
-        pressed(:start).then { call :repaint }
+        call :repaint if pressed(:start)
         draw_rect_at 0, 0, 8, 8, :white # steady work: one cell, no clear
       end
     end

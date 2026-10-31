@@ -21,7 +21,7 @@ class TestSpriteScreenEdges < Minitest::Test
       var :flag, 0
       s = sprite(:dot, at: [100, 80])
       s.move_to(px, py)
-      predicate.call(s).then { set! :flag, 1 }
+      set! :flag, 1 if predicate.call(s)
       halt
     end
     b.finalize_program
@@ -92,8 +92,8 @@ class TestSpriteScreenEdges < Minitest::Test
       screen :bitmap
       var :on_flag, 0
       var :off_flag, 0
-      box(10, 10, 20, 20).off_screen?.then { set! :on_flag, 1 }   # on screen -> stays 0
-      box(-40, 10, 20, 20).off_screen?.then { set! :off_flag, 1 } # fully off the left -> 1
+      set! :on_flag, 1 if box(10, 10, 20, 20).off_screen?   # on screen -> stays 0
+      set! :off_flag, 1 if box(-40, 10, 20, 20).off_screen? # fully off the left -> 1
       halt
     end
     b.finalize_program

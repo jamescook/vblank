@@ -26,7 +26,7 @@ class TestFaceShowing < Minitest::Test
       step = var :step, 0
       game_loop do
         hero.face names.reverse, showing: step
-        step.add! 1
+        step += 1
       end
     end
   end
@@ -69,7 +69,7 @@ class TestFaceShowing < Minitest::Test
       step = var :step, 0
       game_loop do
         hero.face names, showing: frames[step]
-        step.add! 1
+        step += 1
       end
     end
     # The pose it starts in, then each pass's pick (as #test_the_number_picks_the_pose_and_one_past_the_list_leaves_it).

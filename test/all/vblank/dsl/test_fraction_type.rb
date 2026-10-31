@@ -172,7 +172,7 @@ class TestFractionType < Minitest::Test
       screen :bitmap
       clear_screen :blue
       pos = var :pos, 10.5
-      pos.sub! 11.0                                   # -0.5
+      pos -= 11.0                                   # -0.5
       draw_rect_at pos.to_i + 100, 40, 2, 2, Color.resolve(:red) # rounds down to -1, so 99
       halt
     end

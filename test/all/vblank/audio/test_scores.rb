@@ -31,7 +31,7 @@ module ScoresGames
       music = songs :music, scores
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         instance_exec(music, pass, &body)
       end
     end
@@ -191,7 +191,7 @@ class TestScores < Minitest::Test
       screen :bitmap
       enable_sound
       sfx = sound_effects :sfx, { ping: effect }
-      game_loop { pressed(:a).then { sfx.play :ping } }
+      game_loop { sfx.play :ping if pressed(:a) }
     end
     b.finalize_program
     i = game_player.input_each_frame { |frame| frame == 3 ? [:a] : [] }.run(b.program, frames: 40)

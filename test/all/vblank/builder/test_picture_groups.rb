@@ -131,8 +131,8 @@ class TestPictureGroups < Minitest::Test
       rooms.show 0
       game_loop do
         rooms.show 0
-        passes.add! 1
-        (passes == spawn_on).then { fish.spawn(x: 40, y: 40) }
+        passes += 1
+        fish.spawn(x: 40, y: 40) if passes == spawn_on
       end
     end
     b.finalize_program
@@ -203,7 +203,7 @@ class TestPictureGroups < Minitest::Test
         instance_exec(rooms, passes, &up)
       end
       game_loop do
-        passes.add! 1
+        passes += 1
         case_var(:state) { when_val 0, :sea }
       end
     end
@@ -246,9 +246,9 @@ class TestPictureGroups < Minitest::Test
       end
       scene(:port) { sprite :flag, facing: { white: :white_box }, at: [80, 40] }
       game_loop do
-        passes.add! 1
-        (passes == 3).then { state.set! 1 }
-        (passes == 5).then { state.set! 0 }
+        passes += 1
+        state = 1 if passes == 3
+        state = 0 if passes == 5
         case_var(:state) { when_val 0, :sea; when_val 1, :port }
       end
     end

@@ -31,12 +31,12 @@ module TextTwoColorsGames
       if on == :bitmap
         game_loop do
           clear_screen :black
-          pressed(:a).then { flag.set! 1 }
+          flag = 1 if pressed(:a)
           draw_text WORDS, X, Y, %i[gray white], showing: pick.call
         end
       else
         draw_text WORDS, X, Y, %i[gray white], showing: pick.call
-        game_loop { pressed(:a).then { flag.set! 1 } }
+        game_loop { flag = 1 if pressed(:a) }
       end
     end
   end
@@ -58,7 +58,7 @@ module TextTwoColorsGames
       flag = var :flag, 0
       game_loop do
         clear_screen :black
-        held(:a).then { flag.set! 1 }
+        flag = 1 if held(:a)
         if colors.length == 1
           draw_text words, X, Y, colors.first
         else
@@ -146,8 +146,11 @@ class TestTextTwoColors < Minitest::Test
     written_out = build_program do
       screen :tiled
       flag = var :flag, 0
-      (flag == 1).then { draw_text WORDS, X, Y, :white }
-                 .else { draw_text WORDS, X, Y, :gray }
+      if flag == 1
+        draw_text WORDS, X, Y, :white
+      else
+        draw_text WORDS, X, Y, :gray
+      end
       game_loop { }
     end
 

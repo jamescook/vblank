@@ -114,8 +114,8 @@ class TestSongPitchSlides < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 10).then { music_volume 50 }
+        count += 1
+        music_volume 50 if count == 10
         wait_vblank
       end
     end

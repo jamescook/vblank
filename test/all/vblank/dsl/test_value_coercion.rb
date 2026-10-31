@@ -105,12 +105,12 @@ class TestValueCoercion < Minitest::Test
       x = var :x, 10
       y = var :y, 20
       d = var :d, 2
-      x.set! d              # same operand as a Value
-      x.add! d
-      y.sub! 3
+      x = d              # same operand as a Value
+      x += d
+      y -= 3
       draw_rect_at x, y, 4, 4, :white
       blit :ball, x, y
-      (x > y).then { y.set! 0 }
+      y = 0 if x > y
       halt
     end
 

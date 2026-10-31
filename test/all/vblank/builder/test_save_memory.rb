@@ -18,7 +18,7 @@ class TestSaveMemory < Minitest::Test
       screen :bitmap
       flags = list :flags, capacity: bytes, width: :byte
       files = save_data(:file, copies: copies) { keep flags }
-      game_loop { pressed(:a).then { files[0].save } }
+      game_loop { files[0].save if pressed(:a) }
     end
   end
 

@@ -89,7 +89,7 @@ class TestSongParts < Minitest::Test
         song(:big) { too_many.times { |n| voice(:"pad_#{n}", plays: :organ) { note :C4, :quarter } } }
         zap = sample :zap, pcm: [60, -60] * 400, rate: 8000
         play_song :big
-        game_loop { pressed(:a).then { zap.play } }
+        game_loop { zap.play if pressed(:a) }
       end
     end
 
@@ -109,7 +109,7 @@ class TestSongParts < Minitest::Test
       instance_exec(&tune)
       zap = sample :zap, pcm: [60, -60] * 400, rate: 8000
       play_song :big
-      game_loop { pressed(:a).then { zap.play } }
+      game_loop { zap.play if pressed(:a) }
     end
 
     assert_empty err.string

@@ -17,8 +17,8 @@ class TestRecording < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 2).then { beep 440, duty: :half, decay: :none, volume: 15 }
+        count += 1
+        beep 440, duty: :half, decay: :none, volume: 15 if count == 2
       end
     end
     builder.finalize_program

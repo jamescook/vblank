@@ -29,8 +29,8 @@ class TestSetTile < Minitest::Test
       frames = var :frames, 0
       game_loop do
         wait_vblank
-        frames.add! 1
-        (frames == open_at).then { room.set_tile col, row, "." }
+        frames += 1
+        room.set_tile col, row, "." if frames == open_at
       end
     end
     builder.finalize_program
@@ -67,7 +67,10 @@ class TestSetTile < Minitest::Test
       where = var :where, 0
       game_loop do
         wait_vblank
-        (where < 4).then { room.set_tile where, 2, "."; where.add! 1 }
+        if where < 4
+          room.set_tile where, 2, "."
+          where += 1
+        end
       end
     end
     builder.finalize_program
@@ -130,7 +133,10 @@ class TestSetTile < Minitest::Test
       opened = var :opened, 0
       game_loop do
         wait_vblank
-        (opened == 0).then { room.set_tile col, 1, "."; opened.set! 1 }
+        if opened == 0
+          room.set_tile col, 1, "."
+          opened = 1
+        end
         room.scroll_to 256, 0
       end
     end

@@ -23,7 +23,7 @@ module ListFillWordGames
       game_loop do
         instance_exec(canvas, shade, start, &fill)
         { first: 0, before: 4, inside: 6, after: 8, last: SIZE - 1 }.each { |name, at| readings[name].set! canvas[at] }
-        readings[:held].set! canvas.length
+        readings[:held] = canvas.length
       end
     end
   end

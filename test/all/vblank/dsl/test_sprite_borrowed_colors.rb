@@ -50,14 +50,14 @@ module SpriteBorrowedColorsGames
       made = var :made, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
+        tick += 1
         (tick % 3 == 1).then do
           things.spawn x: ((made % 10) * 20) + 10, y: ((made / 10) % 2 * 20) + 40, kind: made % KINDS
-          made.add! 1
+          made += 1
         end
         things.each do |thing|
-          thing.age.add! 1
-          (thing.age > 9).then { thing.remove }
+          thing.age += 1
+          thing.remove if thing.age > 9
           thing.draw_with KIND_LISTS, showing: thing.kind
         end
         instance_exec(tick, &each_pass) if each_pass
@@ -95,7 +95,11 @@ class TestSpriteBorrowedColors < Minitest::Test
     watcher = nil
     hidden = things_coming_and_going(before: -> { watcher = sprite(:ship, at: [200, 120]) }) do |tick|
       watcher.draw_with :kind7
-      ((tick > 4) & (tick < 50)).then { watcher.hide }.else { watcher.show }
+      if tick > 4 && tick < 50
+        watcher.hide
+      else
+        watcher.show
+      end
     end
 
     [45, 52, 60].each { |frames| assert_backends_agree(hidden, frames: frames) }
@@ -114,8 +118,8 @@ class TestSpriteBorrowedColors < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        state.set!((tick / 7) % 2)
+        tick += 1
+        state = (tick / 7) % 2
         things.each { |thing| thing.draw_with KIND_LISTS, showing: thing.kind }
         case_var(:state) do
           when_val 0, :plain
@@ -143,7 +147,7 @@ class TestSpriteBorrowedColors < Minitest::Test
       end
       step = var :step, 0
       game_loop do
-        step.set!((step + 1) % 8)
+        step = (step + 1) % 8
         balls.each_with_index { |ball, n| ball.draw_with((0...8).map { |s| :"step#{n}_#{s}" }, showing: step) }
       end
     end

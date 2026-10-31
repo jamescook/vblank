@@ -321,7 +321,7 @@ class TestList < Minitest::Test
       wait[0] = wait[0] - 7
       set! :a, wait[0]
       set! :b, 0
-      (wait[0] <= 0).then { set! :b, 1 }
+      set! :b, 1 if wait[0] <= 0
       halt
     end
 
@@ -402,7 +402,7 @@ class TestList < Minitest::Test
       count = var :count, 0
       game_loop do
         clear_screen :black
-        count.add! 1
+        count += 1
         seen.push count
         fill_rect 8, 8, 16, 8, :white
       end

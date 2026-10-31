@@ -29,11 +29,11 @@ module SpriteMoverGames
       game_loop do
         wait_vblank
         clear_screen :white
-        held(:right).then { x.add! 2 }
+        x += 2 if held(:right)
         x.clamp! 0, 235
         blit :heart, :x, :y
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program
@@ -68,11 +68,11 @@ module SpriteMoverGames
       game_loop do
         wait_vblank
         clear_screen :white
-        held(:left).then { x.sub! 2 }
+        x -= 2 if held(:left)
         x.clamp!(-2, 237) # same half-off-edge clamp the example uses
         blit :heart, :x, :y
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program

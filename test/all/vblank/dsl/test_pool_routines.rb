@@ -61,7 +61,7 @@ class TestPoolRoutines < Minitest::Test
       b = self
       game_loop do
         guards.each { |g| b.call g.state }
-        left.set! guards.count
+        left = guards.count
         b.halt
       end
     end

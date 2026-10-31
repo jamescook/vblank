@@ -34,18 +34,18 @@ module SaveIntoGames
       second_hearts = var :second_hearts, 0
       file = save_data(:file, copies: 2) { keep hearts, name }
       options = save_data(:options) { keep volume }
-      file[0].good?.then { first_good.set! 1 }
-      file[1].good?.then { second_good.set! 1 }
-      second_hearts.set! file[1].peek(hearts)
+      first_good = 1 if file[0].good?
+      second_good = 1 if file[1].good?
+      second_hearts = file[1].peek(hearts)
       file[0].load
       options[0].load
       game_loop do
-        pressed(:a).then do
-          hearts.set! 7
+        if pressed(:a)
+          hearts = 7
           file[0].save
         end
-        pressed(:select).then { file[1].erase }
-        pressed(:start).then { file.copy 0, to: 1 }
+        file[1].erase if pressed(:select)
+        file.copy 0, to: 1 if pressed(:start)
       end
     end
   end
@@ -99,7 +99,7 @@ class TestSaveInto < Minitest::Test
       name = list :name, capacity: 6, width: :byte
       file = save_data(:file, copies: 2) { keep hearts, name }
       file[0].load
-      game_loop { pressed(:b).then { file[1].load } }
+      game_loop { file[1].load if pressed(:b) }
     end.program
     image = SaveImage.new
     Reference.save_into(image, program, :file, 0, hearts: 12, name: [5, 6])

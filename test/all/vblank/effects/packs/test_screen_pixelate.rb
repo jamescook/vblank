@@ -26,7 +26,7 @@ class TestScreenPixelate < Minitest::Test
         clear_screen :black
         9.times { |i| fill_rect 3 + (i * 25), 5 + (i * 13), 14, 9, %i[red green blue][i % 3] }
         12.times { |i| pixel 7 + (i * 19), 150 - (i * 11), :white }
-        frame.add! 1
+        frame += 1
         instance_exec(frame, &timeline)
       end
     end
@@ -48,8 +48,8 @@ class TestScreenPixelate < Minitest::Test
   def test_pixelating_out_and_never_in_is_a_warning
     stuck = painted_game { |frame| (frame == 2).then { pixelate_out } }
     back = painted_game do |frame|
-      (frame == 2).then { pixelate_out }
-      (frame == 50).then { pixelate_in }
+      pixelate_out if frame == 2
+      pixelate_in if frame == 50
     end
 
     assert_includes findings_for(stuck), :pixelated_out_never_in

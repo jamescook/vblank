@@ -17,8 +17,8 @@ module InstrumentGames
       counter = var(:__f, 0)
       game_loop do
         wait_vblank
-        counter.add! 1
-        (counter >= frames).then { halt }
+        counter += 1
+        halt if counter >= frames
       end
     end
     game_player.run(b.program, max_steps: 200_000)

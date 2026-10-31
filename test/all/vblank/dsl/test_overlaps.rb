@@ -19,7 +19,7 @@ class TestOverlaps < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      box(*a_dims).overlaps?(box(*b_dims)).then { pixel 0, 0, :white }
+      pixel 0, 0, :white if box(*a_dims).overlaps?(box(*b_dims))
     end
     b.finalize_program
     game_player.run(b.program).screen.pixel(0, 0)
@@ -62,9 +62,9 @@ class TestOverlaps < Minitest::Test
       hits   = var :hits, 0
       wall   = box(20, 0, 4, 8) # spans x 20..24
       game_loop do
-        ball_x.add! 1
-        box(ball_x, 0, 4, 8).overlaps?(wall).then { hits.add! 1 }
-        (ball_x >= 40).then { halt }
+        ball_x += 1
+        hits += 1 if box(ball_x, 0, 4, 8).overlaps?(wall)
+        halt if ball_x >= 40
       end
     end
     b.finalize_program
@@ -91,9 +91,9 @@ class TestOverlaps < Minitest::Test
       frame = var :frame, 0
       game_loop do
         wait_vblank
-        hero.overlaps?(item).then { pixel 0, 0, :green }
-        frame.add! 1
-        (frame >= 2).then { halt }
+        pixel 0, 0, :green if hero.overlaps?(item)
+        frame += 1
+        halt if frame >= 2
       end
     end
     b.finalize_program
@@ -126,10 +126,10 @@ class TestOverlaps < Minitest::Test
       frame = var :frame, 0
       game_loop do
         wait_vblank
-        hero.x.add! 2
-        (frame == 6).then { coin.hide } # vanish while the hero is on top of it
-        frame.add! 1
-        (frame >= 24).then { halt }
+        hero.x += 2
+        coin.hide if frame == 6 # vanish while the hero is on top of it
+        frame += 1
+        halt if frame >= 24
       end
     end
     b.finalize_program

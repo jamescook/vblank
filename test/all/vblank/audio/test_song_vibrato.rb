@@ -198,8 +198,8 @@ class TestSongVibrato < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 10).then { beep 880 }
+        count += 1
+        beep 880 if count == 10
         wait_vblank
       end
     end

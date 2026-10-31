@@ -395,7 +395,7 @@ class TestIRGuardrailBackgroundLayers < Minitest::Test
         when_val 0, :town
         when_val 1, :cave
       end
-      state.set! 1 - state
+      state = 1 - state
     end
   end
 

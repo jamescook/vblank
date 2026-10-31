@@ -31,7 +31,7 @@ module MusicKeepsTimeGames
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         instance_exec(pass, &loop_body)
       end
     end
@@ -91,9 +91,13 @@ class TestMusicKeepsTime < Minitest::Test
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         # the first tune, then the second from pass 16, then back to the first from pass 22
-        ((pass >= 16) & (pass < 22)).then { play_song :second }.else { play_song :first }
+        if pass >= 16 && pass < 22
+          play_song :second
+        else
+          play_song :first
+        end
       end
     end
     b.finalize_program
@@ -120,8 +124,12 @@ class TestMusicKeepsTime < Minitest::Test
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        ((pass >= 5) & (pass < 8)).then { stop_music }.else { play_song :scale }
+        pass += 1
+        if pass >= 5 && pass < 8
+          stop_music
+        else
+          play_song :scale
+        end
       end
     end
     b.finalize_program

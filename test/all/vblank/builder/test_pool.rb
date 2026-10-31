@@ -55,7 +55,7 @@ class TestPool < Minitest::Test
         wait_vblank
         clear_screen :black
         movers.each do |m|
-          m.y.add! 2
+          m.y += 2
           m.y.clamp! 0, 80
           draw_rect_at m.x, m.y, 2, 2, :green
         end
@@ -82,7 +82,7 @@ class TestPool < Minitest::Test
         wait_vblank
         clear_screen :black
         things.each do |t|
-          (t.x == 20).then { t.remove }
+          t.remove if t.x == 20
           draw_rect_at t.x, t.y, 2, 2, :green
         end
       end

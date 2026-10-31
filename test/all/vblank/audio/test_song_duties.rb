@@ -26,7 +26,7 @@ class TestSongDuties < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         instance_exec(count, &each_frame) if each_frame
         wait_vblank
       end
@@ -125,8 +125,8 @@ class TestSongDuties < Minitest::Test
       sfx = sound_effects :sfx, { zap: zap }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 2).then { sfx.play :zap }
+        count += 1
+        sfx.play :zap if count == 2
         wait_vblank
       end
     end

@@ -34,7 +34,7 @@ class TestIRGuardrailClockNeverAsked < Minitest::Test
       hour = var :hour, 0
       game_loop do
         now = clock
-        (now.present? & now.set?).then { hour.set! now.hour }
+        hour = now.hour if now.present? && now.set?
       end
     end
 

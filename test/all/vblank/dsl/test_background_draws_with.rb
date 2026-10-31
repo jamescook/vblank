@@ -105,8 +105,8 @@ class TestBackgroundDrawsWith < Minitest::Test
       walker = sprite :walker, at: [40, 40]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        walker.x.add! 1
+        pass += 1
+        walker.x += 1
         rays.draw_with [:shimmer], showing: pass % 2
       end
     end
@@ -170,7 +170,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       pass = var :pass, 0
       game_loop do
         rays.draw_with :shimmer
-        pass.add! 1
+        pass += 1
         (pass == 3).then do
           canvas.fill 0x22
           wall.changed
@@ -216,7 +216,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       step = var :step, 0
       game_loop do
         rays.draw_with %i[dawn dusk], showing: step
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -255,12 +255,12 @@ class TestBackgroundDrawsWith < Minitest::Test
         scene :"room#{s}" do
           rays = background :rays, tiles: :wall, map: Array.new(20) { "#" * 30 }
           rays.draw_with lists, showing: step
-          showing.set!((s + 1) % 3)
+          showing = (s + 1) % 3
         end
       end
       game_loop do
         case_var(:showing) { 3.times { |s| when_val s, :"room#{s}" } }
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -393,7 +393,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       step = var :step, 0
       game_loop do
         backdrop.draw_with({ sea: %i[sea0 sea1], sky: %i[sky0 sky1] }, showing: step)
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -441,7 +441,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       hurt = var :hurt, 0
       game_loop do
         backdrop.draw_with({ sea: %i[sea0 sea1], sky: %i[sky0 sky1] }, showing: step)
-        step.add! 1
+        step += 1
         hurt.approach! 60, 20 # it moves every frame, so the table is rewritten every frame
         tint :red, hurt
       end
@@ -554,7 +554,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       step = var :step, 0
       game_loop do
         shown.draw_with(steps, showing: step)
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program

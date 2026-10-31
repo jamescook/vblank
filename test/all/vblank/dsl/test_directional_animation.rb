@@ -32,8 +32,8 @@ module DirectionalAnimationGames
       f = var :f, 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= run).then { halt }
+        f += 1
+        halt if f >= run
       end
     end
     builder.finalize_program

@@ -27,11 +27,11 @@ module HardwareSpriteFacingGames
       f = var :f, 0
       game_loop do
         wait_vblank
-        held(:left).then  { pac.move :left,  by: 4 } # move AND face left  -> blue pose
-        held(:right).then { pac.move :right, by: 4 } # move AND face right -> red pose
+        pac.move :left,  by: 4 if held(:left) # move AND face left  -> blue pose
+        pac.move :right, by: 4 if held(:right) # move AND face right -> red pose
         pac.x.clamp! 8, 136 # inside both consoles' screens
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program
@@ -83,8 +83,8 @@ class TestHardwareSpriteFacing < Minitest::Test
       pac = sprite :pac, at: [40, 40], facing: { left: :big, right: :small }
       ticks = var :ticks, 0
       game_loop do
-        ticks.add! 1
-        (ticks == 3).then { pac.face :right }
+        ticks += 1
+        pac.face :right if ticks == 3
       end
     end
     b.finalize_program

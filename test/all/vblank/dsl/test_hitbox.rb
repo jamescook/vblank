@@ -45,7 +45,7 @@ class TestHitbox < Minitest::Test
       bb = sprite :dot, at: [bx, 20], hitbox: hitbox
       game_loop do
         wait_vblank
-        a.overlaps?(bb).then { set! :hit, 1 }
+        set! :hit, 1 if a.overlaps?(bb)
         halt
       end
     end
@@ -116,7 +116,7 @@ class TestHitbox < Minitest::Test
       bar = box 108, 20, 1, 2 # just past the wide pose's right edge (100+8 = 108)
       game_loop do
         wait_vblank
-        a.overlaps?(bar).then { set! :hit, 1 }
+        set! :hit, 1 if a.overlaps?(bar)
         halt
       end
     end

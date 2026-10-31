@@ -40,8 +40,8 @@ module SceneBackgroundGames
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -64,12 +64,12 @@ module SceneBackgroundGames
       tick = var :tick, 0
       scene(:room) do
         hall = background :hall, tiles: :room, map: Array.new(20) { "#" * 30 }
-        (tick == 2).then { hall.set_tile 15, 10, "o" } # the cell under the middle of the screen
-        (tick == SWITCH_AT).then { state.set! 1 }
+        hall.set_tile 15, 10, "o" if tick == 2 # the cell under the middle of the screen
+        state = 1 if tick == SWITCH_AT
       end
-      scene(:walk) { (tick == SWITCH_AT + 3).then { state.set! 0 } }
+      scene(:walk) { state = 0 if tick == SWITCH_AT + 3 }
       game_loop do
-        tick.add! 1
+        tick += 1
         case_var(:state) do
           when_val 0, :room
           when_val 1, :walk
@@ -99,8 +99,8 @@ module SceneBackgroundGames
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -174,11 +174,11 @@ module SceneBackgroundGames
       scene(:play) do
         room = background :room, tiles: :set, map: map
         # One cell turns blue on the second frame and must stay blue after that.
-        (tick == 2).then { room.set_tile 0, 0, "." }
+        room.set_tile 0, 0, "." if tick == 2
       end
       var :state, 0
       game_loop do
-        tick.add! 1
+        tick += 1
         case_var(:state) { when_val 0, :play }
       end
     end
@@ -202,13 +202,13 @@ module SceneBackgroundGames
       state = var :state, 0
       scene(:play) do
         room = background :room, tiles: :set, map: map
-        (tick == 2).then { room.set_tile 0, 0, "." }
+        room.set_tile 0, 0, "." if tick == 2
       end
       scene(:away) { background :elsewhere, tiles: :set, map: map }
       game_loop do
-        tick.add! 1
-        (tick == 4).then { state.set! 1 } # away...
-        (tick == 7).then { state.set! 0 } # ...and back
+        tick += 1
+        state = 1 if tick == 4 # away...
+        state = 0 if tick == 7 # ...and back
         case_var(:state) do
           when_val 0, :play
           when_val 1, :away
@@ -234,15 +234,15 @@ module SceneBackgroundGames
       scene(:play) do
         rooms = background :rooms, tiles: :set,
                                    map: { hall: Array.new(20) { "#" * 30 }, cave: Array.new(20) { "." * 30 } }
-        (tick == 2).then { rooms.show_map :cave }
-        (tick == 12).then { rooms.show_map :cave } # the same map again, after coming back
-        seen.set! rooms.showing
+        rooms.show_map :cave if tick == 2
+        rooms.show_map :cave if tick == 12 # the same map again, after coming back
+        seen = rooms.showing
       end
       scene(:away) { background :elsewhere, tiles: :set, map: Array.new(20) { "#" * 30 } }
       game_loop do
-        tick.add! 1
-        (tick == 4).then { state.set! 1 } # away...
-        (tick == 7).then { state.set! 0 } # ...and back
+        tick += 1
+        state = 1 if tick == 4 # away...
+        state = 0 if tick == 7 # ...and back
         case_var(:state) do
           when_val 0, :play
           when_val 1, :away
@@ -270,9 +270,9 @@ module SceneBackgroundGames
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick == 3).then { state.set! 1 } # away to the bitmap screen
-        (tick == 6).then { state.set! 0 } # ...and back
+        tick += 1
+        state = 1 if tick == 3 # away to the bitmap screen
+        state = 0 if tick == 6 # ...and back
         case_var(:state) do
           when_val 0, :tiled_one
           when_val 1, :bitmap_one
@@ -486,9 +486,9 @@ class TestSceneBackgrounds < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick == test.class::TILES_SWITCH_AT).then { state.set! 1 }
-        (tick == test.class::TILES_SWITCH_AT * 2).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == test.class::TILES_SWITCH_AT
+        state = 0 if tick == test.class::TILES_SWITCH_AT * 2
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -541,11 +541,11 @@ class TestSceneBackgrounds < Minitest::Test
       end
       scene(:two) { background :two, tiles: :two_set, map: Array.new(4) { row } }
       game_loop do
-        tick.add! 1
-        (tick == switch - 1).then { dim.set! 50 }
-        (tick == switch + 3).then { dim.set! 0 }
-        (tick == switch).then { state.set! 1 }
-        (tick == switch * 3).then { state.set! 0 }
+        tick += 1
+        dim = 50 if tick == switch - 1
+        dim = 0 if tick == switch + 3
+        state = 1 if tick == switch
+        state = 0 if tick == switch * 3
         fade :black, dim
         case_var(:state) do
           when_val 0, :one
@@ -599,12 +599,12 @@ class TestSceneBackgrounds < Minitest::Test
       scene(:level_one) { background :world, tiles: :world_tiles, map: Array.new(20) { "#w" * 15 } }
       scene(:level_two) do
         second = background :world, tiles: :world_and_door, map: Array.new(20) { "w#" * 15 }
-        (tick == test.class::NAME_SWITCH_AT + 2).then { second.set_tile door_at, 0, "d" }
+        second.set_tile door_at, 0, "d" if tick == test.class::NAME_SWITCH_AT + 2
       end
       game_loop do
-        tick.add! 1
-        (tick == test.class::NAME_SWITCH_AT).then { state.set! 1 }
-        (tick == test.class::NAME_SWITCH_AT * 2).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == test.class::NAME_SWITCH_AT
+        state = 0 if tick == test.class::NAME_SWITCH_AT * 2
         case_var(:state) do
           when_val 0, :level_one
           when_val 1, :level_two
@@ -645,15 +645,15 @@ class TestSceneBackgrounds < Minitest::Test
         first = background :world, tiles: :world_and_door,
                                    map: { hall: Array.new(20) { "#w" * 15 }, cellar: Array.new(20) { "ww" * 15 } }
         first.show_map room
-        (tick == 2).then { room.set! 1 }
-        (tick == 4).then { first.set_tile 0, 0, "d" } # after the cellar is in, which writes every cell
+        room = 1 if tick == 2
+        first.set_tile 0, 0, "d" if tick == 4 # after the cellar is in, which writes every cell
       end
       scene(:level_two) do
         background :world, tiles: :world_tiles, map: { attic: Array.new(20) { "##" * 15 }, roof: Array.new(20) { "w#" * 15 } }
       end
       game_loop do
-        tick.add! 1
-        (tick == test.class::NAME_SWITCH_AT * 2).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick == test.class::NAME_SWITCH_AT * 2
         case_var(:state) do
           when_val 0, :level_one
           when_val 1, :level_two
@@ -679,16 +679,16 @@ class TestSceneBackgrounds < Minitest::Test
       second = nil
       scene(:level_one) do
         background :world, tiles: :world_tiles, map: Array.new(20) { "#w" * 15 }
-        (tick == 3).then { call :open_door }
+        call :open_door if tick == 3
       end
       scene(:level_two) do
         second = background :world, tiles: :world_and_door, map: Array.new(20) { "w#" * 15 }
-        (tick == test.class::NAME_SWITCH_AT + 2).then { call :open_door }
+        call :open_door if tick == test.class::NAME_SWITCH_AT + 2
       end
       func(:open_door) { second.set_tile 0, 0, "d" }
       game_loop do
-        tick.add! 1
-        (tick == test.class::NAME_SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick == test.class::NAME_SWITCH_AT
         case_var(:state) do
           when_val 0, :level_one
           when_val 1, :level_two
@@ -731,9 +731,9 @@ class TestSceneBackgrounds < Minitest::Test
       scene(:hall) { background :room, tiles: :walls, map: Array.new(5) { "#" * 10 } }
       scene(:away) { nil }
       game_loop do
-        tick.add! 1
-        (tick == 5).then { set! :state, 1 }
-        (tick == 7).then { set! :state, 0 }
+        tick += 1
+        set! :state, 1 if tick == 5
+        set! :state, 0 if tick == 7
         case_var(:state) do
           when_val 0, :hall
           when_val 1, :away

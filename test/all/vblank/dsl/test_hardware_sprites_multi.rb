@@ -58,9 +58,9 @@ module HardwareSpritesMultiGames
       f = var :f, 0
       game_loop do
         wait_vblank
-        (f == 1).then { shown ? guy.hide : guy.show }
-        f.add! 1
-        (f >= frames).then { halt }
+        shown ? guy.hide : guy.show if f == 1
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program

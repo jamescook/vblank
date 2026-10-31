@@ -259,11 +259,11 @@ class TestIRBackendReferenceHardware < Minitest::Test
       ghost = sprite :ghost, at: [10, 10]
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
+        tick += 1
         field.scroll_by 3, 1
         ghost.move 2, 1
-        (tick == 3).then { field.set_tile 1, 1, "#" }
-        (tick == 5).then { field.draw_with :dusk }
+        field.set_tile 1, 1, "#" if tick == 3
+        field.draw_with :dusk if tick == 5
       end
     end
     builder.finalize_program
@@ -323,11 +323,11 @@ class TestIRBackendReferenceHardware < Minitest::Test
         field.scroll_by 3, 1
       end
       game_loop do
-        tick.add! 1
+        tick += 1
         if comes_back
-          state.set!((tick / 4) % 2)
+          state = (tick / 4) % 2
         else
-          (tick == 4).then { state.set! 1 }
+          state = 1 if tick == 4
         end
         case_var(:state) do
           when_val 0, :title
@@ -395,7 +395,7 @@ class TestIRBackendReferenceHardware < Minitest::Test
       sword = layer(:back) { background :sword, tiles: :set, map: Array.new(16) { |r| (r < 8 ? "#" : " ") * 16 } } if turns
       layer(:front, **(see_through ? { transparency: 40 } : {})) { background :strip, tiles: :set, map: ["#" * 30] * 3 }
       game_loop do
-        tick.add! 1
+        tick += 1
         field.scroll_by 3, 1 if scrolls
         if turns
           sword.rotate tick * 7
@@ -419,8 +419,8 @@ class TestIRBackendReferenceHardware < Minitest::Test
   def test_a_fade_over_the_whole_screen_paints_nothing_while_nobody_looks
     %i[white black].each do |color|
       assert_effect_paints_only_when_looked_at(a_screen do |tick|
-        (tick == 4).then { fade_out color, frames: 8 }
-        (tick == 16).then { fade_in }
+        fade_out color, frames: 8 if tick == 4
+        fade_in if tick == 16
       end)
     end
   end
@@ -428,14 +428,14 @@ class TestIRBackendReferenceHardware < Minitest::Test
   # Longer than the display's own seventeen steps, so the colors are walked instead.
   def test_a_walked_fade_paints_nothing_while_nobody_looks
     assert_effect_paints_only_when_looked_at(a_screen do |tick|
-      (tick == 4).then { fade_out :black, frames: 24 }
-      (tick == 30).then { fade_in }
+      fade_out :black, frames: 24 if tick == 4
+      fade_in if tick == 30
     end, frames: 60)
   end
 
   def test_a_tinted_flash_paints_nothing_while_nobody_looks
     assert_effect_paints_only_when_looked_at(a_screen do |tick|
-      ((tick % 10) == 4).then { flash_screen :red }
+      flash_screen :red if (tick % 10) == 4
     end)
   end
 
@@ -444,8 +444,8 @@ class TestIRBackendReferenceHardware < Minitest::Test
   def test_a_placed_fade_paints_nothing_while_nobody_looks
     [false, true].each do |see_through|
       assert_effect_paints_only_when_looked_at(a_screen(see_through: see_through) do |tick|
-        (tick == 4).then { fade_out frames: 8, under: :front }
-        (tick == 16).then { fade_in }
+        fade_out frames: 8, under: :front if tick == 4
+        fade_in if tick == 16
       end)
     end
   end
@@ -459,8 +459,8 @@ class TestIRBackendReferenceHardware < Minitest::Test
   # somebody is watching, where nothing else would.
   def test_a_whole_screen_fade_taking_a_placed_ones_place_leaves_none_of_it_in_the_picture
     placed_then_lifted = a_screen(scrolls: false) do |tick|
-      (tick == 4).then { fade :black, 50, under: :front }
-      (tick == 8).then { fade :black, 0 }
+      fade :black, 50, under: :front if tick == 4
+      fade :black, 0 if tick == 8
     end
     never_faded = Reference.new.run(a_screen(scrolls: false), frames: 12).screen.shown
     watcher = Reference.new

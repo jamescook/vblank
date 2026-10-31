@@ -39,10 +39,10 @@ module ScreenFadeGames
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { fade_out :black, frames: 40 }
-        (frame == 50).then { fade_in frames: 40 }
-        (frame == 100).then { instance_exec(&effect) }
+        frame += 1
+        fade_out :black, frames: 40 if frame == 2
+        fade_in frames: 40 if frame == 50
+        instance_exec(&effect) if frame == 100
       end
     end
   end
@@ -94,8 +94,8 @@ class TestScreenFade < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { instance_exec(&fade) }
+        frame += 1
+        instance_exec(&fade) if frame == 2
       end
     end
   end
@@ -123,9 +123,9 @@ class TestScreenFade < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { fade_out :white, frames: 6 }
-        (frame == 20).then { fade_in } # no colour, no length — back the way it went
+        frame += 1
+        fade_out :white, frames: 6 if frame == 2
+        fade_in if frame == 20 # no colour, no length — back the way it went
       end
     end
     seen = ramp(prog, 40)
@@ -190,9 +190,9 @@ class TestScreenFade < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { flash_screen :white, frames: 4 }
-        (frame == 20).then { fade_out :black }
+        frame += 1
+        flash_screen :white, frames: 4 if frame == 2
+        fade_out :black if frame == 20
       end
     end
     half_second = fading_game { fade_out :black, frames: 30 }
@@ -222,11 +222,22 @@ class TestScreenFade < Minitest::Test
       scene_id = var :scene_id, 0
       leaving = var :leaving, 0
       game_loop do
-        (scene_id == 0).then { clear_screen :red }.else { clear_screen :white }
-        frame.add! 1
-        (frame == 2).then { fade_out :black, frames: 5; leaving.set! 1 }
+        if scene_id == 0
+          clear_screen :red
+        else
+          clear_screen :white
+        end
+        frame += 1
+        if frame == 2
+          fade_out :black, frames: 5
+          leaving = 1
+        end
         (leaving == 1).then do
-          (fade_level == 100).then { scene_id.set! 1; fade_in frames: 5; leaving.set! 0 }
+          if fade_level == 100
+            scene_id = 1
+            fade_in frames: 5
+            leaving = 0
+          end
         end
       end
     end
@@ -288,9 +299,9 @@ class TestScreenFade < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { flash_screen :green, frames: 4 }
-        (frame == 10).then { flash_screen :blue, frames: 4 }
+        frame += 1
+        flash_screen :green, frames: 4 if frame == 2
+        flash_screen :blue, frames: 4 if frame == 10
       end
     end
     seen = ramp(prog, 16)
@@ -346,9 +357,9 @@ class TestScreenFade < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { fade_out }
-        (frame == 30).then { fade_in }
+        frame += 1
+        fade_out if frame == 2
+        fade_in if frame == 30
       end
     end
 
@@ -362,7 +373,11 @@ class TestScreenFade < Minitest::Test
       over = var :over, 0
       game_loop do
         clear_screen :red
-        (over == 1).then { fade_out }.else { fade_in }
+        if over == 1
+          fade_out
+        else
+          fade_in
+        end
       end
     end
 
@@ -374,7 +389,11 @@ class TestScreenFade < Minitest::Test
     prog = program do
       screen :bitmap
       over = var :over, 0
-      (over == 1).then { clear_screen :red }.else { fade_out }
+      if over == 1
+        clear_screen :red
+      else
+        fade_out
+      end
       halt
     end
     finding = VBlank::IR::Guardrails::Validator.new.run(prog, autofix: false).warnings
@@ -403,7 +422,7 @@ class TestScreenFade < Minitest::Test
     prog = program do
       screen :bitmap
       frame = var :frame, 0
-      game_loop { clear_screen :red; frame.add! 1; (frame == 2).then { fade_out }; (frame == 9).then { fade_in } }
+      game_loop { clear_screen :red; frame += 1; fade_out if frame == 2; fade_in if frame == 9 }
     end
 
     refute_includes warnings(prog), :fade_needs_game_loop
@@ -448,9 +467,9 @@ class TestScreenFade < Minitest::Test
       background :field, tiles: :set, map: Array.new(20) { "#" * 30 }
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 2).then { fade_out :white }
-        (frame == 500).then { flash_screen :white, frames: 4 }
+        frame += 1
+        fade_out :white if frame == 2
+        flash_screen :white, frames: 4 if frame == 500
       end
     end
 

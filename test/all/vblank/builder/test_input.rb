@@ -24,8 +24,8 @@ module InputGames
       screen :tiled
       presses = var :presses, 0
       before_the_loop = var :before_the_loop, 0
-      pressed(:start).then { before_the_loop.set! 1 }
-      game_loop { pressed(:start).then { presses.add! 1 } }
+      before_the_loop = 1 if pressed(:start)
+      game_loop { presses += 1 if pressed(:start) }
     end
     builder.finalize_program
     builder.program
@@ -41,8 +41,8 @@ module InputGames
       held_frames = var :held_frames, 0
       presses = var :presses, 0
       game_loop do
-        held(:any).then { held_frames.add! 1 }
-        pressed(:any).then { presses.add! 1 }
+        held_frames += 1 if held(:any)
+        presses += 1 if pressed(:any)
       end
     end
     builder.finalize_program
@@ -71,7 +71,7 @@ module InputGames
       presses = var :presses, 0
       game_loop do
         repeat(6) { clear_screen :blue }
-        pressed(:a).then { presses.add! 1 }
+        presses += 1 if pressed(:a)
       end
     end
     builder.finalize_program

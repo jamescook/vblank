@@ -47,7 +47,7 @@ module PoolFieldNamesGames
       game_loop do
         things.each do |t|
           t.draw_with :hurt
-          seen.set! t.colors
+          seen = t.colors
         end
       end
     end
@@ -64,9 +64,9 @@ module PoolFieldNamesGames
       3.times { |n| things.spawn x: 20 * n, y: 20, **words.each_with_index.to_h { |word, at| [word, at + n] } }
       game_loop do
         things.each { |t| (t.x == 20).then { t.remove } }
-        sum.set! 0
+        sum = 0
         things.each { |t| words.each { |word| sum.add! t.public_send(word) } }
-        live.set! things.count
+        live = things.count
       end
     end
   end

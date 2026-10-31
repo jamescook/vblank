@@ -46,7 +46,7 @@ class TestTable < Minitest::Test
       at = var :at, 0
       places.each_with_index do |place, n|
         var :"out_#{n}", 0
-        at.set! place
+        at = place
         set! :"out_#{n}", t[at]
       end
       halt
@@ -74,7 +74,7 @@ class TestTable < Minitest::Test
       reads.each do |name, places|
         places.each_with_index do |place, n|
           var :"#{name}_#{n}", 0
-          at.set! place
+          at = place
           set! :"#{name}_#{n}", tables.fetch(name)[at]
         end
       end

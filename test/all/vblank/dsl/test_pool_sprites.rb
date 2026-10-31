@@ -42,7 +42,7 @@ module PoolSpritesGames
       game_loop do
         (placed == 0).then do
           crowd.spawn(x: 40, y: 40)
-          placed.set! 1
+          placed = 1
         end
       end
     end
@@ -104,8 +104,8 @@ class TestPoolSprites < Minitest::Test
       game_loop do
         wait_vblank
         enemies.each do |e|
-          e.overlaps?(near).then { set! :near_hit, 1 }
-          e.overlaps?(far).then { set! :far_hit, 1 }
+          set! :near_hit, 1 if e.overlaps?(near)
+          set! :far_hit, 1 if e.overlaps?(far)
         end
       end
     end
@@ -143,7 +143,7 @@ class TestPoolSprites < Minitest::Test
       end
       scene :play do
         wave = pool :enemy, x: 0, y: 0, capacity: 4, image: :ufo
-        (wave.count == 0).then { wave.spawn x: 50, y: 50 } # spawn once, when empty
+        wave.spawn x: 50, y: 50 if wave.count == 0 # spawn once, when empty
       end
       game_loop do
         wait_vblank
@@ -168,7 +168,7 @@ class TestPoolSprites < Minitest::Test
       scene(:menu) {}
       scene :play do
         wave = pool :enemy, x: 0, y: 0, capacity: 4, image: :ufo
-        (wave.count == 0).then { wave.spawn x: 50, y: 50 }
+        wave.spawn x: 50, y: 50 if wave.count == 0
       end
       game_loop { wait_vblank; case_var(:state) { when_val 0, :menu; when_val 1, :play } }
     end

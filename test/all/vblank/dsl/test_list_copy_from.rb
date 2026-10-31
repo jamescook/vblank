@@ -29,11 +29,11 @@ module ListCopyFromGames
       last = var :last, 0
       held = var :held, 0
       game_loop do
-        at.set! start
+        at = start
         name.copy_from letters, at: at, count: count
-        first.set! name[0]
-        last.set! name[count - 1]
-        held.set! name.length
+        first = name[0]
+        last = name[count - 1]
+        held = name.length
       end
     end
   end

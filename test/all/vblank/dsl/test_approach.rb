@@ -27,7 +27,7 @@ module ApproachGames
       [below, between, above].each { |v| v.clamp! floor, ceiling }
       source = var :source, 0
       made = var :made, 0
-      made.set! source.clamp(floor, ceiling)
+      made = source.clamp(floor, ceiling)
       halt
     end
     builder.finalize_program
@@ -47,8 +47,8 @@ module ApproachGames
         clear_screen :black
         x.approach! 100, 7
         draw_rect_at :x, 50, 2, 2, :green
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program
@@ -78,8 +78,8 @@ module ApproachGames
         x.approach! 200, speed # a step the game holds in a variable
         x.clamp! 0, limit      # and a ceiling it holds in another
         draw_rect_at :x, 50, 2, 2, :green
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program
@@ -167,8 +167,8 @@ class TestApproach < Minitest::Test
       f = var :f, 0
       game_loop do
         x.approach! 100, 7       # 100 / 7 → 15 steps to arrive
-        f.add! 1
-        (f >= 30).then { halt }  # well past arrival
+        f += 1
+        halt if f >= 30  # well past arrival
       end
     end
     assert_equal 100, i[:x]      # landed exactly and never drifted past
@@ -245,7 +245,7 @@ class TestApproach < Minitest::Test
       speed = var :speed, 5
       x = var :x, 0
       x.approach! 100, speed # +5
-      speed.set! 20
+      speed = 20
       x.approach! 100, speed # +20
     end
 
@@ -312,8 +312,8 @@ class TestApproach < Minitest::Test
       limit = var :limit, 40
       x = var :x, 100
       x.clamp! 0, limit
-      limit.set! 90
-      x.set! 100
+      limit = 90
+      x = 100
       x.clamp! 0, limit
     end
 

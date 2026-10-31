@@ -29,8 +29,8 @@ class TestHardwareSpriteScale < Minitest::Test
       f = var :f, 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= frames).then { halt }
+        f += 1
+        halt if f >= frames
       end
     end
     builder.finalize_program
