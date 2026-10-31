@@ -346,6 +346,9 @@ module VBlank
                 "will never see the change. To fix this, start it with `#{name} = var :#{name}, 0`.")
       end
 
+      # A right side of `a, b = b, a`, kept before the writes reach what it reads.
+      def number_now(value) = value.is_a?(Value) ? value.hidden_copy : value
+
       # `old = hp`. While the game plays that must keep hp's number as it is now, where a plain
       # second name would follow hp when it changes.
       def copy_of_variable(value) = variable?(value) ? value.kept_copy : value

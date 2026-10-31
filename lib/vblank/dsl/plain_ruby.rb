@@ -198,6 +198,7 @@ module VBlank
           when Prism::CallNode then call_text(node)
           when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
           when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
+          when Prism::MultiWriteNode then multi_write_text(node)
           when Prism::LocalVariableOrWriteNode then logic_write_text(node, "join_either")
           when Prism::LocalVariableAndWriteNode then logic_write_text(node, "join_both")
           when Prism::InstanceVariableWriteNode then instance_variable_write_text(node)
@@ -355,6 +356,73 @@ module VBlank
           return copied_text(node) unless @names.action_for(node)
 
           "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{rewritten_text(node.value)} })"
+        end
+
+        # `a, b = b, a`. Every right side is held in a name of its own, then each target is given
+        # its own, one write at a time, so each goes the way the same line alone would. A right
+        # side reading a target already written has to be kept first, or it would see the new
+        # number: that is the one place a swap needs a hidden variable.
+        def multi_write_text(node)
+          return refused_or_copied_multi_write(node) unless plain_targets?(node)
+
+          held = node.lefts.map { "__plain_ruby_#{@answers += 1}" }
+          writes = node.lefts.zip(held).map { |target, value| target_write_text(target, value) }
+          "(#{held.join(', ')} = #{multi_write_values(node)}; #{writes.join('; ')}; [#{held.join(', ')}])"
+        end
+
+        def plain_targets?(node)
+          node.rest.nil? && node.rights.empty? && node.lefts.none?(Prism::MultiTargetNode)
+        end
+
+        def refused_or_copied_multi_write(node)
+          return copied_text(node) unless node.compact_child_nodes.any? { |target| @names.variable_write?(target) }
+
+          raise Refused, "`#{node.slice}` writes a game variable with `*` or nested names. A game cannot do that. " \
+                         "To fix this, write each name on a line of its own. (at line #{node.location.start_line})"
+        end
+
+        def multi_write_values(node)
+          values = node.value
+          return rewritten_text(values) unless values.is_a?(Prism::ArrayNode) && values.opening_loc.nil? &&
+                                               values.elements.length == node.lefts.length
+
+          values.elements.each_with_index.map do |value, index|
+            text = value_text(value)
+            reads_target?(value, node.lefts.first(index)) ? "#{STEPS}.number_now(#{text})" : text
+          end.join(", ")
+        end
+
+        def reads_target?(value, targets)
+          names = targets.filter_map { |target| target.name if target.respond_to?(:name) }
+          reads = [Prism::LocalVariableReadNode, Prism::InstanceVariableReadNode]
+          return true if reads.any? { |kind| value.is_a?(kind) } && names.include?(value.name)
+
+          value.compact_child_nodes.any? { |child| reads_target?(child, targets) }
+        end
+
+        def target_write_text(target, value)
+          case target
+          when Prism::LocalVariableTargetNode then local_target_text(target, value)
+          when Prism::InstanceVariableTargetNode then "#{target.name} = #{STEPS}.reassign(#{target.name}, #{value})"
+          when Prism::IndexTargetNode
+            keys = target.arguments&.arguments.to_a.map { |key| argument(key) }
+            "#{STEPS}.assign_index(#{[argument(target.receiver), *keys, value].join(', ')})"
+          when Prism::CallTargetNode
+            "#{STEPS}.assign_attribute(#{argument(target.receiver)}, :#{target.name.to_s.delete_suffix('=')}, #{value})"
+          else "#{target.slice} = #{value}"
+          end
+        end
+
+        def local_target_text(target, value)
+          name = target.name
+          return "#{name} = #{STEPS}.write_under(#{open_tests_text}, :#{name}, #{name}, #{value})" if promoted?(target)
+
+          case @names.action_for(target)
+          when :declare, :start
+            "#{name} = #{STEPS}.start_name(#{value}) { |start| var(:#{@names.variable_name_of(target)}, start) }"
+          when :assign then "#{name} = #{STEPS}.assign(#{name}, #{value})"
+          else "#{name} = #{value}"
+          end
         end
 
         def promoted?(node) = @names.promoted?(node) && !@open_tests.empty?

@@ -664,6 +664,93 @@ class TestPlainRuby < Minitest::Test
     assert_equal 2, player[:shown]
   end
 
+  MovedThing = Struct.new(:x)
+
+  def test_multiple_assignment_swaps_on_every_pass
+    player = played do
+      a = 1
+      b = 2
+      seen = 0
+      game_loop do
+        a, b = b, a
+        seen += a
+      end
+    end
+
+    assert_equal 5, player[:seen]
+  end
+
+  def test_multiple_assignment_reads_every_right_side_before_it_writes
+    player = played do
+      a = 1
+      b = 1
+      game_loop { a, b = b, a + b }
+    end
+
+    assert_equal [3, 5], [player[:a], player[:b]]
+  end
+
+  def test_multiple_assignment_starts_variables_in_setup
+    player = played do
+      x, y = 1, 2
+      game_loop do
+        x += 1
+        y += 2
+      end
+    end
+
+    assert_equal [4, 8], [player[:x], player[:y]]
+  end
+
+  def test_multiple_assignment_takes_a_list_a_method_hands_back
+    player = played do
+      def both = [3, 4]
+      x, y = both
+      game_loop { x += y }
+    end
+
+    assert_equal 15, player[:x]
+  end
+
+  def test_multiple_assignment_from_instance_variables_keeps_going_later
+    player = played do
+      @a = var :from_a, 1
+      @b = var :from_b, 2
+      a, b = @a, @b
+      game_loop do
+        a += 1
+        @a += b
+      end
+    end
+
+    assert_equal [4, 7], [player[:a], player[:from_a]]
+  end
+
+  def test_multiple_assignment_writes_a_hash_slot_and_an_attribute
+    player = played do
+      ball = { hp: var(:hp, 5) }
+      hero = MovedThing.new(var(:hero_x, 1))
+      n = var :n, 3
+      game_loop do
+        ball[:hp], hero.x = n, n + 1
+      end
+    end
+
+    assert_equal [3, 4], [player[:hp], player[:hero_x]]
+  end
+
+  def test_two_names_given_one_number_are_two_variables
+    player = played do
+      x = y = 0
+      game_loop do
+        x += 1
+        y += 2
+      end
+    end
+
+    assert_equal [3, 6], [player[:x], player[:y]]
+  end
+
   def test_the_right_of_or_runs_only_when_the_left_fails
     player = played(frames: 3) do
       n = 0

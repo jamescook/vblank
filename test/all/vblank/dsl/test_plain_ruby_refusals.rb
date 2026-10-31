@@ -63,6 +63,13 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_a_splat_writing_a_game_variable_is_refused
+    assert_refused("`*`") do
+      first, *rest = 1, 2
+      game_loop { first += rest.first }
+    end
+  end
+
   def test_game_code_can_read_a_local_from_outside_the_block
     lives = 3
     builder = built do

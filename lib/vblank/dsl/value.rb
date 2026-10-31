@@ -122,8 +122,11 @@ module VBlank
       # This variable's number kept as it is now, for `old = hp` in normal Ruby (see
       # PlainRubySteps.copy). In setting up there is nothing to keep yet, so a second name will do.
       def kept_copy
-        return self unless @builder.recording_game_code?
+        @builder.recording_game_code? ? hidden_copy : self
+      end
 
+      # A hidden variable holding this number as it is now, whatever changes it later.
+      def hidden_copy
         kept = @builder.hidden_variable
         kept.set!(self)
         kept.mark_boolean! if boolean?

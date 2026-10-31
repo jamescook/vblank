@@ -25,7 +25,11 @@ module VBlank
 
         Write = Struct.new(:node, :in_game_code)
 
-        CHANGES = [Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode].freeze
+        CHANGES = [Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode,
+                   Prism::LocalVariableTargetNode].freeze
+
+        # What gives a name a value outright, one name of `a, b = 1, 2` among them.
+        WHOLE_WRITES = [Prism::LocalVariableWriteNode, Prism::LocalVariableTargetNode].freeze
 
         # Writes by game code to a local of the scope the block sits in.
         attr_reader :outside_writes
@@ -62,7 +66,7 @@ module VBlank
           def starts_variable?
             return true if LocalNames.starts_from_value?(first_write.node)
 
-            first_write.node.is_a?(Prism::LocalVariableWriteNode) && !first_write.in_game_code
+            WHOLE_WRITES.any? { |kind| first_write.node.is_a?(kind) } && !first_write.in_game_code
           end
 
           def plain_name? = parameter? || !variable?
@@ -152,6 +156,9 @@ module VBlank
           LocalNames.number?(local.first_write.node)
         end
 
+        # Is this write's name a game variable?
+        def variable_write?(write) = @locals_by_node[write]&.variable? || false
+
         # Is this read of a local a read of a game variable?
         def variable_read?(read) = @locals_by_node[read]&.variable? || false
 
@@ -183,7 +190,8 @@ module VBlank
           when Prism::IfNode, Prism::UnlessNode, Prism::WhileNode, Prism::UntilNode
             read_children(node, scopes, in_game_code || @iterating_in_game_code)
           when Prism::LocalVariableWriteNode, Prism::LocalVariableOperatorWriteNode,
-               Prism::LocalVariableOrWriteNode, Prism::LocalVariableAndWriteNode then
+               Prism::LocalVariableOrWriteNode, Prism::LocalVariableAndWriteNode,
+               Prism::LocalVariableTargetNode then
             record_write(node, scopes, in_game_code)
             read_children(node, scopes, in_game_code)
           when Prism::LocalVariableReadNode then
@@ -250,7 +258,7 @@ module VBlank
 
           local = (scope[node.name] ||= Local.new(node.name, parameter: false))
           local.writes << Write.new(node, in_game_code)
-          local.reads << node unless node.is_a?(Prism::LocalVariableWriteNode)
+          local.reads << node unless WHOLE_WRITES.any? { |kind| node.is_a?(kind) }
           @ruby_iteration_writes[node] = true if @iterating_in_game_code && !in_game_code
           @locals_by_node[node] = local
         end
