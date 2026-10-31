@@ -88,11 +88,11 @@ module VBlank
         # wait for the walk to arrive:
         #
         #   leaving = var :leaving, 0
-        #   (lives <= 0).then { pixelate_out; leaving.set! 1 }
-        #   ((leaving == 1) & (pixelate_size == 16)).then do
-        #     state.set! GAME_OVER
+        #   if lives <= 0 then pixelate_out; leaving = 1 end
+        #   if leaving == 1 && pixelate_size == 16
+        #     state = GAME_OVER
         #     pixelate_in
-        #     leaving.set! 0
+        #     leaving = 0
         #   end
         #
         # THE FLAG IS NOT DECORATION. The size reads 16 on the old scene's last frame and
@@ -168,11 +168,11 @@ module VBlank
         def start_pixelate_walk(target, frames, duration, default: DEFAULT_FRAMES, under: nil)
           place_screen_pixelate!(under) if under
           state = screen_pixelate_state
-          state[:target].set! target
+          state[:target] = target
           if frames || duration || default
-            state[:step].set! FULL / pixelate_step_count(frames, duration, default)
+            state[:step] = FULL / pixelate_step_count(frames, duration, default)
           end
-          state[:active].set! 1
+          state[:active] = 1
           nil
         end
 
@@ -203,11 +203,14 @@ module VBlank
             # The body is built once the game is written, so the place every verb agreed
             # on is known by then.
             once_a_frame(ROUTINE) do
-              (active == 1).then do
-                shown.set! broken.to_i + 1
+              if active == 1
+                shown = broken.to_i + 1
                 pixelate shown, under: @screen_pixelate_place
-                (broken == target).then { active.set! 0 }
-                                  .else { broken.approach! target, step }
+                if broken == target
+                  active = 0
+                else
+                  broken.approach! target, step
+                end
               end
             end
 

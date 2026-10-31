@@ -44,11 +44,10 @@ module VBlank
           # the message is easy to assert.
           def self.finding(condition)
             message =
-              "You built a comparison like `x > 5`. But nothing uses it to branch. " \
-              "This almost always means it went into a native Ruby `if`. In this DSL, a " \
-              "comparison is a Condition object. Ruby treats that object as always true. So " \
-              "the `if` body runs every time, and the comparison has no effect. To fix this, " \
-              "branch with `.then`. Write `(x > 5).then { ... }`, not `if x > 5`."
+              "You made a test like `x > 5`, but the game does not use it. This line is in code " \
+              "that VBlank does not read as a game, so Ruby takes the test as always true. To " \
+              "fix this, move the line into your `VBlank.game` block. If the line is in a file " \
+              "of its own, load that file with `VBlank.require_game_file`, not `require_relative`."
             Finding.new(check: NAME, severity: :error, message: message, node: condition)
           end
         end

@@ -126,10 +126,10 @@ module VBlank
         # that is running carries on from its own, finer, level.
         def start_music_fade(target, frames, duration)
           state = music_fade_state
-          (state[:active] == 0).then { state[:level].set! music_volume.to_f }
-          state[:target].set! target
-          state[:step].set! FULL / music_fade_step_count(frames, duration) if frames || duration
-          state[:active].set! 1
+          state[:level] = music_volume.to_f if state[:active] == 0
+          state[:target] = target
+          state[:step] = FULL / music_fade_step_count(frames, duration) if frames || duration
+          state[:active] = 1
           nil
         end
 
@@ -149,12 +149,13 @@ module VBlank
             active = var ACTIVE, 0
 
             once_a_frame(ROUTINE) do
-              (active == 1).then do
-                (level == target).then { active.set! 0 }
-                                 .else do
-                                   level.approach! target, step
-                                   music_volume level.to_i
-                                 end
+              if active == 1
+                if level == target
+                  active = 0
+                else
+                  level.approach! target, step
+                  music_volume level.to_i
+                end
               end
             end
 

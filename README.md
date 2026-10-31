@@ -31,14 +31,14 @@ require "vblank"
 
 Walk = VBlank.game "WALK", consoles: %i[gba gbc] do
   screen :bitmap
-  x = var :x, 40
-  y = var :y, 40
+  x = 40
+  y = 40
 
   game_loop do
-    held(:left).then  { x.sub! 1 }
-    held(:right).then { x.add! 1 }
-    held(:up).then    { y.sub! 1 }
-    held(:down).then  { y.add! 1 }
+    x -= 1 if held(:left)
+    x += 1 if held(:right)
+    y -= 1 if held(:up)
+    y += 1 if held(:down)
 
     clear_screen :black
     draw_text "WALK", :center, 8, :white

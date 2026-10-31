@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
 require_relative "effects/packs/walk_length" # how long a walk of an effect is, shared by the packs below
-require_relative "effects/packs/screen_shake"
-require_relative "effects/packs/screen_fade"
-require_relative "effects/packs/screen_pixelate"
-require_relative "effects/packs/iris"
-require_relative "effects/packs/music_fade"
-require_relative "effects/packs/follow_camera"
-require_relative "effects/packs/pulse"
-require_relative "effects/packs/menu"
-require_relative "effects/packs/keep_showing"
+# A pack is written in normal Ruby as a game is, so it comes in the way a part of a game does.
+VBlank.require_game_file "effects/packs/screen_shake"
+VBlank.require_game_file "effects/packs/screen_fade"
+VBlank.require_game_file "effects/packs/screen_pixelate"
+VBlank.require_game_file "effects/packs/iris"
+VBlank.require_game_file "effects/packs/music_fade"
+VBlank.require_game_file "effects/packs/follow_camera"
+VBlank.require_game_file "effects/packs/pulse"
+VBlank.require_game_file "effects/packs/menu"
+VBlank.require_game_file "effects/packs/keep_showing"
 
 module VBlank
   # The effect registry: how a verb gets added to the DSL from outside the

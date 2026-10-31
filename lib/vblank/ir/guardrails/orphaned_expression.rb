@@ -12,7 +12,7 @@ module VBlank
         #                     # the Ruby local to an expression. The game's variable is
         #                     # untouched, and the name still looks right afterwards.
         #
-        # The same hole swallows `hp + 1` where `hp.add! 1` was meant. Nothing is emitted,
+        # The same hole swallows `hp + 1` where `hp += 1` was meant. Nothing is emitted,
         # nothing complains, and the game quietly does not do the thing.
         #
         # HOW IT IS FOUND, which is the interesting part. This check cannot walk the tree,
@@ -62,12 +62,12 @@ module VBlank
 
             message =
               "You worked out a number and then did nothing with it. So the program is " \
-              "unchanged and the work is thrown away. This usually means a change that " \
-              "did not happen. `flags | 4` gives you a NEW number. It leaves `flags` as " \
-              "it was. To change the variable, write `flags.set! flags | 4`. Take care " \
-              "with `flags |= 4` too. Ruby reads that as `flags = flags | 4`. So the " \
-              "Ruby name moves to the new number, and the game's variable stays as it " \
-              "was. The same is true of `hp + 1`, where `hp.add! 1` changes the variable."
+              "unchanged and the work is thrown away. `flags | 4` gives you a NEW number and " \
+              "leaves `flags` as it was. To change the variable, write `flags |= 4`, and " \
+              "`hp += 1` for `hp + 1`. If you wrote that already, this line is in code that " \
+              "VBlank does not read as a game. To fix this, move the line into your " \
+              "`VBlank.game` block. If the line is in a file of its own, load that file with " \
+              "`VBlank.require_game_file`, not `require_relative`."
             Finding.new(check: NAME, severity: :error, message: message, node: value)
           end
 

@@ -26,6 +26,10 @@ module VBlank
         # ...and what gets round the checks whatever it is called on.
         INDIRECT_CALLS = %i[__send__ class_eval const_get instance_eval public_send send].freeze
 
+        # What only game code calls, so a file holding one is game code. These need a block, since
+        # `scene` or `func` alone could be a method of the file's own. `var` needs a name instead.
+        GAME_BLOCK_VERBS = %i[game_loop scene func each_pass once_a_frame on_tick].freeze
+
         def self.refuse_outside_constant!(constants, nesting:, folder:, allow:, file:)
           library = "#{VBlank.root.join('lib')}/"
           constants.each do |name, line|
@@ -60,6 +64,19 @@ module VBlank
           node.compact_child_nodes.each { |child| refuse_outside_calls!(child) }
         end
 
+        # A line of game code in a file `require_relative` brought in is not read as a game: a
+        # plain `state = 1` there sets a Ruby name, and nothing ever says so. Looking only at
+        # what a file calls keeps this a read of the few files a game names.
+        def refuse_game_code_in_plain_files!(from = @file, seen = [])
+          required_files(from).each do |path, line|
+            next if seen.include?(path) || path.start_with?("#{VBlank.root.join('lib')}/")
+
+            seen << path
+            refuse_plain_file!(path, from, line) if game_code?(Prism.parse_file(path).value)
+            refuse_game_code_in_plain_files!(path, seen)
+          end
+        end
+
         # The call that refuses this block's outside constants, as Ruby source. It reads
         # Module.nesting where it runs, which is how the block's own scope is known.
         def constant_check
@@ -69,6 +86,41 @@ module VBlank
         end
 
         private
+
+        def required_files(from)
+          required_calls(Prism.parse_file(from).value).filter_map do |call|
+            argument = call.arguments&.arguments&.first
+            next unless argument.is_a?(Prism::StringNode)
+
+            path = File.expand_path("#{argument.unescaped.delete_suffix('.rb')}.rb", File.dirname(from))
+            [path, call.location.start_line] if File.file?(path)
+          end
+        end
+
+        def required_calls(node)
+          own = node.is_a?(Prism::CallNode) && node.receiver.nil? && node.name == :require_relative ? [node] : []
+          own + node.compact_child_nodes.flat_map { |child| required_calls(child) }
+        end
+
+        def game_code?(node)
+          return true if game_call?(node)
+
+          node.compact_child_nodes.any? { |child| game_code?(child) }
+        end
+
+        def game_call?(node)
+          return false unless node.is_a?(Prism::CallNode) && node.receiver.nil?
+          return node.arguments&.arguments&.first.is_a?(Prism::SymbolNode) if node.name == :var
+
+          GAME_BLOCK_VERBS.include?(node.name) && node.block.is_a?(Prism::BlockNode)
+        end
+
+        def refuse_plain_file!(path, from, line)
+          name = File.basename(path, ".rb")
+          raise Refused, "`#{File.basename(path)}` holds game code, and it comes in with `require_relative`, " \
+                         "so VBlank does not read it as a game. To fix this, load it with " \
+                         "`VBlank.require_game_file \"#{name}\"`. (at #{File.basename(from)}:#{line})"
+        end
 
         def constants_named(node = @block_node)
           case node

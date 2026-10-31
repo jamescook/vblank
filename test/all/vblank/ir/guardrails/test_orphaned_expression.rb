@@ -28,19 +28,20 @@ class TestOrphanedExpression < Minitest::Test
 
     assert_equal 1, findings.length
     assert_match(/did nothing with it/, findings.first.message)
-    assert_match(/flags\.set! flags \| 4/, findings.first.message)
+    assert_match(/flags \|= 4/, findings.first.message)
+    assert_match(/require_game_file/, findings.first.message)
   end
 
   def test_the_message_warns_about_the_ruby_shorthand_too
     findings = findings_for do
       screen :bitmap
       hp = var :hp, 10
-      hp + 1             # `hp.add! 1` was meant
+      hp + 1             # `hp += 1` was meant
       halt
     end
 
     assert_equal 1, findings.length
-    assert_match(/hp\.add! 1/, findings.first.message)
+    assert_match(/hp \+= 1/, findings.first.message)
   end
 
   def test_it_is_an_error_not_a_warning

@@ -7,7 +7,7 @@ module VBlank
       #
       # This is the worked example of what a pack is (see {Effects} for the rule).
       # Every line below is written in public DSL verbs — `var`, `once_a_frame`,
-      # `camera`, `.then` — the same ones a game is written in. Nothing here knows
+      # `camera`, `if` — the same ones a game is written in. Nothing here knows
       # what an IR node is, and no backend knows this file exists. That is the whole
       # point: the shake runs on the console and in the reference interpreter because
       # `camera` already does, and it cost neither of them a line.
@@ -55,8 +55,8 @@ module VBlank
           end
 
           shake = screen_shake_state
-          shake[:left].set! count
-          shake[:power].set! intensity
+          shake[:left] = count
+          shake[:power] = intensity
         end
 
         # The guardrails this pack brings with it. Effects.register_pack forwards them
@@ -132,15 +132,15 @@ module VBlank
             offset = var OFFSET, 0
 
             once_a_frame(ROUTINE) do
-              (left == 0).then do
+              if left == 0
                 camera 0, 0
-                left.sub! 1 # -> -1, so this never runs again until the next shake
+                left -= 1 # -> -1, so this never runs again until the next shake
               end
-              (left > 0).then do
+              if left > 0
                 direction.flip!
-                offset.set! power * direction
+                offset = power * direction
                 camera offset, offset
-                left.sub! 1
+                left -= 1
               end
             end
 
@@ -152,7 +152,7 @@ module VBlank
         def shake_screen_frames(frames, duration)
           raise ArgumentError, "shake_screen takes frames: or duration:, not both." if frames && duration
 
-          if duration
+          if !duration.nil?
             in_frames = (duration * Builder::ControlFlow::FRAMES_PER_SECOND).round if duration.is_a?(Numeric)
             unless in_frames&.positive?
               raise ArgumentError,

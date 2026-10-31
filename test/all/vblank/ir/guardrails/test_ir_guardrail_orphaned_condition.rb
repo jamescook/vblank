@@ -105,7 +105,7 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
 
     assert finding.error?, "an unused Condition is a definite bug, not advisory"
     assert_equal :orphaned_condition, finding.check
-    assert_match(/\.then/, finding.message, "the message names the fix")
+    assert_match(/require_game_file/, finding.message, "the message names the fix")
     assert_match(/test_ir_guardrail_orphaned_condition\.rb:\d+/, finding.full_message,
                  "it sends the reader to the line that built the comparison")
     refute_includes finding.message, finding.source,
@@ -132,8 +132,8 @@ class TestIRGuardrailOrphanedCondition < Minitest::Test
       end
     end
 
-    assert_match(/uses it to branch/, err.string)
-    assert_match(/\.then/, err.string)
+    assert_match(/does not use it/, err.string)
+    assert_match(/require_game_file/, err.string)
   end
 
   def test_build_is_quiet_when_you_branch_with_then

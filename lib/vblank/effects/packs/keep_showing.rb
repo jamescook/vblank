@@ -23,7 +23,7 @@ module VBlank
       #   bar = keep_showing(:status_bar) { paint_the_bar }
       #
       #   # ...somewhere a change happens:
-      #   (health != last).then { bar.changed }
+      #   bar.changed if health != last
       #
       #   # ...and in the frame, where the picture belongs in the drawing order:
       #   bar.draw
@@ -35,7 +35,7 @@ module VBlank
       # have appeared never does.
       #
       # A pack, by {Effects}'s own test: every line is written in `var`, `func`,
-      # `call` and `.then`, and no backend knows this file exists.
+      # `call` and `if`, and no backend knows this file exists.
       module KeepShowing
         # Draw something once and leave it there, and let the framework work out how
         # many times "once" really is on this screen.
@@ -94,7 +94,7 @@ module VBlank
           # Calling it again before the last change has reached both pages simply asks
           # again, so a burst of changes cannot leave a page holding a stale figure.
           def changed
-            @todo.set! @pages
+            @todo = @pages
             self
           end
 
@@ -103,8 +103,8 @@ module VBlank
           # of, under anything that covers it. A frame with no change outstanding costs
           # one comparison and draws nothing.
           def draw
-            (@todo > 0).then do
-              @todo.sub! 1
+            if @todo > 0
+              @todo -= 1
               @b.call(routine)
             end
             self
@@ -116,7 +116,7 @@ module VBlank
           # into the one that replaced it. It erases nothing itself; whatever draws next
           # covers it.
           def cancel
-            @todo.set! 0
+            @todo = 0
             self
           end
 

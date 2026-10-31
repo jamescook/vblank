@@ -67,14 +67,13 @@ module VBlank
       end
 
       # `x = value` where x was not made by `var` but may hold a game variable anyway: a method's
-      # argument, or `x = m[:x]`. Moving the name to another variable is plain enough. Handing
-      # it a number could mean either of two things, and guessing wrong loses a change.
-      def rename(target, value)
+      # argument, or `x = m[:x]`. Given another variable, the name moves to it. Given a number, the
+      # game's variable takes it, as the same line does on a name made by `var`.
+      def reassign(target, value)
         return value if !variable?(target) || variable?(value)
 
-        refuse!("This line changes only a name for the game variable `#{target.name}`. " \
-                "To change the game's number, write `#{target.name}.set! ...`. To keep a " \
-                "different number, use a new name.")
+        target.set!(value)
+        target
       end
 
       # `x += amount`, and every operator like it.

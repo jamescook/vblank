@@ -373,6 +373,28 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:hp]
   end
 
+  def test_a_number_given_to_a_methods_argument_changes_the_game_variable
+    player = played do
+      def set_to_nine(hp) = hp = 9
+      hp = var :hp, 0
+      game_loop { set_to_nine(hp) }
+    end
+
+    assert_equal 9, player[:hp]
+  end
+
+  def test_a_number_given_to_a_name_taken_from_a_hash_changes_the_game_variable
+    player = played do
+      ball = { hp: var(:hp, 5) }
+      game_loop do
+        hp = ball[:hp]
+        hp = 2
+      end
+    end
+
+    assert_equal 2, player[:hp]
+  end
+
   def test_a_number_added_up_over_a_list_written_out_in_ruby_stays_a_number
     player = played(frames: 2) do
       shown = 0

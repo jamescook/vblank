@@ -142,7 +142,7 @@ module VBlank
         # @param outside [Array<Integer>, nil] the rectangle the flash leaves alone
         def flash_screen(color = :white, frames: nil, duration: nil, under: nil, inside: nil, outside: nil)
           state = screen_fade_state
-          state[:level].set! FULL # start full, so the first frame shown is the bright one
+          state[:level] = FULL # start full, so the first frame shown is the bright one
           start_fade(color, 0.0, frames, duration, default: FLASH_FRAMES, under: under,
                                                    rectangle: fade_rectangle(inside, outside))
         end
@@ -157,12 +157,12 @@ module VBlank
         # Reading the level is how it waits:
         #
         #   leaving = var :leaving, 0
-        #   (lives <= 0).then { fade_out; leaving.set! 1 }    # start dimming
-        #   (leaving == 1).then do
-        #     (fade_level == 100).then do                     # ...and once it is dark,
-        #       state.set! GAME_OVER                          # switch, and bring the
+        #   if lives <= 0 then fade_out; leaving = 1 end # start dimming
+        #   if leaving == 1
+        #     if fade_level == 100                            # ...and once it is dark,
+        #       state = GAME_OVER                             # switch, and bring the
         #       fade_in                                       # new screen up
-        #       leaving.set! 0
+        #       leaving = 0
         #     end
         #   end
         #
@@ -289,14 +289,14 @@ module VBlank
           set_fade_layer!(under) if under
           set_fade_rectangle!(rectangle) if rectangle
           state = screen_fade_state
-          state[:color].set! fade_color_code(color) if color
-          state[:target].set! target
+          state[:color] = fade_color_code(color) if color
+          state[:target] = target
           if frames || duration || default
-            state[:step].set! FULL / fade_step_count(frames, duration, default)
+            state[:step] = FULL / fade_step_count(frames, duration, default)
           else
             @fade_without_length = true
           end
-          state[:active].set! 1
+          state[:active] = 1
           nil
         end
 
@@ -325,14 +325,21 @@ module VBlank
             # runs, every color the game asked for is known and each has its branch.
             once_a_frame(ROUTINE) do
               amount = fade_amount(level)
-              (active == 1).then do
-                (color == BLACK).then { fade :black, amount, under: @fade_place, **(@fade_rectangle || {}) }
-                (color == WHITE).then { fade :white, amount, under: @fade_place, **(@fade_rectangle || {}) }
-                fade_tint_colors.each_with_index do |tint_color, i|
-                  (color == FIRST_TINT + i).then { tint tint_color, amount }
+              if active == 1
+                if color == BLACK
+                  fade :black, amount, under: @fade_place, **(@fade_rectangle || {})
                 end
-                (level == target).then { active.set! 0 }
-                                 .else { level.approach! target, step }
+                if color == WHITE
+                  fade :white, amount, under: @fade_place, **(@fade_rectangle || {})
+                end
+                fade_tint_colors.each_with_index do |tint_color, i|
+                  tint tint_color, amount if color == FIRST_TINT + i
+                end
+                if level == target
+                  active = 0
+                else
+                  level.approach! target, step
+                end
               end
             end
 
@@ -378,7 +385,7 @@ module VBlank
         def fade_step_count(frames, duration, default)
           raise ArgumentError, "a fade takes frames: or duration:, not both." if frames && duration
 
-          count = if duration
+          count = if !duration.nil?
                     fade_seconds_in_frames(duration)
                   else
                     frames || default

@@ -58,6 +58,7 @@ module VBlank
       def checked_source(rewriter, code, file, allow)
         checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
         checks.refuse_outside_calls!
+        checks.refuse_game_code_in_plain_files!
         "proc { |*__plain_ruby_given| #{checks.constant_check}; (#{code}).call(*__plain_ruby_given) }"
       end
 
@@ -279,7 +280,7 @@ module VBlank
           when :declare then "#{prefix}#{declaration(node)}"
           when :start then "#{prefix}#{STEPS}.start(#{declaration(node)}, #{text(node.value)})"
           when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
-          when :rename then "#{prefix}#{STEPS}.rename(#{node.name}, (#{value_text(node.value)}))"
+          when :reassign then "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value_text(node.value)}))"
           else "#{prefix}#{kept_value_text(node.value)}"
           end
         end

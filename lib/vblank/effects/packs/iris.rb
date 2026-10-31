@@ -73,19 +73,19 @@ module VBlank
           state = iris_state(light)
           light.move_to(*at) if at
           keep_light_to_give_back(light, state)
-          state[:target].set! 0.0
-          light.dark.set! 100
-          state[:shut].set! 0
-          state[:active].set! 1
-          if by
-            state[:size].set! (from || light.radius).to_f
+          state[:target] = 0.0
+          light.dark = 100
+          state[:shut] = 0
+          state[:active] = 1
+          if !by.nil?
+            state[:size] = (from || light.radius).to_f
             first_step_in_pixels(light, state, -by, Builder::Spotlights::LARGEST.to_f) do
-              state[:active].set! 0
-              state[:shut].set! 1
+              state[:active] = 0
+              state[:shut] = 1
             end
           else
-            state[:size].set! (from || light.radius).clamp(0, state[:reach]).to_f
-            state[:step].set! state[:size] / WalkLength.steps(frames, duration, DEFAULT_FRAMES, "an iris")
+            state[:size] = (from || light.radius).clamp(0, state[:reach]).to_f
+            state[:step] = state[:size] / WalkLength.steps(frames, duration, DEFAULT_FRAMES, "an iris")
           end
           nil
         end
@@ -120,30 +120,33 @@ module VBlank
           refuse_walk_in_pixels_and_frames!(by, frames, duration)
           light = spotlight
           state = iris_state(light)
-          ((state[:active] == 0) & (state[:shut] == 0)).then do
+          if state[:active] == 0 && state[:shut] == 0
             keep_light_to_give_back(light, state)
-            state[:size].set! 0.0
-            light.radius.set! 0
-            light.dark.set! 100
+            state[:size] = 0.0
+            light.radius = 0
+            light.dark = 100
           end
-          state[:radius].set! radius if radius
-          state[:dark].set! dark if dark
+          state[:radius] = radius unless radius.nil?
+          state[:dark] = dark unless dark.nil?
           if to && by
             # The first size a step at a time PAST +to+, which is where the walk lets go: a size
             # the steps land on exactly is still shown, as the game being copied shows it.
-            state[:target].set! state[:size] + ((((to - state[:size].to_i) / by) + 1) * by).to_f
+            state[:target] = state[:size] + ((((to - state[:size].to_i) / by) + 1) * by).to_f
           elsif to
-            state[:target].set! to
+            state[:target] = to
           else
-            (state[:dark] == 0).then { state[:target].set! state[:reach].to_f }
-                               .else { state[:target].set! state[:radius].clamp(0, state[:reach]).to_f }
+            if state[:dark] == 0
+              state[:target] = state[:reach].to_f
+            else
+              state[:target] = state[:radius].clamp(0, state[:reach]).to_f
+            end
           end
-          state[:shut].set! 0
-          state[:active].set! 1
-          if by
+          state[:shut] = 0
+          state[:active] = 1
+          if !by.nil?
             first_step_in_pixels(light, state, by, state[:target]) { let_light_go(light, state) }
           else
-            state[:step].set! (state[:target] - state[:size]).abs / WalkLength.steps(frames, duration, DEFAULT_FRAMES, "an iris")
+            state[:step] = (state[:target] - state[:size]).abs / WalkLength.steps(frames, duration, DEFAULT_FRAMES, "an iris")
           end
           nil
         end
@@ -152,7 +155,7 @@ module VBlank
         # next `iris_in`. THIS IS WHAT MAKES A SCENE CHANGE WRITABLE, the way `fade_level` is
         # for a fade — swap the scene while the screen is black:
         #
-        #   iris_shut?.then { room.show_map next_room; iris_in }
+        #   if iris_shut? then room.show_map next_room; iris_in end
         def iris_shut?
           iris_state(spotlight)[:shut] == 1
         end
@@ -189,19 +192,21 @@ module VBlank
         # A walk whose first step already reaches where it is going has arrived on that frame,
         # as the game's does: the block says what arriving is — shut, or the light let go.
         def first_step_in_pixels(light, state, step, high, &arrived)
-          state[:size].set! (state[:size] + step).clamp(0.0, high)
-          light.radius.set! state[:size].to_i
-          (state[:size] == state[:target]).then(&arrived).else do
-            state[:size].set! (state[:size] + step).clamp(0.0, high)
+          state[:size] = (state[:size] + step).clamp(0.0, high)
+          light.radius = state[:size].to_i
+          if state[:size] == state[:target]
+            arrived.call
+          else
+            state[:size] = (state[:size] + step).clamp(0.0, high)
           end
-          state[:step].set! step.abs
+          state[:step] = step.abs
         end
 
         # The light given back once a walk in arrives: as it was, or as `iris_in` said.
         def let_light_go(light, state)
-          state[:active].set! 0
-          light.radius.set! state[:radius]
-          light.dark.set! state[:dark]
+          state[:active] = 0
+          light.radius = state[:radius]
+          light.dark = state[:dark]
         end
 
         # A walk is said in pixels a frame or in how long it takes, not both: the two would each
@@ -220,11 +225,11 @@ module VBlank
         # and the light to give back was kept before. And how far the farthest corner of the
         # screen is from the light's middle, which a walk starts from and opens to.
         def keep_light_to_give_back(light, state)
-          ((state[:active] == 0) & (state[:shut] == 0)).then do
-            state[:radius].set! light.radius
-            state[:dark].set! light.dark
+          if state[:active] == 0 && state[:shut] == 0
+            state[:radius] = light.radius
+            state[:dark] = light.dark
           end
-          state[:reach].set! corner_reach(light)
+          state[:reach] = corner_reach(light)
         end
 
         # HOW FAR THE FARTHEST CORNER IS, without a square root. Across and down to it are
@@ -257,15 +262,19 @@ module VBlank
             reach = var REACH, 0
 
             once_a_frame(ROUTINE) do
-              (active == 1).then do
-                light.radius.set! size.to_i
-                (size == target).then do
-                  active.set! 0
-                  (target == 0.0).then { shut.set! 1 }.else do
-                    light.radius.set! radius
-                    light.dark.set! dark
+              if active == 1
+                light.radius = size.to_i
+                if size == target
+                  active = 0
+                  if target == 0.0
+                    shut = 1
+                  else
+                    light.radius = radius
+                    light.dark = dark
                   end
-                end.else { size.approach! target, step }
+                else
+                  size.approach! target, step
+                end
               end
             end
 

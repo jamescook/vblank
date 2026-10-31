@@ -9,7 +9,7 @@ module VBlank
       # drops. It is the oldest trick there is for making a still picture feel alive.
       #
       # This is a pack, so every line below is written in public DSL verbs — `var`,
-      # `once_a_frame`, `.approach!`, `.then` — the same ones a game is written in. It knows
+      # `once_a_frame`, `.approach!`, `if` — the same ones a game is written in. It knows
       # nothing about matrices or video memory. What makes it possible at all is
       # `sprite.scale`, which IS a hardware feature and lives in the library proper; the
       # rhythm on top of it is not, so it lives here. That split is the whole rule (see
@@ -53,12 +53,12 @@ module VBlank
           # hold, and writing one is how a program says so. Handing over an already
           # multiplied-up whole number would be multiplied up a second time.
           state = pulse_state(sprite, half)
-          state[:top].set! to.to_f
-          state[:bottom].set! from.to_f
+          state[:top] = to.to_f
+          state[:bottom] = from.to_f
           # Over one frame FEWER than the half cycle, so the size lands exactly on the
           # size that was asked for on the last frame of the climb rather than a hair
           # short of it. It cannot overshoot: `approach` stops at its target.
-          state[:step].set! (to - from).abs / [half - 1, 1].max.to_f
+          state[:step] = (to - from).abs / [half - 1, 1].max.to_f
           sprite
         end
 
@@ -125,10 +125,13 @@ module VBlank
             step = var :"__pulse_#{name}_step", 1.0
 
             once_a_frame(:"__pulse_#{name}") do
-              tick.add! 1
-              (tick >= half * 2).then { tick.set! 0 }
-              (tick < half).then { sprite.scale.approach! top, step }
-                           .else { sprite.scale.approach! bottom, step }
+              tick += 1
+              tick = 0 if tick >= half * 2
+              if tick < half
+                sprite.scale.approach! top, step
+              else
+                sprite.scale.approach! bottom, step
+              end
             end
 
             { top: top, bottom: bottom, step: step }

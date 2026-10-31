@@ -2,6 +2,8 @@
 
 require "stringio"
 require "test_helper"
+require "fixtures/game_with_plain_helper/game"
+require "fixtures/game_with_plain_data/game"
 
 # What a game block in normal Ruby cannot do, and the plain words an author gets instead.
 class TestPlainRubyRefusals < Minitest::Test
@@ -128,24 +130,6 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
-  def test_setting_a_method_argument_that_holds_a_game_variable_is_refused
-    assert_refused("hp.set!") do
-      def hurt(hp) = (hp = hp - 1)
-      hurt(var(:hp, 5))
-      game_loop { wait_vblank }
-    end
-  end
-
-  def test_giving_a_number_to_a_name_for_a_variable_is_refused
-    assert_refused("hp.set!") do
-      ball = { hp: var(:hp, 5) }
-      game_loop do
-        hp = ball[:hp]
-        hp = 0
-      end
-    end
-  end
-
   def test_a_plain_number_changed_by_game_code_it_cannot_reach_is_refused
     assert_refused("`count`") do
       sparks = pool(:spark, x: 0, capacity: 3)
@@ -242,6 +226,18 @@ class TestPlainRubyRefusals < Minitest::Test
                           &VBlank::DSL::PlainRuby.rewrite(block))
 
     refute_includes err.string, "never waits for the next frame"
+  end
+
+  def test_a_file_of_game_code_brought_in_with_require_relative_is_refused
+    error = assert_raises(Refused) { VBlank::DSL::PlainRuby.rewrite(GameWithPlainHelper.block) }
+
+    assert_includes error.message, "`walker.rb` holds game code"
+    assert_includes error.message, 'VBlank.require_game_file "walker"'
+    assert_includes error.message, "game.rb:4"
+  end
+
+  def test_a_file_of_plain_ruby_can_come_in_with_require_relative
+    assert_kind_of Proc, VBlank::DSL::PlainRuby.rewrite(GameWithPlainData.block)
   end
 
   def test_vblank_game_builds_a_game_written_in_plain_ruby

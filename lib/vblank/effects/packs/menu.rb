@@ -20,7 +20,7 @@ module VBlank
       # far apart the rows are — is decoration the game SAYS rather than builds.
       #
       # This is a pack, so every line below is written in public DSL verbs — `var`,
-      # `held`, `pressed`, `.then`, `draw_text`. Nothing here is new capability, which is
+      # `held`, `pressed`, `if`, `draw_text`. Nothing here is new capability, which is
       # exactly why it is a pack and not part of the library proper (see {Effects}).
       module Menus
         # How long a held button waits before it walks to the next row. Copied from
@@ -61,14 +61,14 @@ module VBlank
 
           # Add one row.
           #
-          #   m.item("NEW GAME")                  { state.set! PLAYING }
+          #   m.item("NEW GAME")                  { state = PLAYING }
           #   m.item("LOAD GAME", enabled: false) { }
           #   m.item("ODE TO JOY", picked: :yellow)
           #
           # A SETTINGS ROW SAYS A DIFFERENT THING depending on the setting, so give it the
           # list of things it can say and the variable that decides which:
           #
-          #   m.item(["MUSIC: OFF", "MUSIC: ON"], showing: music) { music.set! 1 - music }
+          #   m.item(["MUSIC: OFF", "MUSIC: ON"], showing: music) { music = 1 - music }
           #
           # The words the value points at are the ones on screen, and they are part of the
           # row — so they light up with it, move with the cursor, and are what the block
@@ -121,7 +121,7 @@ module VBlank
                     "A menu row needs its words as a String. A row that changes needs two or " \
                     "more Strings in a list. Got #{label.inspect}."
             end
-            return label if showing
+            return label unless showing.nil?
 
             raise ArgumentError,
                   "This menu row can say #{label.length} things, so it needs `showing:` to " \
@@ -148,7 +148,7 @@ module VBlank
 
           # True on the frame the pick moved — for a sound, or a preview that reloads.
           #
-          #   menu.moved.then { beep :blip }
+          #   beep :blip if menu.moved
           def moved
             @moved == 1
           end
@@ -158,9 +158,9 @@ module VBlank
         # per row saying what picking it does.
         #
         #   menu :main, at: [80, 60] do |m|
-        #     m.item("NEW GAME")                  { state.set! PLAYING }
-        #     m.item("LOAD GAME", enabled: false) { state.set! LOADING }
-        #     m.item("SOUND")                     { state.set! SOUND }
+        #     m.item("NEW GAME")                  { state = PLAYING }
+        #     m.item("LOAD GAME", enabled: false) { state = LOADING }
+        #     m.item("SOUND")                     { state = SOUND }
         #   end
         #
         # Up and down move the cursor and WRAP at both ends. A row that cannot be picked
@@ -303,15 +303,22 @@ module VBlank
         # neither button is down, so the next tap moves at once however long you held
         # the last one.
         def menu_move(items, pick, wait, moved, repeat_every)
-          moved.set! 0
-          (held(:up) | held(:down)).then do
-            (wait == 0).then do
-              wait.set! repeat_every
-              moved.set! 1
-              held(:down).then { menu_step(items, pick, 1) }
-                         .else { menu_step(items, pick, -1) }
-            end.else { wait.sub! 1 }
-          end.else { wait.set! 0 }
+          moved = 0
+          if held(:up) || held(:down)
+            if wait == 0
+              wait = repeat_every
+              moved = 1
+              if held(:down)
+                menu_step(items, pick, 1)
+              else
+                menu_step(items, pick, -1)
+              end
+            else
+              wait -= 1
+            end
+          else
+            wait = 0
+          end
         end
 
         # One step of the cursor, wrapping at the end it walked off.
@@ -339,7 +346,7 @@ module VBlank
           items.each_index do |i|
             next if items[i].enabled
 
-            (pick == i).then { pick.set! menu_next_pickable(items, i, direction) }
+            pick = menu_next_pickable(items, i, direction) if pick == i
           end
         end
 
@@ -347,11 +354,11 @@ module VBlank
         def menu_wrap(items, pick, direction)
           last = items.length - 1
           if direction.positive?
-            pick.add! 1
-            (pick > last).then { pick.set! 0 }
+            pick += 1
+            pick = 0 if pick > last
           else
-            pick.sub! 1
-            (pick < 0).then { pick.set! last }
+            pick -= 1
+            pick = last if pick < 0
           end
         end
 
@@ -383,7 +390,7 @@ module VBlank
         def menu_choose(items, pick, press)
           return if items.none?(&:action)
 
-          pressed(press).then do
+          if pressed(press)
             items.each_with_index do |item, i|
               next unless item.action
 
@@ -392,7 +399,7 @@ module VBlank
               # A row the game has shut does nothing, even with the cursor on it.
               here = (pick == i)
               here &= menu_can_pick(item) if menu_enabled_at_runtime?(item)
-              here.then { item.action.call }
+              item.action.call if here
             end
           end
         end
@@ -420,7 +427,7 @@ module VBlank
               # on screen and the others are simply not drawn.
               next draw.call if item.labels.length == 1
 
-              (item.showing == nth).then { draw.call }
+              draw.call if item.showing == nth
             end
           end
         end
@@ -439,8 +446,11 @@ module VBlank
         # shut, and the usual pair of colours while it is open.
         def menu_draw_row(item, words:, row:, style:, picked_when:)
           if menu_enabled_at_runtime?(item)
-            menu_can_pick(item).then { menu_draw_open_row(item, words: words, row: row, style: style, picked_when: picked_when) }
-                               .else { draw_text words, style.x, row, style.disabled, font: style.font }
+            if menu_can_pick(item)
+              menu_draw_open_row(item, words: words, row: row, style: style, picked_when: picked_when)
+            else
+              draw_text words, style.x, row, style.disabled, font: style.font
+            end
             return
           end
           unless item.enabled
@@ -457,7 +467,7 @@ module VBlank
                     font: style.font, showing: picked_when.call
           return if style.cursor.empty?
 
-          picked_when.call.then do
+          if picked_when.call
             draw_text style.cursor, style.cursor_x, row, bright, font: style.font
           end
         end
@@ -485,7 +495,7 @@ module VBlank
           end
 
           items.each_with_index.map do |item, i|
-            item = item.with(showing: menu_showing_value!(item)) if item.showing
+            item = item.with(showing: menu_showing_value!(item)) unless item.showing.nil?
             item.with(enabled: menu_enabled_value(name, i, item.enabled))
           end
         end
@@ -498,7 +508,11 @@ module VBlank
           return enabled unless enabled.is_a?(DSL::Condition)
 
           open = var :"__menu_#{name}_open_#{row}", 0
-          enabled.then { open.set! 1 }.else { open.set! 0 }
+          if enabled
+            open = 1
+          else
+            open = 0
+          end
           open
         end
 

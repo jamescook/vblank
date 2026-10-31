@@ -71,14 +71,14 @@ module VBlank
 
         # What a rewritten `x = ...` does: nil to leave it, :declare for the line that makes a
         # variable while setting up, :start for one that makes it in game code and so sets it
-        # every pass, :assign to change the variable, :rename for a name that may hold a variable
+        # every pass, :assign to change the variable, :reassign for a name that may hold a variable
         # it did not make, a method's argument among them.
         def action_for(write)
           local = @locals_by_node[write]
           return unless local
-          return :rename if local.parameter?
+          return :reassign if local.parameter?
           return first_write_action(local) if local.first_write_of?(write)
-          return :rename unless local.variable?
+          return :reassign unless local.variable?
 
           LocalNames.var_call?(write) ? nil : :assign
         end
