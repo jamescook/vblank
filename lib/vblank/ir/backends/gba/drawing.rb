@@ -481,9 +481,9 @@ module VBlank
             emit_painted_run_places(name)
             emit_scene_scenery(name)
             emit_scene_backdrop(name) if scene_handover.backdrops?
-            @raster.emit_light_leaving(name) # before the scene tells the blend unit its own mixing
+            @raster.emit_light_leaving(name, @layout.scene_blend.fetch(name, BLD_OFF)) # before the scene's own mixing
             emit_scene_blend(name)
-            @raster.emit_light_for_lit_scene(name) # ...and after, so it is the last word
+            @raster.emit_light_for_lit_scene(name)
             emit_scene_layers(name)
           end
 
@@ -520,9 +520,16 @@ module VBlank
           #
           # It is said on every pass the scene runs, so it too leaves a fade that holds the
           # blend where it is (see LayerBlend#emit_scene_blend_control).
+          #
+          # A scene with a light leaves the register to the light, whose word on this pass is the
+          # one that stands. Writing its own first would put a value there that the very next
+          # write replaces, and an interrupt landing between the two would leave rows of the
+          # picture drawn from it: the light's window right, and nothing outside it darkened.
           def emit_scene_blend(name)
             wanted = @layout.scene_blend[name]
-            @layer_blend.emit_scene_blend_control(wanted) if wanted
+            if wanted
+              @raster.lit_scene?(name) ? @layer_blend.emit_remember_scene_blend_control(wanted) : @layer_blend.emit_scene_blend_control(wanted)
+            end
             @layer_blend.emit_screen_marker(name)
           end
 

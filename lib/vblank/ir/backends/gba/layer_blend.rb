@@ -230,8 +230,16 @@ module VBlank
           def emit_scene_blend_control(wanted)
             return @emitter.write_reg16(REG_BLDCNT, wanted) unless @fade_can_hold_blend
 
-            @primitives.store_word_immediate(wanted, @primitives.var_addr(SCENE_CONTROL))
+            emit_remember_scene_blend_control(wanted)
             emit_unless_fade_holds_blend { @emitter.write_reg16(REG_BLDCNT, wanted) }
+          end
+
+          # The scene's answer kept for a fade lifting, and not said to the blend unit, for a
+          # scene whose light says what the register holds on this pass.
+          def emit_remember_scene_blend_control(wanted)
+            return unless @fade_can_hold_blend
+
+            @primitives.store_word_immediate(wanted, @primitives.var_addr(SCENE_CONTROL))
           end
 
           # A FADE OR A TINT THAT MOVES THE COLORS TAKES THE PLACE OF A FADE THE DISPLAY WAS

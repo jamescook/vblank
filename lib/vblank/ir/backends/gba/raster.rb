@@ -161,7 +161,9 @@ module VBlank
           #
           # A scene the light is off in hands back the light's darkening before anything of its
           # own is told the blend unit, so what it then says is not taken for a fade holding it.
-          def emit_light_leaving(scene)
+          # It hands it straight to +control+, the mixing that scene wants. An interrupt can stop
+          # a pass here for dozens of rows, and the console draws them from whatever this left.
+          def emit_light_leaving(scene, control)
             return unless switches_light? && @dark_scenes.include?(scene)
 
             @emitter.write_reg16(REG_WININ, WIN_ALL_LAYERS | WIN_EFFECT)
@@ -171,15 +173,18 @@ module VBlank
             @emitter.emit_number(TMP, LIGHT_CONTROL)
             @emitter.emit(ASM.cmp_reg(ACC, TMP))
             @emitter.emit_branch(:bcond, kept, cond: :ne)
-            @emitter.write_reg16(REG_BLDCNT, BLD_OFF)
+            @emitter.write_reg16(REG_BLDCNT, control)
             @emitter.place_label(kept)
           end
 
+          # Does this scene's pass say what the blend unit does through the light's words alone?
+          def lit_scene?(scene) = switches_light? && !@dark_scenes.include?(scene)
+
           # ...and a scene the light is on in tells the blend unit what the last gap did: the
-          # darkening if it switched the light on, nothing if the light is still off. Said after
-          # anything else the scene tells the blend unit, so it is the last word.
+          # darkening if it switched the light on, nothing if the light is still off. It is the
+          # only thing such a scene writes there (see Drawing#emit_scene_blend).
           def emit_light_for_lit_scene(scene)
-            return unless switches_light? && !@dark_scenes.include?(scene)
+            return unless lit_scene?(scene)
 
             shown = @emitter.gensym
             done = @emitter.gensym
