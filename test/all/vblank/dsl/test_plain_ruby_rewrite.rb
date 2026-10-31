@@ -55,6 +55,12 @@ class TestPlainRubyRewrite < Minitest::Test
     assert_includes VBlank::DSL::PlainRuby.rewritten_source(second), "two = 2"
   end
 
+  private def arrow_from_one_line_method = ->(one) { one }
+
+  def test_a_lambda_on_a_line_with_a_method_is_found
+    assert_predicate VBlank::DSL::PlainRuby.rewrite(arrow_from_one_line_method, checked: false), :lambda?
+  end
+
   def test_a_lambda_is_rewritten_and_stays_a_lambda
     arrow = VBlank::DSL::PlainRuby.rewrite(->(one) { one }, checked: false)
     word = VBlank::DSL::PlainRuby.rewrite(lambda { |one| one }, checked: false)

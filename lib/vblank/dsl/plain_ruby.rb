@@ -86,9 +86,10 @@ module VBlank
         [source, found]
       end
 
+      # The last that starts by that column, since Ruby counts a `->` from its body, not its arrow.
       def node_at_column(nodes, block)
         column = block_start_column(block)
-        nodes.find { |node| node.location.start_column == column }
+        nodes.select { |node| node.location.start_column <= column }.max_by { |node| node.location.start_column }
       end
 
       # Which column +block+ starts at, which only matters when two start on one line. Ruby can
