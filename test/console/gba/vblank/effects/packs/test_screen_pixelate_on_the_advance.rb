@@ -31,7 +31,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   private def painted_game(&timeline)
     program do
       screen :bitmap
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         clear_screen :black
         9.times { |i| fill_rect 3 + (i * 25), 5 + (i * 13), 14, 9, %i[red green blue][i % 3] }
@@ -66,7 +66,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   # --- out and back in ---
 
   def test_pixelating_out_grows_the_blocks_to_the_biggest_and_holds_there
-    seen = sizes_shown(painted_game { |frame| (frame == 2).then { pixelate_out frames: 8 } }, 30)
+    seen = sizes_shown(painted_game { |frame| pixelate_out frames: 8 if frame == 2 }, 30)
 
     assert_equal 1, seen.first, "before it starts the picture is as drawn"
     assert_equal LARGEST, seen.last, "it arrives at the biggest block and stays"
@@ -91,14 +91,14 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   # `frames:` is how long the walk takes, asserted as a relationship rather than a frame
   # number, which would break on any change to where in a frame the effect runs.
   def test_a_longer_walk_takes_proportionally_longer
-    arrives = ->(frames) { sizes_shown(painted_game { |frame| (frame == 2).then { pixelate_out frames: frames } }, 60).index(LARGEST) }
+    arrives = ->(frames) { sizes_shown(painted_game { |frame| pixelate_out frames: frames if frame == 2 }, 60).index(LARGEST) }
 
     assert_in_delta 2.0, arrives.call(16).to_f / arrives.call(8), 0.5
   end
 
   def test_a_duration_in_seconds_is_the_frames_it_works_out_to
     arrives = lambda do |**length|
-      sizes_shown(painted_game { |frame| (frame == 2).then { pixelate_out(**length) } }, 50).index(LARGEST)
+      sizes_shown(painted_game { |frame| pixelate_out(**length) if frame == 2 }, 50).index(LARGEST)
     end
 
     assert_equal arrives.call(frames: 30), arrives.call(duration: 0.5)
@@ -109,8 +109,8 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
   def test_the_size_can_be_read_to_swap_scenes_while_nobody_can_read_the_screen
     swapping = program do
       screen :bitmap
-      frame = var :frame, 0
-      shade = var :shade, 0
+      frame = 0
+      shade = 0
       game_loop do
         if shade == 0
           clear_screen :red
@@ -119,7 +119,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
         end
         frame += 1
         pixelate_out frames: 6 if frame == 2
-        ((pixelate_size == 16) & (shade == 0)).then do
+        if pixelate_size == 16 && shade == 0
           shade = 1
           pixelate_in frames: 6
         end
@@ -153,7 +153,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
     turning = painted_game do |frame|
       turned = var :turned, 0
       pixelate_out frames: 8 if frame == 2
-      ((pixelate_size == 16) & (turned == 0)).then do
+      if pixelate_size == 16 && turned == 0
         turned = frame
         pixelate_in
       end
@@ -177,7 +177,7 @@ class TestScreenPixelateOnTheAdvance < Minitest::Test
       room = nil
       layer(:world) { room = background :room, tiles: :set, map: ["a" * 32] * 32 }
       layer(:ui) { sprite :dot, at: [100, 60] }
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         room.scroll_by 1, 0

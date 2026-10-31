@@ -203,11 +203,11 @@ class TestMixerOnTheAdvance < Minitest::Test
           note :C3, :whole
         end
       end
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         passes += 1
         play_song :tune
-        (passes == volume_from).then { music_volume 40 } if volume_from
+        music_volume 40 if volume_from && passes == volume_from
       end
     end
     b.finalize_program
@@ -351,7 +351,7 @@ class TestMixerOnTheAdvance < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clip = sample :clip, pcm: SAWTOOTH.reverse, rate: 8000, envelope: { attack: 0.1 }
-      passes = var :passes, 0
+      passes = 0
       game_loop do
         passes += 1
         clip.play if passes == 3
@@ -439,7 +439,7 @@ class TestMixerOnTheAdvance < Minitest::Test
           tempo 300
           voice(:melody, plays: :keys) { note :C4, :whole }
         end
-        passes = var :passes, 0
+        passes = 0
         game_loop do
           passes += 1
           play_song :tune

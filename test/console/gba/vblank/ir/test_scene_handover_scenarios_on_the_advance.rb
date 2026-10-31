@@ -73,24 +73,26 @@ class TestSceneHandoverScenariosOnTheAdvance < Minitest::Test
     # over again on frame BITMAP_BACK. +tiled+ is what the tiled scene declares; the block runs
     # every frame with the frame count. +third+ names a scene run while :state is 2.
     def across_a_bitmap_screen(tiled: -> {}, third: nil)
-      state = var :state, 0
-      tick = var :tick, 0
-      scene(:tiled_screen) do
-        instance_exec(&tiled)
-        (tick == BITMAP_AWAY).then { state.set! 1 }
-      end
-      scene(:bitmap_screen) do
-        screen :bitmap
-        clear_screen :blue
-        (tick == BITMAP_BACK).then { state.set! 0 }
-      end
-      game_loop do
-        tick.add! 1
-        yield tick if block_given?
-        case_var(:state) do
-          when_val 0, :tiled_screen
-          when_val 1, :bitmap_screen
-          when_val 2, third if third
+      instance_eval do
+        state = 0
+        tick = 0
+        scene(:tiled_screen) do
+          instance_exec(&tiled)
+          state = 1 if tick == BITMAP_AWAY
+        end
+        scene(:bitmap_screen) do
+          screen :bitmap
+          clear_screen :blue
+          state = 0 if tick == BITMAP_BACK
+        end
+        game_loop do
+          tick += 1
+          yield tick if block_given?
+          case_var(:state) do
+            when_val 0, :tiled_screen
+            when_val 1, :bitmap_screen
+            when_val 2, third if third
+          end
         end
       end
     end
@@ -105,7 +107,7 @@ class TestSceneHandoverScenariosOnTheAdvance < Minitest::Test
       red_and_blue_art
       tiles :set, "#" => :red_art, "o" => :blue_art
       field = background :field, tiles: :set, map: Array.new(16) { ("#" * 8) + ("o" * 8) }
-      across_a_bitmap_screen { |tick| (tick == 2).then { field.rotate 180 } }
+      across_a_bitmap_screen { |tick| field.rotate 180 if tick == 2 }
     end
   end
 end

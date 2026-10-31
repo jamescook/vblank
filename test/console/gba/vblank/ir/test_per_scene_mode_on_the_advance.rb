@@ -16,10 +16,10 @@ module PerSceneModeOnTheAdvanceGames
     b = VBlank::Builder.new
     b.instance_eval do
       screen :bitmap
-      var :state, 0
+      state = 0
       scene :title do
         clear_screen :red
-        set! :state, 1 if pressed(:start)
+        state = 1 if pressed(:start)
       end
       scene :spin do
         screen :rotozoom

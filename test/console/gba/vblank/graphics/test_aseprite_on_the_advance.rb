@@ -32,11 +32,11 @@ class TestAsepriteOnTheAdvance < Minitest::Test
       end
       hero = sprite :hero, at: [40, 40], from_aseprite: file
       hero.play(play) if play # switch clip at setup; it holds while the loop animates it
-      f = var :f, 0
+      f = 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= run).then { halt }
+        f += 1
+        halt if f >= run
       end
     end
     builder.finalize_program
