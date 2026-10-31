@@ -131,7 +131,7 @@ class TestTiledColorLists < Minitest::Test
       end
       row = (0...8).map(&:to_s).join * ((screen_width / 64) + 1)
       map = Array.new((screen_height / 8) + 1) { row }
-      step = var :step, 0
+      step = 0
       lists = ->(k) { (0...8).to_h { |n| [:"own#{k}_#{n}", (0...steps).map { |s| :"step#{k}_#{n}_#{s}" }] } }
       if scenes.zero?
         board = background :board, tiles: :set0, map: map
@@ -148,15 +148,15 @@ class TestTiledColorLists < Minitest::Test
         end
         scene(:bare) { draw_text "HI", 8, 8, :white }
         state = var :state, 0
-        tick = var :tick, 0
+        tick = 0
         game_loop do
           tick += 1
           step += 1 if step < steps - 1
-          (tick == switch).then do
+          if tick == switch
             state = 1
             step = 0
           end
-          (tick == bare_at).then { state.set! scenes } if bare_at
+          state = scenes if bare_at && tick == bare_at
           case_var(:state) do
             scenes.times { |k| when_val k, :"screen#{k}" }
             when_val scenes, :bare
@@ -206,7 +206,7 @@ class TestTiledColorLists < Minitest::Test
       tiles :set, (0...7).to_h { |n| [n.to_s, :"tile#{n}"] }
       row = (0...7).map(&:to_s).join * ((screen_width / 56) + 1)
       state = var :state, -1
-      tick = var :tick, 0
+      tick = 0
       scene(:board) do
         board = background :board, tiles: :set, map: Array.new((screen_height / 8) + 1) { row }
         board.draw_with((0...7).to_h { |n| [:"own#{n}", :"dusk#{n}"] })
@@ -237,7 +237,7 @@ class TestTiledColorLists < Minitest::Test
       image :tile, width: 8, height: 8, colors: :day, places: QUARTERS
       tiles :set, "0" => :tile
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       scene(:dim) { background(:dim, tiles: :set, map: ["0"]).draw_with :dusk }
       scene(:plain) { background :plain, tiles: :set, map: ["0"] }
       game_loop do
@@ -270,7 +270,7 @@ class TestTiledColorLists < Minitest::Test
       image :tile, width: 8, height: 8, colors: :day, places: QUARTERS
       tiles :set, "0" => :tile
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       never = var :never, 0
       scene(:dim) { background(:dim, tiles: :set, map: ["0"]).draw_with :dusk }
       scene(:plain) do

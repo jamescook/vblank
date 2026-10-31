@@ -105,7 +105,7 @@ class TestBackgroundTileSets < Minitest::Test
       tiles :shrine, "#" => :shrine_floor
       tiles :clearing, "#" => :clearing_grass
       grid = (0...20).map { "#" * 30 }
-      var :mode, 1
+      mode = var :mode, 1
       pass = var :pass, 0
       scene(:title) { nil }
       scene(:play) do
@@ -115,8 +115,8 @@ class TestBackgroundTileSets < Minitest::Test
       end
       game_loop do
         pass += 1
-        set! :mode, 0 if pass == 4
-        set! :mode, 1 if pass == 6
+        mode = 0 if pass == 4
+        mode = 1 if pass == 6
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :play
@@ -387,7 +387,7 @@ class TestBackgroundTileSets < Minitest::Test
       game_loop do
         tick += 1
         where = 1 if tick == 3
-        (tick == 6).then do
+        if tick == 6
           state = 1
           where = 0
         end

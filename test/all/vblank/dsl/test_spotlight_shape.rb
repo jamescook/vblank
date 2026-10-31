@@ -36,11 +36,12 @@ class TestSpotlightShape < Minitest::Test
       program do
         screen :tiled
         light = spotlight at: [120, 80], radius: 40, dark: 100
+        width = nil
         light.shape do |_row|
-          w = var :width, 20
-          w + 0
+          width = var :width, 20
+          width + 0
         end
-        game_loop { add! :width, 1 }
+        game_loop { width += 1 }
       end
     end
 
@@ -51,7 +52,7 @@ class TestSpotlightShape < Minitest::Test
     error = assert_raises(ArgumentError) do
       lit_room do |light|
         seen = var :seen, 0
-        light.shape { |_row| seen.add!(1); 20 }
+        light.shape { |_row| seen += 1; 20 }
       end
     end
 
@@ -61,7 +62,7 @@ class TestSpotlightShape < Minitest::Test
   def test_a_shape_that_copies_into_a_game_variable_is_refused
     error = assert_raises(ArgumentError) do
       lit_room do |light|
-        var :kept, 0
+        kept = var :kept, 0
         light.shape { |_row| copy! :kept, :__spotlight_x; 20 }
       end
     end

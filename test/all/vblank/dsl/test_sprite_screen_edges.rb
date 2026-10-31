@@ -9,7 +9,7 @@ require "test_helper"
 # Pinned on the reference interpreter (the oracle); the shmup example exercises them
 # on real hardware.
 class TestSpriteScreenEdges < Minitest::Test
-  # Place an 8x8 sprite at (px, py) and record `predicate.then { flag = 1 }`; return
+  # Place an 8x8 sprite at (px, py) and record `flag = 1 if predicate`; return
   # the flag (1 if the predicate held at that position, else 0). The sprite starts on
   # screen and is moved to (px, py), so no coordinate literals appear in the helper
   # under test — only in the fixture that positions it.
@@ -18,10 +18,10 @@ class TestSpriteScreenEdges < Minitest::Test
     b.instance_eval do
       image(:dot, "#" => :red) { "########\n" * 8 } # 8x8, fully opaque -> hitbox is the whole tile
       screen :bitmap
-      var :flag, 0
+      flag = var :flag, 0
       s = sprite(:dot, at: [100, 80])
       s.move_to(px, py)
-      set! :flag, 1 if predicate.call(s)
+      flag = 1 if predicate.call(s)
       halt
     end
     b.finalize_program
@@ -90,10 +90,10 @@ class TestSpriteScreenEdges < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :on_flag, 0
-      var :off_flag, 0
-      set! :on_flag, 1 if box(10, 10, 20, 20).off_screen?   # on screen -> stays 0
-      set! :off_flag, 1 if box(-40, 10, 20, 20).off_screen? # fully off the left -> 1
+      on_flag = var :on_flag, 0
+      off_flag = var :off_flag, 0
+      on_flag = 1 if box(10, 10, 20, 20).off_screen?   # on screen -> stays 0
+      off_flag = 1 if box(-40, 10, 20, 20).off_screen? # fully off the left -> 1
       halt
     end
     b.finalize_program

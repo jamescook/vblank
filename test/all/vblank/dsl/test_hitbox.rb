@@ -40,12 +40,12 @@ class TestHitbox < Minitest::Test
       screen :bitmap
       clear_screen :black
       image(:dot, "." => :transparent, "#" => :white) { DOT_ART }
-      var :hit, 0
+      hit = 0
       a  = sprite :dot, at: [ax, 20], hitbox: hitbox
       bb = sprite :dot, at: [bx, 20], hitbox: hitbox
       game_loop do
         wait_vblank
-        set! :hit, 1 if a.overlaps?(bb)
+        hit = 1 if a.overlaps?(bb)
         halt
       end
     end
@@ -111,12 +111,12 @@ class TestHitbox < Minitest::Test
       clear_screen :black
       image(:wide, "." => :transparent, "#" => :white) { "########\n########" } # visible full width
       image(:narrow, "." => :transparent, "#" => :white) { "...##...\n...##..." } # visible only middle
-      var :hit, 0
+      hit = 0
       a = sprite :poser, at: [100, 20], facing: { left: :narrow, right: :wide }
       bar = box 108, 20, 1, 2 # just past the wide pose's right edge (100+8 = 108)
       game_loop do
         wait_vblank
-        set! :hit, 1 if a.overlaps?(bar)
+        hit = 1 if a.overlaps?(bar)
         halt
       end
     end

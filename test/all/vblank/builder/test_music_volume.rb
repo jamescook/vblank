@@ -40,10 +40,10 @@ module MusicVolumeGames
           note :C4, :whole
         end
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        named_once ? (pass == 1).then { play_song :hold } : play_song(:hold)
+        play_song :hold if !named_once || pass == 1
         instance_exec(pass, &body)
       end
     end
@@ -64,7 +64,7 @@ module MusicVolumeGames
           4.times { note :C4, :quarter }
         end
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         play_song :drums
@@ -105,7 +105,7 @@ class TestMusicVolume < Minitest::Test
   # at full, the last at nothing, the same reckoning `fade_out` makes for the screen — and holds
   # it there. The song goes on playing, silently, until something brings it back.
   def test_a_fade_out_walks_the_music_down_to_silence_and_holds_it_there
-    program = held_note_game(named_once: true) { |pass| (pass == 10).then { fade_music_out frames: 5 } }
+    program = held_note_game(named_once: true) { |pass| fade_music_out frames: 5 if pass == 10 }
     heard = loudness_by_frame(program, 30, stops: true).reject { |frame, _| frame == 2 }
 
     assert_equal [[[1, 9]], [[1, 6]], [[1, 3]], [[1, 0]]], heard.values
@@ -139,7 +139,7 @@ class TestMusicVolume < Minitest::Test
 
   # ...and one said while the music is already at full has nothing to bring up.
   def test_a_fade_in_at_full_volume_changes_nothing
-    program = held_note_game(named_once: true) { |pass| (pass == 10).then { fade_music_in } }
+    program = held_note_game(named_once: true) { |pass| fade_music_in if pass == 10 }
 
     assert_equal({ 2 => [[1, 12]] }, loudness_by_frame(program, 30))
   end
@@ -272,9 +272,9 @@ class TestMusicVolume < Minitest::Test
     b.instance_eval do
       screen :bitmap
       enable_sound
-      pass = var :pass, 0
-      loud_at_start = var :loud_at_start, 0
-      silent_at = var :silent_at, 0
+      pass = 0
+      loud_at_start = 0
+      silent_at = 0
       game_loop do
         pass += 1
         loud_at_start = music_volume if pass == 1
@@ -295,7 +295,7 @@ class TestMusicVolume < Minitest::Test
   # after the game says so — the same one-frame step `play_song` takes, since the player that
   # sounds the notes reads what the game said at the start of the next frame.
   def test_half_the_music_volume_halves_a_note_already_sounding
-    program = held_note_game { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game { |pass| music_volume 50 if pass == 5 }
 
     assert_equal({ 2 => [[1, 12]], 6 => [[1, 6]] }, loudness_by_frame(program, 10))
   end
@@ -306,7 +306,7 @@ class TestMusicVolume < Minitest::Test
   # striking it again would be a second hit. The level reaches the next hit instead: the first at
   # its own volume, and the second, after the game halves the music, at half.
   def test_half_the_music_volume_reaches_the_next_drum_hit
-    program = drum_game { |pass| (pass == 5).then { music_volume 50 } }
+    program = drum_game { |pass| music_volume 50 if pass == 5 }
 
     assert_equal({ 2 => [[4, 12]], 62 => [[4, 6]] }, loudness_by_frame(program, 70))
   end
@@ -316,7 +316,7 @@ class TestMusicVolume < Minitest::Test
   # The wave voice holds its note at whatever volume it is given, while it plays — so a held
   # note simply gets the new one, and the voice it is on is channel 3.
   def test_half_the_music_volume_halves_a_note_on_the_wave_voice
-    program = held_note_game(plays: :triangle) { |pass| (pass == 5).then { music_volume 50 } }
+    program = held_note_game(plays: :triangle) { |pass| music_volume 50 if pass == 5 }
 
     assert_equal({ 2 => [[3, 12]], 6 => [[3, 6]] }, loudness_by_frame(program, 10))
   end

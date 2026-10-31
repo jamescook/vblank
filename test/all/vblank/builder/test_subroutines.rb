@@ -23,9 +23,11 @@ class TestSubroutines < Minitest::Test
 
   def test_func_and_call_builds
     rom = build do
+      ball_x = 0
+      ball_y = 0
       func :reset_ball do
-        set! :ball_x, 120
-        set! :ball_y, 80
+        ball_x = 120
+        ball_y = 80
       end
 
       call :reset_ball
@@ -38,11 +40,12 @@ class TestSubroutines < Minitest::Test
   def test_call_before_func_definition
     # Order shouldn't matter — call before func should work
     rom = build do
+      ball_x = 0
       call :reset_ball
       halt
 
       func :reset_ball do
-        set! :ball_x, 120
+        ball_x = 120
       end
     end
 
@@ -51,8 +54,9 @@ class TestSubroutines < Minitest::Test
 
   def test_multiple_calls_to_same_func
     rom = build do
+      score = 0
       func :inc_score do
-        add_var! :score, 1
+        score += 1
       end
 
       call :inc_score
@@ -94,14 +98,12 @@ class TestSubroutines < Minitest::Test
     rom = build do
       screen :bitmap
 
+      ball_x = 120
       func :update_ball do
-        add_var! :ball_x, 2
-        if_ge :ball_x, 240 do
-          set! :ball_x, 0
-        end
+        ball_x += 2
+        ball_x = 0 if ball_x >= 240
       end
 
-      set! :ball_x, 120
       game_loop do
         call :update_ball
       end
@@ -112,13 +114,15 @@ class TestSubroutines < Minitest::Test
 
   def test_func_calling_another_func
     rom = build do
+      x = 0
+      y = 0
       func :inner do
-        set! :x, 1
+        x = 1
       end
 
       func :outer do
         call :inner
-        set! :y, 2
+        y = 2
       end
 
       call :outer

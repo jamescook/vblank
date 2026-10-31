@@ -173,7 +173,7 @@ module LayerTransparencyGames
       game_loop do
         tick += 1
         clear.approach! 0, 2
-        (tick > FLASH_AT).then { fade :black, 0 } if lifting
+        fade :black, 0 if lifting && tick > FLASH_AT
       end
     end
   end
@@ -193,7 +193,7 @@ module LayerTransparencyGames
       tiles :otherset, "#" => :other
       full = Array.new(20) { "#" * 30 }
       layers :banner, :sky, :deep, :glass
-      var :state, 0
+      state = var :state, 0
 
       scene :title do
         layer(:banner) { background :banner, tiles: :otherset, map: full }
@@ -208,7 +208,7 @@ module LayerTransparencyGames
       tick = var :tick, 0
       game_loop do
         tick += 1
-        set! :state, 1 if tick > SWITCH_AT
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play

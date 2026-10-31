@@ -12,9 +12,9 @@ module GameLoopGames
     builder = VBlank::Builder.new
     builder.instance_eval do
       screen :bitmap
-      frames = var :frames, 0
+      frames = 0
       game_loop do
-        add! :frames, 1 if frames < count
+        frames += 1 if frames < count
       end
     end
     builder.finalize_program

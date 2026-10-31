@@ -25,7 +25,7 @@ module PoolDrawingOrderGames
       COLORS.each { |color| image(:"#{color}_square", "#" => color) { SQUARE } }
       crowd = pool :crowd, x: 0, y: 0, tag: 0, capacity: capacity, on_full: on_full,
                            facing: COLORS.to_h { |color| [color, :"#{color}_square"] }
-      step = var :step, 0
+      step = 0
       game_loop do
         instance_exec(crowd, step, &script)
         crowd.each { |thing| thing.face COLORS, showing: thing.tag }
@@ -39,7 +39,7 @@ module PoolDrawingOrderGames
   # Two squares spawned together, red first.
   private def first_spawned_crowd
     crowd_program do |crowd, step|
-      (step == 0).then do
+      if step == 0
         crowd.spawn x: 40, y: 40, tag: RED
         crowd.spawn x: 44, y: 44, tag: GREEN
       end
@@ -50,12 +50,12 @@ module PoolDrawingOrderGames
   # lands in the slot the very first thing had.
   private def freed_slot_crowd
     crowd_program do |crowd, step|
-      (step == 0).then do
+      if step == 0
         crowd.spawn x: 200, y: 100, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: RED
       end
       if step == 1
-        crowd.each { |thing| (thing.tag == BLUE).then { thing.remove } }
+        crowd.each { |thing| thing.remove if thing.tag == BLUE }
       end
       crowd.spawn x: 44, y: 44, tag: GREEN if step == 2
     end
@@ -65,15 +65,15 @@ module PoolDrawingOrderGames
   # after it.
   private def three_deep_crowd
     crowd_program(capacity: 4) do |crowd, step|
-      (step == 0).then do
+      if step == 0
         crowd.spawn x: 200, y: 100, tag: BLUE
         crowd.spawn x: 200, y: 120, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: GREEN
       end
       if step == 1
-        crowd.each { |thing| (thing.x == 200).then { thing.remove } }
+        crowd.each { |thing| thing.remove if thing.x == 200 }
       end
-      (step == 2).then do
+      if step == 2
         crowd.spawn x: 42, y: 42, tag: RED
         crowd.spawn x: 44, y: 44, tag: BLUE
       end
@@ -83,7 +83,7 @@ module PoolDrawingOrderGames
   # A full pool that reuses its oldest thing makes it the newest, so it goes behind.
   private def recycled_crowd
     crowd_program(capacity: 2, on_full: :recycle_oldest) do |crowd, step|
-      (step == 0).then do
+      if step == 0
         crowd.spawn x: 200, y: 100, tag: BLUE
         crowd.spawn x: 40, y: 40, tag: RED
       end
@@ -94,12 +94,12 @@ module PoolDrawingOrderGames
   # Removing the thing in front shows the one behind it, where it was.
   private def front_removed_crowd
     crowd_program do |crowd, step|
-      (step == 0).then do
+      if step == 0
         crowd.spawn x: 40, y: 40, tag: RED
         crowd.spawn x: 44, y: 44, tag: GREEN
       end
       if step == 2
-        crowd.each { |thing| (thing.tag == RED).then { thing.remove } }
+        crowd.each { |thing| thing.remove if thing.tag == RED }
       end
     end
   end
@@ -174,9 +174,9 @@ class TestPoolDrawingOrder < Minitest::Test
       image :ship, width: 8, height: 8, data: Array.new(64, :red), colors: OWN
       colors :hurt, HURT
       ships = pool :ship, x: 0, y: 0, capacity: 2, image: :ship
-      step = var :step, 0
+      step = 0
       game_loop do
-        (step == 0).then do
+        if step == 0
           ships.spawn x: 40, y: 40
           ships.spawn x: 80, y: 40
         end
@@ -209,7 +209,7 @@ class TestPoolDrawingOrder < Minitest::Test
       image(:red_square, "#" => :red) { SQUARE }
       crowd = pool :crowd, x: 0, y: 0, capacity: 2, image: :red_square
       crowd.spawn x: 10, y: 40
-      once_a_frame { crowd.each { |thing| thing.x.add! 3 } }
+      once_a_frame { crowd.each { |thing| thing.x += 3 } }
       game_loop {}
     end
     b.finalize_program

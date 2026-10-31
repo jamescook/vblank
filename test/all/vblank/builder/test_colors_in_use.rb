@@ -55,9 +55,9 @@ class TestColorsInUse < Minitest::Test
       pass = var :pass, 0
       game_loop do
         pass += 1
-        (pass == 3).then do
+        if pass == 3
           room = 1
-          things.each { |thing| thing.kind.add! PER_ROOM }
+          things.each { |thing| thing.kind += PER_ROOM }
         end
         colors_in_use room_lists, showing: room if say_which
         things.each { |thing| thing.draw_with names, showing: thing.kind }
@@ -120,9 +120,9 @@ class TestColorsInUse < Minitest::Test
       room = var :room, 0
       game_loop do
         pass += 1
-        (pass == 3).then do
+        if pass == 3
           room = 1
-          things.each { |thing| thing.kind.add! 1 }
+          things.each { |thing| thing.kind += 1 }
         end
         colors_in_use [%i[set0 set1], %i[set1 set2], %i[set2 set0]], showing: room
         things.each { |thing| thing.draw_with %i[set0 set1 set2], showing: thing.kind }

@@ -42,9 +42,9 @@ module BitOperationsCases
       repeat(256) do |i|
         row = shape[i >> 4]                      # which row of the shape — a shift by 4
         bit = (row >> (15 - (i & 15))) & 1       # ...and one pixel out of that row
-        (bit == 1).then do
-          solid.add! 1
-          where.add! i
+        if bit == 1
+          solid += 1
+          where += i
         end
       end
       halt
@@ -71,11 +71,11 @@ module BitOperationsCases
       bank = var :bank, 0
       rebuilt = var :rebuilt, 0
 
-      tile.set! cell & 0x3FF
-      across.set!((cell >> 10) & 1)
-      down.set!((cell >> 11) & 1)
-      bank.set!((cell >> 12) & 15)
-      rebuilt.set!((bank << 12) | (down << 11) | (across << 10) | tile)
+      tile = cell & 0x3FF
+      across = (cell >> 10) & 1
+      down = (cell >> 11) & 1
+      bank = (cell >> 12) & 15
+      rebuilt = (bank << 12) | (down << 11) | (across << 10) | tile
       halt
     end
     [expected, game]
@@ -98,13 +98,13 @@ module BitOperationsCases
       cleared = var :cleared, 0
       mask = var :mask, hurt
 
-      flags.set! flags | hurt          # set a flag
-      flags.set! flags | armed         # and another
-      flags.set! flags | 0x01
-      both.set!(flags & (hurt | armed)) # two flags at once, not next to each other
-      cleared.set!(flags & ~mask)       # clear one through a mask the game works out
-      flags.set! flags & ~hurt          # clear it, the mask written down
-      flags.set! flags ^ 0x01           # turn one over
+      flags = flags | hurt          # set a flag
+      flags = flags | armed         # and another
+      flags = flags | 0x01
+      both = flags & (hurt | armed) # two flags at once, not next to each other
+      cleared = flags & ~mask       # clear one through a mask the game works out
+      flags = flags & ~hurt          # clear it, the mask written down
+      flags = flags ^ 0x01           # turn one over
       halt
     end
     [expected, game]
@@ -128,24 +128,24 @@ module BitOperationsCases
       one = var :one, 1
       low = var :low, -256
 
-      var :up_far, 0
-      var :down_far, 0
-      var :up_back, 0
-      var :down_back, 0
-      var :down_negative, 0
-      var :up_round, 0
-      var :down_round, 0
+      up_far = var :up_far, 0
+      down_far = var :down_far, 0
+      up_back = var :up_back, 0
+      down_back = var :down_back, 0
+      down_negative = var :down_negative, 0
+      up_round = var :up_round, 0
+      down_round = var :down_round, 0
 
-      set! :up_far, one << far            # a count worked out, past the end
-      set! :down_far, back >> far         # -1 shifted down stays -1: the sign fills in
-      set! :up_back, one << back          # a negative count: off the end, not the other way
-      set! :down_back, one >> back
-      set! :down_negative, low >> 6       # -256 down six places is -4, keeping its sign
+      up_far = one << far            # a count worked out, past the end
+      down_far = back >> far         # -1 shifted down stays -1: the sign fills in
+      up_back = one << back          # a negative count: off the end, not the other way
+      down_back = one >> back
+      down_negative = low >> 6       # -256 down six places is -4, keeping its sign
       # A count of 256 is the one the chip would get wrong on its own: it reads only
       # the low byte of a count, and 256's low byte is zero, so left alone it would
       # shift by nothing at all instead of emptying the number.
-      set! :up_round, one << round
-      set! :down_round, low >> round
+      up_round = one << round
+      down_round = low >> round
       halt
     end
     [expected, game]
@@ -230,7 +230,7 @@ class TestBitOperations < Minitest::Test
       build_program do
         screen :bitmap
         flags = var :flags, 1
-        set! :out, flags << 40
+        out = flags << 40
       end
     end
 
@@ -243,7 +243,7 @@ class TestBitOperations < Minitest::Test
       build_program do
         screen :bitmap
         flags = var :flags, 1
-        set! :out, flags >> -2
+        out = flags >> -2
       end
     end
 
@@ -259,9 +259,12 @@ class TestBitOperations < Minitest::Test
     assert_computes(masked: 0x0F & 0x3C, ored: 0xF0 | 0x0C, xored: 0xFF ^ 0x3C) do
       screen :bitmap
       value = var :value, 0x3C
-      set! :masked, 0x0F & value
-      set! :ored, 0xF0 | value
-      set! :xored, 0xFF ^ value
+      masked = var :masked, 0
+      ored = var :ored, 0
+      xored = var :xored, 0
+      masked = 0x0F & value
+      ored = 0xF0 | value
+      xored = 0xFF ^ value
       halt
     end
   end
@@ -274,7 +277,7 @@ class TestBitOperations < Minitest::Test
       build_program do
         screen :bitmap
         col = var :col, 3
-        set! :bit, 0x8000 >> col
+        bit = 0x8000 >> col
       end
     end
 
@@ -306,7 +309,7 @@ class TestBitOperations < Minitest::Test
       build_program do
         screen :bitmap
         px = var :px, 3.5
-        set! :low, px & 15
+        low = px & 15
       end
     end
 
@@ -320,7 +323,7 @@ class TestBitOperations < Minitest::Test
         screen :bitmap
         flags = var :flags, 0
         speed = var :speed, 1.5
-        set! :low, flags & speed
+        low = flags & speed
       end
     end
 

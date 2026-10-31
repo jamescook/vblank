@@ -24,7 +24,7 @@ class TestSongDuties < Minitest::Test
         instance_eval(&parts)
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         instance_exec(count, &each_frame) if each_frame
@@ -96,7 +96,7 @@ class TestSongDuties < Minitest::Test
 
   # THE GAME'S BEEP takes the second voice, and no part's pattern changes the beep's shape.
   def test_a_beep_stops_a_pattern_on_its_voice
-    game = song_game(each_frame: ->(count) { (count == 10).then { beep 880 } }) do
+    game = song_game(each_frame: ->(count) { beep 880 if count == 10 }) do
       voice(:lead) { |v| v.rest :whole }
       voice(:harmony) { |v| v.duty %i[eighth half]; v.note :E4, :whole }
     end
@@ -106,7 +106,7 @@ class TestSongDuties < Minitest::Test
   end
 
   def test_a_song_stopped_steps_no_more
-    game = song_game(each_frame: ->(count) { (count == 10).then { stop_music } }) do
+    game = song_game(each_frame: ->(count) { stop_music if count == 10 }) do
       voice(:lead) { |v| v.duty %i[eighth half]; v.note :C5, :whole }
     end
 
@@ -123,7 +123,7 @@ class TestSongDuties < Minitest::Test
       clear_screen :black
       enable_sound
       sfx = sound_effects :sfx, { zap: zap }
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         sfx.play :zap if count == 2

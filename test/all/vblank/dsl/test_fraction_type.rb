@@ -155,7 +155,8 @@ class TestFractionType < Minitest::Test
     err = assert_raises(ArgumentError) do
       build do
         screen :bitmap
-        var(:count, 3).add! 1.5
+        count = var :count, 3
+        count += 1.5
       end
     end
 

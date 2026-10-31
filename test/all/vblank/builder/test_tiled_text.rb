@@ -32,7 +32,7 @@ module TiledTextGames
     b = Builder.new
     b.instance_eval do
       screen :tiled
-      blink = var :blink, 1
+      blink = 1
       draw_text "A", 100, 20, :white                       # always on: the control
       draw_text "B", 140, 20, :white if blink == 1  # only while blink is 1
       game_loop do
@@ -130,11 +130,11 @@ class TestTiledText < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :tiled
-      var :score, 0
+      score = var :score, 0
       draw_number :score, 100, 20, :white, digits: 1
       game_loop do
         wait_vblank            # composites the score's current digit
-        add! :score, 1
+        score += 1
         if_eq(:score, 6) { halt } # after this frame's present showed 6-1... see below
       end
     end
@@ -149,7 +149,7 @@ class TestTiledText < Minitest::Test
   # --- text declared under a condition: a blinking prompt ---
   #
   # A tiled glyph is not painted where the call sits — it is a sprite the console
-  # redraws every frame from a list settled at build time — so a `.then` around the
+  # redraws every frame from a list settled at build time — so an `if` around the
   # call has to reach the glyph itself, or a prompt written to blink stands still.
 
 
@@ -168,13 +168,13 @@ class TestTiledText < Minitest::Test
     refute_glyph(off, "B", 140, 20, WHITE) # ...the conditional one has gone
   end
 
-  # The other side of the same test: a declaration in the `.else` shows when the
+  # The other side of the same test: a declaration in the `else` shows when the
   # condition is false.
   def test_text_in_an_else_is_shown_while_the_condition_is_false
     b = Builder.new
     b.instance_eval do
       screen :tiled
-      blink = var :blink, 1
+      blink = 1
       if blink == 1
         draw_text "A", 100, 20, :white
       else

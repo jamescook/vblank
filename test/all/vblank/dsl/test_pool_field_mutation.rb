@@ -5,10 +5,10 @@ require "differential"
 
 # Changing ONE field of ONE pool instance. `each` hands back a row whose fields are
 # mutable handles, so an instance moves by writing to its own slot in that field's
-# backing list — `b.y.add! b.vy` is really `y[i] = y[i] + vy[i]`, at an index the game
+# backing list — `b.y += b.vy` is really `y[i] = y[i] + vy[i]`, at an index the game
 # works out as it runs.
 #
-# Two implementations sit behind those verbs. `set!`/`add!`/`sub!` write a single
+# Two implementations sit behind those verbs. `=`, `+=` and `-=` write a single
 # expression straight back into the slot. `approach!`/`abs!`/`negate_abs!`/`flip!`/`clamp!`
 # have no single expression, so they round-trip through a scratch variable: load the
 # slot, apply the ordinary mutator to that, store it back. Every test here reads the
@@ -25,15 +25,15 @@ class TestPoolFieldMutation < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :changed, 0
-      var :untouched, 0
+      changed = var :changed, 0
+      untouched = var :untouched, 0
       rows = pool :row, v: 0, tag: 0, capacity: 4
       rows.spawn v: start, tag: 1
       rows.spawn v: start, tag: 2
       rows.each do |row|
-        (row.tag == 1).then { mutate.call(row.v) }
-        (row.tag == 1).then { set! :changed, row.v }
-        (row.tag == 2).then { set! :untouched, row.v }
+        instance_exec(row.v, &mutate) if row.tag == 1
+        changed = row.v if row.tag == 1
+        untouched = row.v if row.tag == 2
       end
       halt
     end
@@ -45,14 +45,14 @@ class TestPoolFieldMutation < Minitest::Test
   # --- the mutators that write one expression back into the slot ---
 
   def test_set_replaces_the_rows_own_value
-    changed, untouched = mutating(50) { |v| v.set! 100 }
+    changed, untouched = mutating(50) { |v| v = 100 }
 
     assert_equal 100, changed
     assert_equal 50, untouched, "the other live row keeps its own value"
   end
 
   def test_sub_takes_the_amount_off_the_rows_own_value
-    changed, untouched = mutating(50) { |v| v.sub! 30 }
+    changed, untouched = mutating(50) { |v| v -= 30 }
 
     assert_equal 20, changed
     assert_equal 50, untouched, "the other live row keeps its own value"
@@ -98,7 +98,7 @@ class TestPoolFieldMutation < Minitest::Test
   # `row.v.abs` leaves the row's own value negative.
   def test_a_fields_abs_in_a_comparison_leaves_the_row_alone
     changed, = mutating(-25) do |v|
-      (v.abs == 25).then { v.add! 100 }
+      v += 100 if v.abs == 25
     end
 
     assert_equal 75, changed, "the comparison held, and v was still -25 when 100 was added"
@@ -111,18 +111,18 @@ class TestPoolFieldMutation < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :first, 0
-      var :second, 0
-      var :third, 0
+      first = var :first, 0
+      second = var :second, 0
+      third = var :third, 0
       rows = pool :row, v: 0, tag: 0, capacity: 8
       rows.spawn v: -10, tag: 1
       rows.spawn v: -20, tag: 2
       rows.spawn v: -30, tag: 3
       rows.each do |row|
         row.v.abs!
-        (row.tag == 1).then { set! :first, row.v }
-        (row.tag == 2).then { set! :second, row.v }
-        (row.tag == 3).then { set! :third, row.v }
+        first = row.v if row.tag == 1
+        second = row.v if row.tag == 2
+        third = row.v if row.tag == 3
       end
       halt
     end
@@ -134,7 +134,7 @@ class TestPoolFieldMutation < Minitest::Test
 
   # THE CONSOLE RUNS IT THE SAME WAY. A marker is drawn at each row's own field, so
   # where the pixels land is the number the console worked out. One row takes the
-  # direct write (`sub!`), the other the scratch round-trip (`abs!`) from a negative
+  # direct write (`-=`), the other the scratch round-trip (`abs!`) from a negative
   # start that no coordinate could hold.
   def test_the_console_mutates_a_row_field_the_same_way
     program = marker_program
@@ -156,8 +156,8 @@ class TestPoolFieldMutation < Minitest::Test
       rows.spawn x: 90, y: 40
       rows.spawn x: -30, y: 60
       rows.each do |row|
-        (row.y == 40).then { row.x.sub! 30 }
-        (row.y == 60).then { row.x.abs! }
+        row.x -= 30 if row.y == 40
+        row.x.abs! if row.y == 60
         draw_rect_at row.x, row.y, 4, 4, :green
       end
       halt

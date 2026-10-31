@@ -17,7 +17,7 @@ class TestEachPass < Minitest::Test
     b.instance_eval do
       screen :bitmap
       var :steps, 0
-      turn = var :turn, 0
+      turn = 0
       instance_exec(&before) if before
       game_loop do
         turn += 1
@@ -42,13 +42,13 @@ class TestEachPass < Minitest::Test
   }
 
   def test_start_takes_a_step_on_its_own_pass_and_one_a_pass_until_stop
-    seen = steps_by_turn(10, before: counting) { |turn| (turn == 3).then { each_pass(:counting).start } }
+    seen = steps_by_turn(10, before: counting) { |turn| each_pass(:counting).start if turn == 3 }
 
     assert_equal [0, 0, 0, 1, 2, 3, 4, 4, 4, 4], seen
   end
 
   def test_starting_a_running_step_does_nothing
-    seen = steps_by_turn(6, before: counting) { |turn| ((turn >= 2) & (turn <= 4)).then { each_pass(:counting).start } }
+    seen = steps_by_turn(6, before: counting) { |turn| each_pass(:counting).start if turn >= 2 && turn <= 4 }
 
     assert_equal [0, 0, 1, 2, 3, 4], seen
   end
@@ -64,7 +64,7 @@ class TestEachPass < Minitest::Test
         job.start
       end
     }
-    seen = steps_by_turn(6, before: restarting) { |turn| (turn == 2).then { each_pass(:restarting).start } }
+    seen = steps_by_turn(6, before: restarting) { |turn| each_pass(:restarting).start if turn == 2 }
 
     assert_equal [0, 0, 1, 2, 3, 4], seen
   end

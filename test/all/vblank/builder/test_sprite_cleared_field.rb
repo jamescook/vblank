@@ -29,10 +29,10 @@ class TestSpriteClearedField < Minitest::Test
       image(:block, "#" => :red) { BLOCK }
       clear_screen :white
       hero = sprite :block, at: START
-      step = var :step, 0
+      step = 0
       game_loop do
         instance_exec(hero, step, &body)
-        step.add! 1
+        step += 1
       end
     end
     b.finalize_program
@@ -50,8 +50,8 @@ class TestSpriteClearedField < Minitest::Test
 
   def test_a_sprite_moved_after_a_clear_leaves_none_of_the_old_field
     prog = field_program do |hero, step|
-      (step == 3).then { clear_screen :blue }
-      (step > 3).then { hero.move :right, by: 8 }
+      clear_screen :blue if step == 3
+      hero.move :right, by: 8 if step > 3
     end
 
     seen = colors_after(prog, 8)
@@ -63,8 +63,8 @@ class TestSpriteClearedField < Minitest::Test
 
   def test_a_sprite_hidden_after_a_clear_leaves_none_of_the_old_field
     prog = field_program do |hero, step|
-      (step == 3).then { clear_screen :blue }
-      (step == 5).then { hero.hide }
+      clear_screen :blue if step == 3
+      hero.hide if step == 5
     end
 
     seen = colors_after(prog, 8)
@@ -77,8 +77,8 @@ class TestSpriteClearedField < Minitest::Test
   def test_a_clear_inside_an_area_leaves_a_sprite_outside_it_alone
     width, height = VBlank::Console.described(game_console).screen_size
     prog = field_program do |hero, step|
-      (step == 3).then { inside(120, 0, width - 120, height) { clear_screen :blue } }
-      (step > 3).then { hero.move :down, by: 8 }
+      inside(120, 0, width - 120, height) { clear_screen :blue } if step == 3
+      hero.move :down, by: 8 if step > 3
     end
 
     seen = colors_after(prog, 8)
@@ -118,7 +118,7 @@ class TestSpriteClearedField < Minitest::Test
       image(:block, "#" => :red) { BLOCK }
       clear_screen :white
       state = var :state, PLAY
-      step = var :step, 0
+      step = 0
       scene(:play) { instance_exec(sprite(:block, at: START), state, step, &play) }
       scene(:rest) {}
       game_loop do
@@ -126,7 +126,7 @@ class TestSpriteClearedField < Minitest::Test
           when_val PLAY, :play
           when_val REST, :rest
         end
-        step.add! 1
+        step += 1
       end
     end
     b.finalize_program
@@ -137,9 +137,9 @@ class TestSpriteClearedField < Minitest::Test
   # hand over, with the leaving scene's sprite still on the picture.
   def test_a_scene_that_clears_as_it_hands_over_leaves_a_whole_field
     prog = scenes_program do |_hero, state, step|
-      (step == 3).then do
+      if step == 3
         clear_screen :blue
-        state.set! REST
+        state = REST
       end
     end
 
@@ -150,8 +150,8 @@ class TestSpriteClearedField < Minitest::Test
 
   def test_a_scenes_sprite_moved_after_its_scene_clears_leaves_none_of_the_old_field
     prog = scenes_program do |hero, _state, step|
-      (step == 3).then { clear_screen :blue }
-      (step > 3).then { hero.move :right, by: 8 }
+      clear_screen :blue if step == 3
+      hero.move :right, by: 8 if step > 3
     end
 
     seen = colors_after(prog, 8)

@@ -39,8 +39,8 @@ class TestFrameSync < Minitest::Test
   def test_a_game_loop_is_paced_once_per_frame_with_no_sync_written
     program, = build do
       screen :bitmap
-      var :n, 0
-      game_loop { add! :n, 1 }
+      n = var :n, 0
+      game_loop { n += 1 }
     end
 
     assert_equal FRAMES, passes(program),
@@ -52,10 +52,10 @@ class TestFrameSync < Minitest::Test
   def test_a_hand_written_sync_does_not_double_the_pace
     program, err = build do
       screen :bitmap
-      var :n, 0
+      n = var :n, 0
       game_loop do
         wait_vblank
-        add! :n, 1
+        n += 1
       end
     end
 
@@ -68,10 +68,10 @@ class TestFrameSync < Minitest::Test
   def test_manual_timing_leaves_the_developers_sync_in_charge
     program, err = build(frame_sync: :manual) do
       screen :bitmap
-      var :n, 0
+      n = var :n, 0
       game_loop do
         wait_vblank
-        add! :n, 1
+        n += 1
       end
     end
 
@@ -84,8 +84,8 @@ class TestFrameSync < Minitest::Test
   def test_manual_timing_without_a_sync_runs_unpaced
     program, = build(frame_sync: :manual) do
       screen :bitmap
-      var :n, 0
-      game_loop { add! :n, 1 }
+      n = var :n, 0
+      game_loop { n += 1 }
     end
 
     # The interpreter's step budget is the only thing that stops a loop with no frames, and no
@@ -100,8 +100,8 @@ class TestFrameSync < Minitest::Test
   def test_a_repeat_inside_the_loop_is_not_frame_paced
     program, = build do
       screen :bitmap
-      var :n, 0
-      game_loop { repeat(4) { add! :n, 1 } }
+      n = var :n, 0
+      game_loop { repeat(4) { n += 1 } }
     end
 
     assert_equal FRAMES * 4, passes(program),
@@ -129,8 +129,8 @@ class TestFrameSync < Minitest::Test
   def test_the_missing_sync_warning_does_not_fire
     _program, err = build do
       screen :bitmap
-      var :n, 0
-      game_loop { add! :n, 1 }
+      n = var :n, 0
+      game_loop { n += 1 }
     end
 
     refute_match(/thousands of times a second/, err,

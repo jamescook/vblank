@@ -17,14 +17,17 @@ module ScenesGames
   # dispatch that answered the new value would run the whole table in one pass.
   #
   # One pass, one scene body: nothing but the first counter moves.
-  HANDING_ON = Ractor.make_shareable(lambda do |b|
-    b.instance_eval do
+  private def handing_on_game(builder)
+    builder.instance_eval do
       screen :bitmap
-      scene(:first)  { add! :ran_first, 1;  set! :state, 1 }
-      scene(:second) { add! :ran_second, 1; set! :state, 2 }
-      scene(:third)  { add! :ran_third, 1 }
+      state = var :state, 0
+      ran_first = 0
+      ran_second = 0
+      ran_third = 0
+      scene(:first)  { ran_first += 1;  state = 1 }
+      scene(:second) { ran_second += 1; state = 2 }
+      scene(:third)  { ran_third += 1 }
 
-      set! :state, 0
       case_var :state do
         when_val 0, :first
         when_val 1, :second
@@ -32,19 +35,22 @@ module ScenesGames
       end
       halt
     end
-  end)
+  end
 
   # A routine declared the first time something asks for it: the outer one declares the
   # middle one inside its own body, and the middle one declares the inner one. Bodies are
   # built after the program block, so these declarations happen while other bodies are
   # being built — and each must still be built, or the call to it goes nowhere.
-  DECLARED_INSIDE = Ractor.make_shareable(lambda do |b|
-    b.instance_eval do
+  private def declared_inside_game(builder)
+    builder.instance_eval do
+      ran_outer = 0
+      ran_middle = 0
+      ran_inner = 0
       func(:outer) do
-        add! :ran_outer, 1
+        ran_outer += 1
         func(:middle) do
-          add! :ran_middle, 1
-          func(:inner) { add! :ran_inner, 1 }
+          ran_middle += 1
+          func(:inner) { ran_inner += 1 }
           call :inner
         end
         call :middle
@@ -52,7 +58,7 @@ module ScenesGames
       call :outer
       halt
     end
-  end)
+  end
 
   # A title that hands over on its third pass to :play, on a tiled screen. :play has a sprite
   # of its own, whose picture is copied into video memory as it takes over, and notes the
@@ -63,8 +69,8 @@ module ScenesGames
       screen :tiled
       image(:block, "#" => :red) { "########\n" * 8 }
       state = var :state, first
-      step = var :step, 0
-      began = var :began, -1
+      step = 0
+      began = -1
       scene(:title) { state = 1 if step == 2 }
       scene(:play, loads_first: loads_first) do
         sprite :block, at: [40, 40]
@@ -92,7 +98,7 @@ class TestScenes < Minitest::Test
 
   def test_a_scene_that_hands_on_does_not_run_the_scene_it_hands_to
     builder = Builder.new
-    HANDING_ON.call(builder)
+    handing_on_game(builder)
     builder.finalize_program
     ran = game_player.run(builder.program)
 
@@ -133,7 +139,7 @@ class TestScenes < Minitest::Test
 
   def test_a_func_declared_inside_another_func_body_is_built_however_deep
     builder = Builder.new
-    DECLARED_INSIDE.call(builder)
+    declared_inside_game(builder)
     builder.finalize_program
     ran = game_player.run(builder.program)
 

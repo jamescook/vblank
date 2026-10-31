@@ -63,8 +63,8 @@ class TestGame < Minitest::Test
     def self.declare_nested(title, &subject)
       VBlank.game(title, consoles: %i[gba]) do
         screen :bitmap
-        var :made, 0
-        func(:make) { set! :made, subject ? subject.call : -1 }
+        made = 0
+        func(:make) { made = subject ? subject.call : -1 }
         call :make
         halt
       end

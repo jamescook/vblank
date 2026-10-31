@@ -18,11 +18,11 @@ module RandomGames
     builder.instance_eval do
       screen :bitmap
       clear_screen :white
-      done = var :done, 0
+      done = 0
       var :rx, 0
       game_loop do
         wait_vblank
-        (done == 0).then do
+        if done == 0
           randomize
           if pressed(:start)
             roll :rx, 0..200
@@ -159,7 +159,8 @@ class TestRandom < Minitest::Test
   def test_rand_assigns_a_value_in_range
     i = interpret do
       seed 1
-      10.times { |k| set! :"v#{k}", rand(1..6) }
+      draws = Array.new(10) { |k| var :"v#{k}", 0 }
+      10.times { |k| draws[k] = rand(1..6) }
     end
     (0...10).each { |k| assert_includes 1..6, i[:"v#{k}"], "rand(1..6) out of range" }
   end
@@ -205,7 +206,7 @@ class TestRandom < Minitest::Test
     i = interpret do
       seed 777
       hits = var :hits, 0
-      100.times { chance(50).then { hits.add! 1 } }
+      100.times { hits += 1 if chance(50) }
     end
     # Deterministic given the seed, but assert a band so the test states the intent
     # (roughly half) rather than pinning an incidental exact count.
@@ -267,7 +268,7 @@ class TestRandom < Minitest::Test
   end
 
   def test_no_boot_seed_when_randomness_is_unused
-    program = tree { set! :x, 1 }
+    program = tree { var :x, 1 }
     refute program.children.any? { |n| n.kind == :set && n.var == Builder::RNG_STATE },
            "a game that never draws shouldn't carry the random stream at all"
   end

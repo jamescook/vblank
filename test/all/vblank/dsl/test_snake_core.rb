@@ -19,8 +19,9 @@ module SnakeCoreGames
       ys = list :ys, capacity: 64
       [[2, 5], [3, 5], [4, 5]].each { |cx, cy| xs.push cx; ys.push cy }
       # slide right once -> body [(3,5),(4,5),(5,5)]
-      set! :hx, xs.last + 1
-      xs.push :hx
+      hx = var :hx, 0
+      hx = xs.last + 1
+      xs.push hx
       ys.push 5
       xs.shift
       ys.shift
@@ -41,7 +42,7 @@ end
 #   * push/shift to move (grow a head, drop a tail),
 #   * `repeat(body.length)` to scan the body at run time,
 #   * the expression DSL to compute the new head and test a self-collision
-#     (xs[i] == head_x) & (ys[i] == head_y).
+#     xs[i] == head_x && ys[i] == head_y.
 #
 # The collision logic is checked on every run (the whole point is that game logic is
 # testable headlessly), and the same drawing stack is checked on the Advance's cartridge
@@ -60,18 +61,20 @@ class TestSnakeCore < Minitest::Test
       screen :bitmap
       xs = list :xs, capacity: 64
       ys = list :ys, capacity: 64
-      var :hit, 0
+      hit = 0
+      hx = var :hx, 0
+      hy = var :hy, 0
       start_cells.each do |cx, cy|
         xs.push cx
         ys.push cy
       end
       moves.each do |dx, dy|
-        set! :hx, xs.last + dx
-        set! :hy, ys.last + dy
+        hx = xs.last + dx
+        hy = ys.last + dy
         # Scan the current body: does the new head land on an existing cell?
-        repeat(xs.length) { |i| set! :hit, 1 if xs[i] == :hx && ys[i] == :hy }
-        xs.push :hx
-        ys.push :hy
+        repeat(xs.length) { |i| hit = 1 if xs[i] == hx && ys[i] == hy }
+        xs.push hx
+        ys.push hy
         unless grow
           xs.shift
           ys.shift
@@ -128,16 +131,20 @@ class TestSnakeCore < Minitest::Test
       xs = list :xs, capacity: 64
       ys = list :ys, capacity: 64
       [[2, 5], [3, 5], [4, 5]].each { |cx, cy| xs.push cx; ys.push cy }
+      hx = var :hx, 0
       2.times do
-        set! :hx, xs.last + 1
-        xs.push :hx
+        hx = xs.last + 1
+        xs.push hx
         ys.push 5 # the body slides along row 5; only x changes here
         xs.shift
         ys.shift
       end
-      set! :tail_x, xs.first
-      set! :head_x, xs.last
-      set! :len, xs.length
+      tail_x = var :tail_x, 0
+      head_x = var :head_x, 0
+      len = var :len, 0
+      tail_x = xs.first
+      head_x = xs.last
+      len = xs.length
       halt
     end
     builder.finalize_program

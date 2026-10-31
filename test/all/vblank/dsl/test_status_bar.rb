@@ -14,7 +14,7 @@ class TestStatusBarHandle < Minitest::Test
   # The game slides the bar down three rows a pass until it is out of view, and the field shows
   # at the bottom of the screen again. A row past the bottom is the bottom.
   def test_the_bar_slides_down_out_of_view_and_the_field_shows_under_it
-    prog = bar_game { |bar, step| (step > 1).then { bar.move_to bar.top + 3 } }
+    prog = bar_game { |bar, step| bar.move_to bar.top + 3 if step > 1 }
     bottom = screen_height - 1
 
     assert_equal GREEN, picture(prog, 2).pixel(8, bottom)
@@ -34,7 +34,7 @@ class TestStatusBarHandle < Minitest::Test
 
   # One cell of the bar changes, the way a digit of a score does.
   def test_set_tile_changes_a_cell_of_the_bar
-    prog = bar_game { |bar, step| (step == 2).then { bar.set_tile 3, 0, "o" } }
+    prog = bar_game { |bar, step| bar.set_tile 3, 0, "o" if step == 2 }
     row = screen_height - 12
 
     assert_equal GREEN, picture(prog, 2).pixel(28, row)

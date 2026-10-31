@@ -103,7 +103,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       tiles :wall, "#" => :bar
       rays = background :rays, tiles: :wall, map: Array.new(20) { "#" * 30 }
       walker = sprite :walker, at: [40, 40]
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         walker.x += 1
@@ -167,11 +167,11 @@ class TestBackgroundDrawsWith < Minitest::Test
       wall = tiles :wall, from: canvas, count: 1, colors: :ink
       wall.changed
       rays = background :rays, tiles: :wall, map: Array.new(20) { [1] * 30 }
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         rays.draw_with :shimmer
         pass += 1
-        (pass == 3).then do
+        if pass == 3
           canvas.fill 0x22
           wall.changed
         end
@@ -213,7 +213,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       colors :dusk, DUSK
       tiles :wall, "#" => :bar
       rays = background :rays, tiles: :wall, map: Array.new(20) { "#" * 30 }
-      step = var :step, 0
+      step = 0
       game_loop do
         rays.draw_with %i[dawn dusk], showing: step
         step += 1
@@ -249,7 +249,7 @@ class TestBackgroundDrawsWith < Minitest::Test
         colors name, [:transparent, Color.rgb(n % 32, 0, 31 - (n % 32)), Color.rgb(0, n % 32, n / 32)]
       end
       tiles :wall, "#" => :bar
-      step = var :step, 0
+      step = 0
       showing = var :showing, 0
       3.times do |s|
         scene :"room#{s}" do
@@ -390,7 +390,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       image :cloud, width: 8, height: 8, data: BAR.map { |c| c == :red ? :blue : :white }, colors: :sky
       tiles :scene, "~" => :water, "o" => :cloud
       backdrop = background :backdrop, tiles: :scene, map: Array.new(20) { ("~" * 15) + ("o" * 15) }
-      step = var :step, 0
+      step = 0
       game_loop do
         backdrop.draw_with({ sea: %i[sea0 sea1], sky: %i[sky0 sky1] }, showing: step)
         step += 1
@@ -437,7 +437,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       image :cloud, width: 8, height: 8, data: BAR.map { |c| c == :red ? :blue : :white }, colors: :sky
       tiles :scene, "~" => :water, "o" => :cloud
       backdrop = background :backdrop, tiles: :scene, map: Array.new(20) { ("~" * 15) + ("o" * 15) }
-      step = var :step, 0
+      step = 0
       hurt = var :hurt, 0
       game_loop do
         backdrop.draw_with({ sea: %i[sea0 sea1], sky: %i[sky0 sky1] }, showing: step)
@@ -551,7 +551,7 @@ class TestBackgroundDrawsWith < Minitest::Test
       end
       tiles :screen, ARRIVING.each_index.to_h { |i| [i.to_s, :"tile#{i}"] }
       shown = background :shown, tiles: :screen, map: Array.new(18) { ARRIVING.each_index.map(&:to_s).join * 2 }
-      step = var :step, 0
+      step = 0
       game_loop do
         shown.draw_with(steps, showing: step)
         step += 1

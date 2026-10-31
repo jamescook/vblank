@@ -12,11 +12,11 @@ class TestRumble < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :tiled
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         rumble frames: frames, pattern: pattern if pass == 2
-        (pass == halt).then { self.halt } if halt
+        self.halt if halt && pass == halt
       end
     end
     b.finalize_program

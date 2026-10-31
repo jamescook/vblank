@@ -36,12 +36,12 @@ class TestPixelPerfectCollision < Minitest::Test
       screen :bitmap
       clear_screen :black
       image(:corners, "." => :transparent, "#" => :white) { CORNERS }
-      var :hit, 0
+      hit = 0
       a  = sprite :corners, at: a_at, hitbox: hitbox
       bb = sprite :corners, at: b_at, hitbox: hitbox
       game_loop do
         wait_vblank
-        set! :hit, 1 if a.overlaps?(bb)
+        hit = 1 if a.overlaps?(bb)
         halt
       end
     end
@@ -75,12 +75,12 @@ class TestPixelPerfectCollision < Minitest::Test
       screen :bitmap
       clear_screen :black
       image(:corners, "." => :transparent, "#" => :white) { CORNERS }
-      var :hit, 0
+      hit = 0
       a = sprite :corners, at: [100, 20]
       middle = box 103, 23, 2, 2 # sits in the sprite's transparent middle
       game_loop do
         wait_vblank
-        set! :hit, 1 if a.overlaps?(middle)
+        hit = 1 if a.overlaps?(middle)
         halt
       end
     end
@@ -100,13 +100,13 @@ class TestPixelPerfectCollision < Minitest::Test
         image(:wide,   "." => :transparent, "#" => :white) { "########\n########" } # solid to x7
         image(:narrow, "." => :transparent, "#" => :white) { "##......\n##......" } # solid only to x1
         image(:pin,    "#" => :white) { "##\n##" }                                  # a small solid sprite
-        var :hit, 0
+        hit = 0
         a = sprite :poser, at: [100, 20], facing: { right: :wide, left: :narrow }
         pin = sprite :pin, at: [106, 20] # only the wide pose's pixels (x100..107) reach it
         game_loop do
           wait_vblank
           a.face(dir)
-          set! :hit, 1 if a.overlaps?(pin)
+          hit = 1 if a.overlaps?(pin)
           halt
         end
       end

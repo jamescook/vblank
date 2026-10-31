@@ -14,20 +14,20 @@ module PoolWalkOrderGames
   private def walking_game(capacity: 4, on_full: :drop, setup: nil, pass: nil, visit: nil, newest_first: false)
     VBlank.game("WALKORDER", consoles: %i[gba]) do
       screen :bitmap
-      order = var :order, 0
-      first = var :first, 0
-      passes = var :passes, 0
+      order = 0
+      first = 0
+      passes = 0
       things = pool :thing, id: 0, capacity: capacity, on_full: on_full
       instance_exec(things, &setup) if setup
       game_loop do
         instance_exec(things, passes, &pass) if pass
-        order.set! 0
+        order = 0
         things.each(newest_first: newest_first) do |t|
-          order.set! order * 10 + t.id
+          order = order * 10 + t.id
           instance_exec(things, t, passes, &visit) if visit
         end
-        (passes == 0).then { first.set! order }
-        passes.add! 1
+        first = order if passes == 0
+        passes += 1
       end
     end
   end
@@ -40,22 +40,22 @@ module PoolWalkOrderGames
   # B's slot is the one freed last, so D takes it — and is still walked last.
   private def freed_slot_game
     walking_game(setup: spawning(1, 2, 3),
-                 visit: ->(_things, t, passes) { ((passes == 0) & (t.id == 2)).then { t.remove } },
-                 pass: ->(things, passes) { (passes == 1).then { things.spawn id: 4 } })
+                 visit: ->(_things, t, passes) { t.remove if passes == 0 && t.id == 2 },
+                 pass: ->(things, passes) { things.spawn id: 4 if passes == 1 })
   end
 
   # A removes itself on its turn, and the walk goes on to B and C, each once.
   private def self_removing_game
     walking_game(setup: spawning(1, 2, 3),
-                 visit: ->(_things, t, passes) { ((passes == 0) & (t.id == 1)).then { t.remove } })
+                 visit: ->(_things, t, passes) { t.remove if passes == 0 && t.id == 1 })
   end
 
   # A removes C before C's turn: the walk passes C over. B removes A, which has had its turn.
   private def removed_before_turn_game
     walking_game(setup: spawning(1, 2, 3),
                  visit: lambda { |things, t, passes|
-                   ((passes == 0) & (t.id == 1)).then do
-                     things.each { |other| (other.id == 3).then { other.remove } }
+                   if passes == 0 && t.id == 1
+                     things.each { |other| other.remove if other.id == 3 }
                    end
                  })
   end
@@ -65,7 +65,7 @@ module PoolWalkOrderGames
   private def spawned_during_walk_game
     walking_game(setup: spawning(1, 2, 3),
                  visit: lambda { |things, t, passes|
-                   ((passes == 0) & (t.id == 3)).then do
+                   if passes == 0 && t.id == 3
                      t.remove
                      things.spawn id: 9
                    end
@@ -75,14 +75,14 @@ module PoolWalkOrderGames
   # A pool full and recycling its oldest drops A and walks the newcomer last.
   private def recycling_game
     walking_game(capacity: 3, on_full: :recycle_oldest, setup: spawning(1, 2, 3),
-                 pass: ->(things, passes) { (passes == 1).then { things.spawn id: 4 } })
+                 pass: ->(things, passes) { things.spawn id: 4 if passes == 1 })
   end
 
   # Inside its own walk a full recycling pool cannot move its first thing, so the spawn is
   # dropped, as a pool that drops always does.
   private def recycling_inside_walk_game
     walking_game(capacity: 3, on_full: :recycle_oldest, setup: spawning(1, 2, 3),
-                 visit: ->(things, t, passes) { ((passes == 0) & (t.id == 2)).then { things.spawn id: 4 } })
+                 visit: ->(things, t, passes) { things.spawn id: 4 if passes == 0 && t.id == 2 })
   end
 
   # A WALK CAN GO THE OTHER WAY, newest first, where the last thing added has to act first.
@@ -93,14 +93,14 @@ module PoolWalkOrderGames
   # D takes B's freed slot and, as the newest, is walked first.
   private def newest_first_freed_slot_game
     walking_game(setup: spawning(1, 2, 3), newest_first: true,
-                 visit: ->(_things, t, passes) { ((passes == 0) & (t.id == 2)).then { t.remove } },
-                 pass: ->(things, passes) { (passes == 1).then { things.spawn id: 4 } })
+                 visit: ->(_things, t, passes) { t.remove if passes == 0 && t.id == 2 },
+                 pass: ->(things, passes) { things.spawn id: 4 if passes == 1 })
   end
 
   # C, walked first, removes itself, and the walk goes on to B and A.
   private def newest_first_self_removing_game
     walking_game(setup: spawning(1, 2, 3), newest_first: true,
-                 visit: ->(_things, t, passes) { ((passes == 0) & (t.id == 3)).then { t.remove } })
+                 visit: ->(_things, t, passes) { t.remove if passes == 0 && t.id == 3 })
   end
 
   # C walks the pool again, newest first, and removes A there: the inner walk ends, the outer
@@ -108,8 +108,8 @@ module PoolWalkOrderGames
   private def newest_first_nested_walk_game
     walking_game(setup: spawning(1, 2, 3), newest_first: true,
                  visit: lambda { |things, t, passes|
-                   ((passes == 0) & (t.id == 3)).then do
-                     things.each(newest_first: true) { |other| (other.id == 1).then { other.remove } }
+                   if passes == 0 && t.id == 3
+                     things.each(newest_first: true) { |other| other.remove if other.id == 1 }
                    end
                  })
   end
@@ -119,7 +119,7 @@ module PoolWalkOrderGames
   private def newest_first_spawned_during_walk_game
     walking_game(setup: spawning(1, 2, 3), newest_first: true,
                  visit: lambda { |things, t, passes|
-                   ((passes == 0) & (t.id == 1)).then do
+                   if passes == 0 && t.id == 1
                      t.remove
                      things.spawn id: 9
                    end
@@ -129,14 +129,14 @@ module PoolWalkOrderGames
   # A full pool recycling its oldest drops A, and the newcomer, as the newest, is walked first.
   private def newest_first_recycling_game
     walking_game(capacity: 3, on_full: :recycle_oldest, setup: spawning(1, 2, 3), newest_first: true,
-                 pass: ->(things, passes) { (passes == 1).then { things.spawn id: 4 } })
+                 pass: ->(things, passes) { things.spawn id: 4 if passes == 1 })
   end
 
   # Inside its own walk a full recycling pool cannot move its first thing, which is where a
   # newest-first walk stops, so the spawn is dropped here too.
   private def newest_first_recycling_inside_walk_game
     walking_game(capacity: 3, on_full: :recycle_oldest, setup: spawning(1, 2, 3), newest_first: true,
-                 visit: ->(things, t, passes) { ((passes == 0) & (t.id == 2)).then { things.spawn id: 4 } })
+                 visit: ->(things, t, passes) { things.spawn id: 4 if passes == 0 && t.id == 2 })
   end
 
   # A routine of the pool's, called from a newest-first walk, is handed each thing in that
@@ -144,16 +144,16 @@ module PoolWalkOrderGames
   private def pool_routine_game
     VBlank.game("WALKROUTINE", consoles: %i[gba]) do
       screen :bitmap
-      order = var :order, 0
-      first_slot = var :first_slot, -1
+      order = 0
+      first_slot = -1
       things = pool :thing, id: 0, capacity: 4
       [1, 2, 3].each { |id| things.spawn id: id }
       things.func(:visit) do |t|
-        (order == 0).then { first_slot.set! t.index }
-        order.set! order * 10 + t.id
+        first_slot = t.index if order == 0
+        order = order * 10 + t.id
       end
       game_loop do
-        order.set! 0
+        order = 0
         things.each(newest_first: true) { call :visit }
       end
     end
@@ -168,23 +168,23 @@ module PoolWalkOrderGames
     VBlank.game("WALKROLL", consoles: %i[gba]) do
       screen :bitmap
       seed 42
-      first_roll = var :first_roll, 0
-      second_roll = var :second_roll, 0
-      passes = var :passes, 0
+      first_roll = 0
+      second_roll = 0
+      passes = 0
       things = pool :thing, id: 0, capacity: 4
       [7, 8, 9].each { |id| things.spawn id: id } if shuffled
       game_loop do
-        (passes == 2).then do
+        if passes == 2
           things.spawn id: 1
           things.spawn id: 2
         end
         things.each do |t|
-          ((passes == 0) & (t.id == 7)).then { t.remove }
-          ((passes == 1) & (t.id == 9)).then { t.remove }
-          ((passes == 3) & (t.id == 1)).then { first_roll.set! rand(0..999) }
-          ((passes == 3) & (t.id == 2)).then { second_roll.set! rand(0..999) }
+          t.remove if passes == 0 && t.id == 7
+          t.remove if passes == 1 && t.id == 9
+          first_roll = rand(0..999) if passes == 3 && t.id == 1
+          second_roll = rand(0..999) if passes == 3 && t.id == 2
         end
-        passes.add! 1
+        passes += 1
       end
     end
   end
@@ -200,22 +200,26 @@ module PoolWalkOrderGames
   private def saved_pool_game
     VBlank.game("WALKSAVE", consoles: %i[gba]) do
       screen :bitmap
-      order = var :order, 0
-      first = var :first, 0
-      passes = var :passes, 0
+      order = 0
+      first = 0
+      passes = 0
       things = pool :thing, id: 0, capacity: 4
       level = save_data(:level) { keep things }
-      level[0].good?.then { level[0].load }.else { [1, 2, 3].each { |id| things.spawn id: id } }
+      if level[0].good?
+        level[0].load
+      else
+        [1, 2, 3].each { |id| things.spawn id: id }
+      end
       game_loop do
-        (passes == 1).then { things.spawn id: 4 }
-        (passes == 2).then { level[0].save }
-        order.set! 0
+        things.spawn id: 4 if passes == 1
+        level[0].save if passes == 2
+        order = 0
         things.each do |t|
-          order.set! order * 10 + t.id
-          ((passes == 0) & (t.id == 1)).then { t.remove }
+          order = order * 10 + t.id
+          t.remove if passes == 0 && t.id == 1
         end
-        (passes == 0).then { first.set! order }
-        passes.add! 1
+        first = order if passes == 0
+        passes += 1
       end
     end
   end
@@ -226,26 +230,28 @@ module PoolWalkOrderGames
   private def save_during_walk_game
     VBlank.game("WALKSAVE2", consoles: %i[gba]) do
       screen :bitmap
-      first = var :first, 0
-      order = var :order, 0
-      passes = var :passes, 0
+      first = 0
+      order = 0
+      passes = 0
       things = pool :thing, id: 0, capacity: 3, on_full: :recycle_oldest
       level = save_data(:level) { keep things }
-      level[0].good?.then do
+      if level[0].good?
         level[0].load
         things.spawn id: 4
-      end.else { [1, 2, 3].each { |id| things.spawn id: id } }
+      else
+        [1, 2, 3].each { |id| things.spawn id: id }
+      end
       game_loop do
-        order.set! 0
+        order = 0
         things.each do |t|
-          order.set! order * 10 + t.id
-          ((passes == 0) & (t.id == 1)).then do
+          order = order * 10 + t.id
+          if passes == 0 && t.id == 1
             t.remove
             level[0].save
           end
         end
-        (passes == 0).then { first.set! order }
-        passes.add! 1
+        first = order if passes == 0
+        passes += 1
       end
     end
   end
@@ -263,14 +269,16 @@ module PoolWalkOrderGames
     walking_game(capacity: 2, setup: spawning(1, 2),
                  visit: lambda { |things, t, passes|
                    said = var :said_full_during, 0
-                   ((passes == 0) & (t.id == 1)).then do
+                   if passes == 0 && t.id == 1
                      t.remove
-                     things.full?.then { said.set! 1 }
+                     said = 1 if things.full?
                    end
                  },
                  pass: lambda { |things, passes|
                    said = var :said_full_after, 0
-                   (passes == 1).then { things.full?.then { said.set! 1 } }
+                   if passes == 1
+                     said = 1 if things.full?
+                   end
                  })
   end
 
@@ -279,16 +287,16 @@ module PoolWalkOrderGames
   private def large_pool_game
     VBlank.game("WALKBIG", consoles: %i[gba]) do
       screen :bitmap
-      in_place = var :in_place, 0
-      expected = var :expected, 0
+      in_place = 0
+      expected = 0
       things = pool :thing, id: 0, capacity: 200
       200.times { |n| things.spawn id: n }
       game_loop do
-        in_place.set! 0
-        expected.set! 0
+        in_place = 0
+        expected = 0
         things.each do |t|
-          (t.id == expected).then { in_place.add! 1 }
-          expected.add! 1
+          in_place += 1 if t.id == expected
+          expected += 1
         end
       end
     end

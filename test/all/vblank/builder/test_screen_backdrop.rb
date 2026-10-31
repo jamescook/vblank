@@ -21,7 +21,7 @@ class TestScreenBackdrop < Minitest::Test
       backdrop ? screen(:tiled, backdrop: backdrop) : screen(:tiled)
       ScreenBackdropGames.declare_corner_tile(self)
       state = var :state, -1
-      tick = var :tick, 0
+      tick = 0
       scene(:corner) { background :field, tiles: :corner_set, map: ["c"] }
       game_loop do
         state = 0 if tick == up_at
@@ -75,8 +75,8 @@ class TestScreenBackdrop < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :tiled, backdrop: :white
-      tick = var :tick, 0
-      game_loop { tick.add! 1 }
+      tick = 0
+      game_loop { tick += 1 }
     end
     b.finalize_program
 

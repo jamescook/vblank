@@ -26,7 +26,7 @@ module PlayThisFrameGames
       screen :bitmap
       enable_sound
       music = songs :music, [SONG]
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         music.play 0, **options if pass == ASKED_ON
@@ -47,7 +47,7 @@ module PlayThisFrameGames
         rest :quarter
         note :C5, :quarter
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         play_song :later, **options if pass == ASKED_ON
@@ -65,10 +65,10 @@ module PlayThisFrameGames
       screen :bitmap
       enable_sound
       sfx = sound_effects :sfx, effects
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
-        (pass == 1).then { sfx.play before } if before
+        sfx.play before if before && pass == 1
         sfx.play asks, **options if pass == ASKED_ON
       end
     end

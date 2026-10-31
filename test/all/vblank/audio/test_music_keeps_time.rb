@@ -29,7 +29,7 @@ module MusicKeepsTimeGames
         note :E4, :quarter
         note :G4, :quarter
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         instance_exec(pass, &loop_body)
@@ -59,7 +59,7 @@ class TestMusicKeepsTime < Minitest::Test
 
   def test_a_tune_named_only_on_some_frames_keeps_its_tempo
     every_frame = game_player.run(scale_game, frames: 30)
-    every_other = game_player.run(scale_game { |pass| (pass % 2 == 0).then { play_song :scale } }, frames: 30)
+    every_other = game_player.run(scale_game { |pass| play_song :scale if pass % 2 == 0 }, frames: 30)
 
     assert_equal notes(every_frame), notes(every_other),
                  "a tune that is named on half the frames is still playing on the other half"
@@ -89,7 +89,7 @@ class TestMusicKeepsTime < Minitest::Test
         tempo 360
         note :A4, :quarter
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         # the first tune, then the second from pass 16, then back to the first from pass 22
@@ -122,7 +122,7 @@ class TestMusicKeepsTime < Minitest::Test
         note :C4, :quarter
         note :E4, :quarter
       end
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         if pass >= 5 && pass < 8

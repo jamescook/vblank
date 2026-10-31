@@ -52,8 +52,8 @@ module BigMapsGames
     builder.instance_eval do
       screen :tiled
       test.tileset(self)
-      pass = var :pass, 0
-      var :mode, 0
+      pass = 0
+      mode = var :mode, 0
       scene(:menu) { nil }
       scene(:playing) do
         ground = background :ground, tiles: :ground, map: test.scrambled(100, 90)
@@ -65,7 +65,7 @@ module BigMapsGames
           when_val 0, :menu
           when_val 1, :playing
         end
-        set! :mode, 1 if pass == 10
+        mode = 1 if pass == 10
       end
     end
   end
@@ -246,7 +246,7 @@ class TestBigMaps < Minitest::Test
     program do
       screen :tiled
       test.tileset(self)
-      var :mode, 0
+      mode = var :mode, 0
       pass = var :pass, 0
       scene(:outside) do
         ground = background :ground, tiles: :ground, map: test.scrambled(100, 90)
@@ -257,8 +257,8 @@ class TestBigMaps < Minitest::Test
       scene(:inside) { nil }
       game_loop do
         pass += 1
-        set! :mode, 1 if pass == 6
-        set! :mode, 0 if pass == 8
+        mode = 1 if pass == 6
+        mode = 0 if pass == 8
         case_var(:mode) do
           when_val 0, :outside
           when_val 1, :inside
@@ -293,7 +293,7 @@ class TestBigMaps < Minitest::Test
     program do
       screen :tiled
       test.tileset(self)
-      var :mode, 0
+      mode = var :mode, 0
       pass = var :pass, 0
       x = var :view_x, 0
       %i[forest swamp].each_with_index do |name, seed|
@@ -305,8 +305,8 @@ class TestBigMaps < Minitest::Test
       game_loop do
         pass += 1
         x += 6
-        set! :mode, 1 if pass == 6
-        set! :mode, 0 if pass == 12
+        mode = 1 if pass == 6
+        mode = 0 if pass == 12
         case_var(:mode) do
           when_val 0, :forest
           when_val 1, :swamp

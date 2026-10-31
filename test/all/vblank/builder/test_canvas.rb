@@ -25,7 +25,7 @@ class TestCanvas < Minitest::Test
       image(:dot, "." => :transparent, "#" => :red) { "##\n#." }
       board = canvas :board, width: 64, height: 16, colors: :ink
       background :front, tiles: :board, map: board.cells
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         instance_exec(board, frame, &body)
@@ -38,14 +38,14 @@ class TestCanvas < Minitest::Test
   private def screen(prog, frames) = game_player.run(prog, frames: frames).screen
 
   def test_a_pixel_shows_on_the_frame_after_it_is_drawn
-    prog = game { |board, frame| (frame == 2).then { board.pixel 3, 2, :white } }
+    prog = game { |board, frame| board.pixel 3, 2, :white if frame == 2 }
 
     assert_equal 0, screen(prog, 2).pixel(3, 2)
     assert_equal WHITE, screen(prog, 3).pixel(3, 2)
   end
 
   def test_a_canvas_changed_now_shows_on_the_frame_it_is_drawn
-    prog = game { |board, frame| (frame == 2).then { board.pixel 3, 2, :white; board.changed now: true } }
+    prog = game { |board, frame| if frame == 2 then board.pixel 3, 2, :white; board.changed now: true end }
 
     assert_equal [0, WHITE], [screen(prog, 1).pixel(3, 2), screen(prog, 2).pixel(3, 2)]
     [1, 2].each { |frames| assert_backends_agree(prog, frames: frames) }

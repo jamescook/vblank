@@ -93,11 +93,11 @@ class TestEvaluatedGame < Minitest::Test
   private def a_small_game
     VBlank.game("SMALL", consoles: %i[gba], code: "ZSML", maker: "01") do
       screen :bitmap
-      x = var :x, 10
+      x = 10
       game_loop do
         clear_screen :black
         draw_rect_at x, 40, 20, 20, :green
-        x.add! 1
+        x += 1
       end
     end
   end
@@ -108,8 +108,8 @@ class TestEvaluatedGame < Minitest::Test
   def test_a_game_keeps_its_own_frame_timing_when_something_asks_what_it_is
     unpaced = VBlank.game("MANUAL", consoles: %i[gba], code: "ZMAN", maker: "01", frame_sync: :manual) do
       screen :bitmap
-      n = var :n, 0
-      game_loop { n.add! 1 }
+      n = 0
+      game_loop { n += 1 }
     end
 
     # Only the interpreter's step budget stops a loop with no frames; no lowering counts steps.

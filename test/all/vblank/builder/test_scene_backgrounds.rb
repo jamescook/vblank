@@ -537,7 +537,7 @@ class TestSceneBackgrounds < Minitest::Test
       dim = var :dim, 0
       scene(:one) do
         first = background :one, tiles: :one_set, map: Array.new(4) { row }
-        (tick == 1).then { first.draw_with({ one_set_list0: :dusk }) } if dusk
+        first.draw_with({ one_set_list0: :dusk }) if dusk && tick == 1
       end
       scene(:two) { background :two, tiles: :two_set, map: Array.new(4) { row } }
       game_loop do
@@ -727,13 +727,13 @@ class TestSceneBackgrounds < Minitest::Test
       tiles :walls, "#" => :wall_art
       sprite :hero_art, at: [16, 16]
       tick = var :tick, 0
-      var :state, 0
+      state = var :state, 0
       scene(:hall) { background :room, tiles: :walls, map: Array.new(5) { "#" * 10 } }
       scene(:away) { nil }
       game_loop do
         tick += 1
-        set! :state, 1 if tick == 5
-        set! :state, 0 if tick == 7
+        state = 1 if tick == 5
+        state = 0 if tick == 7
         case_var(:state) do
           when_val 0, :hall
           when_val 1, :away

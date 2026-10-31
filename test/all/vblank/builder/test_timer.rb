@@ -11,9 +11,9 @@ module TimerGames
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      var :hits, 0
+      hits = 0
       beat = timer :beat, per_second: 60
-      func(:setup) { beat.on_tick { add! :hits, 1 } }
+      func(:setup) { beat.on_tick { hits += 1 } }
       game_loop { wait_vblank }
     end
     b.finalize_program
@@ -26,11 +26,11 @@ module TimerGames
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      var :first, 0
-      var :second, 0
+      first = 0
+      second = 0
       beat = timer :beat, per_second: 60
-      beat.on_tick { add! :first, 1 }
-      beat.on_tick { add! :second, 1 }
+      beat.on_tick { first += 1 }
+      beat.on_tick { second += 1 }
       game_loop { wait_vblank }
     end
     b.finalize_program
@@ -54,13 +54,13 @@ class TestTimer < Minitest::Test
     b.instance_eval do
       screen :bitmap
       beat = timer :beat, per_second: per_second
-      fc = var :fc, 0
-      var :snap, 0
+      fc = 0
+      snap = 0
       game_loop do
         wait_vblank
-        add! :fc, 1
-        (fc == stop_at).then { beat.stop } if stop_at
-        set! :snap, beat.ticks
+        fc += 1
+        beat.stop if stop_at && fc == stop_at
+        snap = beat.ticks
         halt if fc == stop_frame
       end
     end
@@ -103,8 +103,8 @@ class TestTimer < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :snap, 0
-      set! :snap, VBlank::DSL::Timer.new(self, :ghost).ticks
+      snap = var :snap, 0
+      snap = VBlank::DSL::Timer.new(self, :ghost).ticks
       halt
     end
     assert_equal 0, game_player.run(b.program)[:snap]
@@ -131,8 +131,8 @@ class TestTimer < Minitest::Test
       screen :bitmap
       %i[a b c].each do |name|
         t = timer name, per_second: 60
-        var :"snap_#{name}", 0
-        set! :"snap_#{name}", t.ticks
+        snap = var :"snap_#{name}", 0
+        snap = t.ticks
       end
       halt
     end
@@ -149,10 +149,10 @@ class TestTimer < Minitest::Test
       tone = sample :tone, pcm: [0, 50, 100, 50], rate: 8192
       counted = timer :counted, per_second: 60
       timer :plain, per_second: 60
-      var :snap, 0
+      snap = 0
       game_loop do
         tone.play
-        set! :snap, counted.ticks
+        snap = counted.ticks
       end
     end
     err = assert_raises(VBlank::IR::Backends::GBA::LoweringError) { GBA.new.lower(b.program) }
@@ -162,20 +162,20 @@ class TestTimer < Minitest::Test
 
   # --- on_tick: a handler driven by the timer's overflow ---
 
-  # Runs `beat.on_tick { add! :hits, 1 }` at the given rate and halts at `stop_frame`;
+  # Runs `beat.on_tick { hits += 1 }` at the given rate and halts at `stop_frame`;
   # returns the interpreter so a test can read :hits.
   private def run_on_tick(per_second:, stop_frame:, stop_at: nil)
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      var :hits, 0
+      hits = 0
       beat = timer :beat, per_second: per_second
-      beat.on_tick { add! :hits, 1 }
-      fc = var :fc, 0
+      beat.on_tick { hits += 1 }
+      fc = 0
       game_loop do
         wait_vblank
-        add! :fc, 1
-        (fc == stop_at).then { beat.stop } if stop_at
+        fc += 1
+        beat.stop if stop_at && fc == stop_at
         halt if fc == stop_frame
       end
     end
@@ -246,8 +246,8 @@ class TestTimer < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      downs = var :downs, 0
-      presses = var :presses, 0
+      downs = 0
+      presses = 0
       beat = timer :beat, per_second: 60
       beat.on_tick do
         downs += 1 if held(:a)

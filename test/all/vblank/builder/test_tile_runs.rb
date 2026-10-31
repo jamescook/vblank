@@ -31,7 +31,7 @@ class TestTileRuns < Minitest::Test
       canvas = list :canvas, capacity: 64, width: :byte
       repeat(64) { canvas.push 0 }
       state = var :state, 0
-      frame = var :frame, 0
+      frame = 0
       scene(:talking) do
         box = tiles :box, from: canvas, count: 2, colors: :ink
         background :front, tiles: :box, map: [[1, 2]]
@@ -71,7 +71,7 @@ class TestTileRuns < Minitest::Test
     b.instance_eval do
       screen :tiled
       colors :ink, [:transparent, :white]
-      frame = var :frame, 0
+      frame = 0
       scene(:talking) do
         canvas = list :canvas, capacity: 64, width: :byte
         repeat(64) { canvas.push 0 }
@@ -113,7 +113,7 @@ class TestTileRuns < Minitest::Test
       repeat(64) { canvas.push 0 } # see-through, unlike every pixel of the road's floor
       box = tiles :box, from: canvas, count: 2, colors: :ink
       state = var :state, 0
-      frame = var :frame, 0
+      frame = 0
       scene(:house) do
         background :house_box, tiles: :box, map: [[1, 2]]
         state = 1 if frame == 3
@@ -176,7 +176,7 @@ class TestTileRuns < Minitest::Test
       repeat(64) { canvas.push 0 }
       tag = image :tag, from: canvas, width: 16, height: 8, colors: :ink
       sprite :tag, at: [40, 20]
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         instance_exec(canvas, tag, frame, &body)
@@ -198,10 +198,10 @@ class TestTileRuns < Minitest::Test
       repeat(256) { canvas.push 0 }
       tag = image :tag, from: canvas, width: 16, height: 32, colors: :ink
       sprite :tag, at: [40, 20]
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
-        (frame == 2).then do
+        if frame == 2
           canvas[32 * 3] = 0x01 # the second row's right tile, its top-left pixel
           canvas[32 * 4] = 0x01 # the third row's left tile
           tag.changed
@@ -217,7 +217,7 @@ class TestTileRuns < Minitest::Test
 
   def test_a_sprite_shows_its_lists_pixels_on_the_frame_after_changed
     prog = tag_game do |canvas, tag, frame|
-      (frame == 3).then do
+      if frame == 3
         canvas[32] = 0x01 # the second tile's top-left pixel: 8 across from the sprite's corner
         tag.changed
       end
@@ -232,7 +232,7 @@ class TestTileRuns < Minitest::Test
   # picture shows on the frame it was painted.
   private def tag_changed_now_game
     tag_game do |canvas, tag, frame|
-      (frame == 3).then do
+      if frame == 3
         canvas[32] = 0x01
         tag.changed now: true
       end
@@ -288,7 +288,7 @@ class TestTileRuns < Minitest::Test
   # pixel shows on this frame, and the one written after it on the next, with the gap's copy.
   private def tag_changed_now_then_later_game
     tag_game do |canvas, tag, frame|
-      (frame == 3).then do
+      if frame == 3
         canvas[32] = 0x01
         tag.changed now: true
         canvas[0] = 0x01
@@ -315,7 +315,7 @@ class TestTileRuns < Minitest::Test
       repeat(64) { canvas.push 0 }
       box = tiles :box, from: canvas, count: 2, colors: :ink
       background :front, tiles: :box, map: [[1, 2]]
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         if frame == 3
@@ -332,7 +332,7 @@ class TestTileRuns < Minitest::Test
 
   def test_the_console_agrees_on_a_sprites_painted_picture_and_when_it_shows
     prog = tag_game do |canvas, tag, frame|
-      (frame == 3).then do
+      if frame == 3
         repeat(64) { |i| canvas[i] = (i * 7) & 0xFF }
         tag.changed
       end
@@ -354,7 +354,7 @@ class TestTileRuns < Minitest::Test
       canvas = list :canvas, capacity: 32, width: :byte
       repeat(32) { canvas.push 0 }
       state = var :state, 0
-      frame = var :frame, 0
+      frame = 0
       scene(:talking) do
         tag = image :tag, from: canvas, width: 8, height: 8, colors: :ink
         sprite :tag, at: [0, 0]
@@ -396,7 +396,7 @@ class TestTileRuns < Minitest::Test
       repeat(32) { canvas.push 0 }
       tag = image :tag, from: canvas, width: 8, height: 8, colors: :ink
       state = var :state, 0
-      frame = var :frame, 0
+      frame = 0
       scene(:house) do
         sprite :tag, at: [0, 0]
         if frame == 2

@@ -37,16 +37,16 @@ module SaveDataGames
       items = list :items, capacity: 4, width: :byte
       was_good = var :was_good, 0
       progress = save_data(:progress) { keep hearts, items }
-      progress[0].good?.then { was_good.set! 1 }
+      was_good = 1 if progress[0].good?
       progress[0].load
       game_loop do
-        pressed(:a).then do
-          hearts.set! 7
+        if pressed(:a)
+          hearts = 7
           items.push 200
           progress[0].save
         end
-        pressed(:b).then { hearts.set! 9 }
-        pressed(:start).then { progress[0].load }
+        hearts = 9 if pressed(:b)
+        progress[0].load if pressed(:start)
       end
     end
   end
@@ -70,29 +70,29 @@ module SaveDataGames
       states = Array.new(3) { |n| var :"state#{n}", 0 }
       stray = var :stray, 0
       game_loop do
-        pressed(:up).then { slot.add! 1 }
-        pressed(:down).then { slot.sub! 1 }
-        pressed(:a).then do
-          hearts.set! slot + 10
+        slot += 1 if pressed(:up)
+        slot -= 1 if pressed(:down)
+        if pressed(:a)
+          hearts = slot + 10
           name.push slot
           files[slot].save
         end
-        pressed(:b).then { files[slot].erase }
-        pressed(:start).then { files[slot].load }
-        pressed(:left).then { files.copy 0, to: slot }
-        pressed(:select).then { files.reset }
-        pressed(:right).then do
-          hearts.set! 99
+        files[slot].erase if pressed(:b)
+        files[slot].load if pressed(:start)
+        files.copy 0, to: slot if pressed(:left)
+        files.reset if pressed(:select)
+        if pressed(:right)
+          hearts = 99
           files[slot].save
         end
         3.times do |n|
-          shown[n].set! files[n].peek(hearts)
-          files[n].empty?.then { states[n].set! 0 }
-          files[n].erased?.then { states[n].set! 1 }
-          files[n].good?.then { states[n].set! 2 }
-          files[n].damaged?.then { states[n].set! 3 }
+          shown[n] = files[n].peek(hearts)
+          states[n] = 0 if files[n].empty?
+          states[n] = 1 if files[n].erased?
+          states[n] = 2 if files[n].good?
+          states[n] = 3 if files[n].damaged?
         end
-        files[slot + 5].good?.then { stray.set! 1 }
+        stray = 1 if files[slot + 5].good?
       end
     end
   end
@@ -120,12 +120,12 @@ module SaveDataGames
       none = var :none, 0
       total = var :total, 0
       game_loop do
-        total.set! (hearts * 2) + 1
-        first.set! files[1].peek(name)[0]
-        (first > 0).then { total.add! first }
-        length.set! files[1].peek(name).length
-        none.set! files[2].peek(name).length
-        total.add! length + none
+        total = (hearts * 2) + 1
+        first = files[1].peek(name)[0]
+        total += first if first > 0
+        length = files[1].peek(name).length
+        none = files[2].peek(name).length
+        total += length + none
       end
     end
   end
@@ -142,14 +142,14 @@ module SaveDataGames
       first = var :first, 0
       files = save_data(:file) { keep hearts, random_numbers }
       game_loop do
-        pressed(:up).then { roll :churned, 1..1000 }
-        pressed(:a).then { files[0].save }
-        pressed(:b).then do
-          rolled.set! rand(1..1000)
-          (first == 0).then { first.set! rolled }
+        roll :churned, 1..1000 if pressed(:up)
+        files[0].save if pressed(:a)
+        if pressed(:b)
+          rolled = rand(1..1000)
+          first = rolled if first == 0
         end
-        pressed(:start).then { files[0].load }
-        pressed(:select).then { files.reset }
+        files[0].load if pressed(:start)
+        files.reset if pressed(:select)
       end
     end
   end
@@ -170,21 +170,21 @@ module SaveDataGames
       files = save_data(:file)
       keeping == :pool ? files.keep(guards) : files.keep(guards.field(:hp))
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           [[1, 5], [2, 6], [3, 7]].each { |x, hp| guards.spawn(x: x, hp: hp) }
-          guards.each { |g| (g.x == 2).then { g.remove } }
+          guards.each { |g| g.remove if g.x == 2 }
           files[0].save
         end
-        pressed(:b).then do
-          guards.each { |g| g.hp.add! 10 }
+        if pressed(:b)
+          guards.each { |g| g.hp += 10 }
           guards.spawn(x: 9, hp: 9)
-          guards.each { |g| (g.x == 1).then { g.remove } }
+          guards.each { |g| g.remove if g.x == 1 }
         end
-        pressed(:start).then { files[0].load }
-        pressed(:left).then { guards.spawn(x: 4, hp: 8) }
-        pressed(:select).then { files.reset }
-        signature.set! 0
-        guards.each { |g| signature.add!((g.index + 1) * ((g.x * 100) + g.hp)) }
+        files[0].load if pressed(:start)
+        guards.spawn(x: 4, hp: 8) if pressed(:left)
+        files.reset if pressed(:select)
+        signature = 0
+        guards.each { |g| signature += (g.index + 1) * ((g.x * 100) + g.hp) }
       end
     end
   end
@@ -206,12 +206,12 @@ module SaveDataGames
       files.keep guards
       guards.spawn(x: 20, y: 20)
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           guards.each { |g| g.face :left }
           files[0].save
         end
-        pressed(:b).then { guards.each { |g| g.face :right } }
-        pressed(:start).then { files[0].load }
+        guards.each { |g| g.face :right } if pressed(:b)
+        files[0].load if pressed(:start)
       end
     end
   end
@@ -232,28 +232,28 @@ module SaveDataGames
       firsts = Array.new(3) { |n| var :"first#{n}", 0 }
       name = list :name, capacity: 3, width: :byte # a list is made where it is written
       game_loop do
-        pressed(:up).then { slot.add! 1 }
-        pressed(:down).then { slot.sub! 1 }
-        pressed(:a).then do
+        slot += 1 if pressed(:up)
+        slot -= 1 if pressed(:down)
+        if pressed(:a)
           call :play
           files[slot].save
         end
-        pressed(:b).then { files[slot].erase }
-        pressed(:start).then { files[slot].load }
-        pressed(:left).then { files.copy 0, to: slot }
-        pressed(:select).then { files.reset }
+        files[slot].erase if pressed(:b)
+        files[slot].load if pressed(:start)
+        files.copy 0, to: slot if pressed(:left)
+        files.reset if pressed(:select)
         3.times do |n|
-          shown[n].set! files[n].peek(:hearts)
-          lengths[n].set! files[n].peek(:name).length
-          firsts[n].set! files[n].peek(:name)[0]
-          files[n].good?.then { states[n].set! 2 }
-          files[n].erased?.then { states[n].set! 1 }
+          shown[n] = files[n].peek(:hearts)
+          lengths[n] = files[n].peek(:name).length
+          firsts[n] = files[n].peek(:name)[0]
+          states[n] = 2 if files[n].good?
+          states[n] = 1 if files[n].erased?
         end
       end
       func :play do
         hearts = var :hearts, 3
         files.keep hearts
-        hearts.set! slot + 10
+        hearts = slot + 10
         call :name_it
       end
       func :name_it do
@@ -281,17 +281,17 @@ module SaveDataGames
       checked = var :checked, 0
       settings[0].load
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           repeat(1196) { |i| flags.push i & 0x7F }
-          hearts.set! 20
-          speed.set! 3
+          hearts = 20
+          speed = 3
           files[2].save
           settings[0].save
         end
-        pressed(:b).then { repeat(1196) { |i| flags[i] = 0 } }
-        pressed(:start).then do
+        repeat(1196) { |i| flags[i] = 0 } if pressed(:b)
+        if pressed(:start)
           files[2].load
-          checked.set! flags[1195] + flags[5] + hearts
+          checked = flags[1195] + flags[5] + hearts
         end
       end
     end
@@ -308,14 +308,14 @@ module SaveDataGames
       files = save_data(:file) { keep flags }
       was_good = var :was_good, 0
       saving_passes = var :saving_passes, 0
-      files[0].good?.then { was_good.set! 1 }
+      was_good = 1 if files[0].good?
       files[0].load
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           repeat(1196) { |i| flags.push i & 0x7F }
           files[0].save
         end
-        files.saving?.then { saving_passes.add! 1 }
+        saving_passes += 1 if files.saving?
       end
     end
   end
@@ -330,13 +330,13 @@ module SaveDataGames
       files = save_data(:file) { keep hearts, flags }
       files[0].load
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           repeat(1196) { |i| flags.push 5 }
-          hearts.set! 12
+          hearts = 12
           files[0].save
         end
-        files.saving?.then do
-          hearts.sub! 1
+        if files.saving?
+          hearts -= 1
           flags[1195] = 0
         end
       end
@@ -355,14 +355,14 @@ module SaveDataGames
       refused = var :refused, 0
       files[0].load
       game_loop do
-        pressed(:a).then do
-          hearts.set! 10
+        if pressed(:a)
+          hearts = 10
           files[0].save
-          hearts.set! 20
+          hearts = 20
           files[0].save
-          files.failed?.then { refused.set! 1 }
+          refused = 1 if files.failed?
         end
-        files.saving?.then { saving_passes.add! 1 }
+        saving_passes += 1 if files.saving?
       end
     end
   end
@@ -396,18 +396,18 @@ module SaveDataGames
       shown = Array.new(4) { |n| var :"shown#{n}", -1 }
       kept_speed = var :kept_speed, -1
       game_loop do
-        pressed(:a).then do
-          state[:hearts].set! 42
+        if pressed(:a)
+          state[:hearts] = 42
           files[0].save
-          state[:hearts].set! 43
+          state[:hearts] = 43
           files[1].save if copies > 1
-          state[:hearts].set! 44
+          state[:hearts] = 44
           files[2].save if copies > 2
-          state[:speed].set! 7
+          state[:speed] = 7
           settings_record[0].save
         end
-        copies.times { |n| shown[n].set! files[n].peek(state[:hearts]) }
-        kept_speed.set! settings_record[0].peek(state[:speed])
+        copies.times { |n| shown[n] = files[n].peek(state[:hearts]) }
+        kept_speed = settings_record[0].peek(state[:speed])
       end
     end
   end
@@ -432,9 +432,9 @@ module SaveDataGames
       end
       records.each { |_kept, record, _number| record[0].load }
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           records.each do |kept, record, number|
-            kept.set! number
+            kept = number
             record[0].save
           end
         end
@@ -458,8 +458,8 @@ module SaveDataGames
       items = list :items, capacity: 3, width: :half
       file = save_data(:file) { keep hearts, items }
       game_loop do
-        pressed(:a).then do
-          hearts.set! 7
+        if pressed(:a)
+          hearts = 7
           items.push 300
           items.push(-2)
           file[0].save
@@ -569,8 +569,8 @@ class TestSaveData < Minitest::Test
       flags = list :flags, capacity: 3, width: :byte, full_of: 1
       files = save_data(:files) { keep flags }
       game_loop do
-        pressed(:a).then { flags[0] = 9 }
-        pressed(:select).then { files.reset }
+        flags[0] = 9 if pressed(:a)
+        files.reset if pressed(:select)
       end
     end
     run = play(game, SaveImage.new, pressing: presses(:a, :select), frames: 8)
@@ -725,10 +725,18 @@ class TestSaveData < Minitest::Test
       busy_at_first = var :busy_at_first, 0
       busy = var :busy, 0
       files[0].save
-      files.saving?.then { busy_at_first.set! 1 }
+      busy_at_first = 1 if files.saving?
       game_loop do
-        files.saving?.then { busy.set! 1 }.else { busy.set! 0 }
-        files.failed?.then { worked.set! 2 }.else { worked.set! 1 }
+        if files.saving?
+          busy = 1
+        else
+          busy = 0
+        end
+        if files.failed?
+          worked = 2
+        else
+          worked = 1
+        end
       end
     end
     after = play(outcome, SaveImage.new)
@@ -774,10 +782,10 @@ class TestSaveData < Minitest::Test
       files = save_data(:file) { keep hearts, flags }
       seen = var :seen, 0
       game_loop do
-        pressed(:a).then do
-          hearts.set! 12
+        if pressed(:a)
+          hearts = 12
           files[0].save
-          seen.set! files[0].peek(hearts)
+          seen = files[0].peek(hearts)
         end
       end
     end
@@ -806,13 +814,13 @@ class TestSaveData < Minitest::Test
       finished_passes = var :finished_passes, 0
       overlap = var :overlap, 0
       game_loop do
-        pressed(:a).then { files[0].save }
-        pressed(:b).then do
+        files[0].save if pressed(:a)
+        if pressed(:b)
           files[0].save
           files[0].erase
         end
-        files.finished?.then { finished_passes.add! 1 }
-        (files.finished? & files.saving?).then { overlap.set! 1 }
+        finished_passes += 1 if files.finished?
+        overlap = 1 if files.finished? && files.saving?
       end
     end
     once = play(program, SaveImage.new, pressing: { 2 => :a }, frames: 20)
@@ -968,7 +976,7 @@ class TestSaveData < Minitest::Test
     message = refused do
       files = save_data :file
       shown = var :shown, 0
-      game_loop { shown.set! files[0].peek(:lives) }
+      game_loop { shown = files[0].peek(:lives) }
       h = var :h, 0
       files.keep h
     end
@@ -980,7 +988,7 @@ class TestSaveData < Minitest::Test
     as_number = refused do
       files = save_data :file
       shown = var :shown, 0
-      game_loop { shown.set! files[0].peek(:name) }
+      game_loop { shown = files[0].peek(:name) }
       files.keep list(:name, capacity: 3)
     end
     assert_match(/keeps :name as a list/, as_number)
@@ -989,7 +997,7 @@ class TestSaveData < Minitest::Test
     as_list = refused do
       files = save_data :file
       shown = var :shown, 0
-      game_loop { shown.set! files[0].peek(:hearts).length }
+      game_loop { shown = files[0].peek(:hearts).length }
       files.keep var(:hearts, 3)
     end
     assert_match(/keeps :hearts as a variable/, as_list)

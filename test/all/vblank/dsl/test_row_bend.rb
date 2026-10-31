@@ -43,7 +43,7 @@ module RowBendGames
       image(:boat, "#" => :white) { (["#" * 8] * 8).join("\n") }
       tiles :stripes, "#" => :bar
       asked = var :asked, 0
-      passes = var :passes, 0
+      passes = 0
       water = background :water, tiles: :stripes, map: Array.new(20) { "#" * 30 }
       water.scroll_each_row do |row|
         asked += 1
@@ -146,7 +146,7 @@ class TestRowBend < Minitest::Test
   def test_a_routine_called_only_from_the_block_bends_the_rows
     program = bars_program do |water|
       amount = var :amount, 0
-      func(:pick_amount) { amount.set! 3 }
+      func(:pick_amount) { amount = 3 }
       water.scroll_each_row do |_row|
         call :pick_amount
         amount
@@ -197,9 +197,9 @@ class TestRowBend < Minitest::Test
       tiles :stripes, "#" => :bar
       water = background :water, tiles: :stripes, map: Array.new(20) { "#" * 30 }
       ripple = table :ripple, (0...64).map { |i| (Math.sin(i * 2 * Math::PI / 64) * 3).round }
-      phase = var :phase, 0
+      phase = 0
       water.scroll_each_row { |row| ripple[(row - phase) % 64] }
-      game_loop { phase.add! 1 }
+      game_loop { phase += 1 }
     end
     b.finalize_program
     b.program
@@ -245,7 +245,7 @@ class TestRowBend < Minitest::Test
       image(:boat, "#" => :white) { (["#" * 8] * 8).join("\n") }
       tiles :stripes, "#" => :bar
       ripple = table :ripple, (0...64).map { |i| (Math.sin(i * 2 * Math::PI / 64) * 3).round }
-      phase = var :phase, 0
+      phase = 0
       layers.times do |i|
         water = background :"water#{i}", tiles: :stripes, map: Array.new(20) { "#" * 30 }
         water.scroll_each_row { |row| ripple[(row - phase + (i * 7)) % 64] }
@@ -316,7 +316,7 @@ class TestRowBend < Minitest::Test
       end
       tiles :stripes, "#" => :bar
       state = var :state, 0
-      passes = var :passes, 0
+      passes = 0
       scene(:sea) do
         sea = background :sea, tiles: :stripes, map: Array.new(20) { "#" * 30 }
         sea.scroll_each_row { |row| row % 8 }

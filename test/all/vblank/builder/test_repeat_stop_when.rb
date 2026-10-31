@@ -49,7 +49,7 @@ class TestRepeatStopWhen < Minitest::Test
     run = game_player.run(program do
       screen :bitmap
       n = var :n, 0
-      game_loop { n.set! 0; repeat(7) { n.add! 1 } }
+      game_loop { n = 0; repeat(7) { n += 1 } }
     end, frames: 2)
 
     assert_equal 7, run[:n]
@@ -62,7 +62,7 @@ class TestRepeatStopWhen < Minitest::Test
       screen :bitmap
       done = var :done, 1
       n = var :n, 0
-      game_loop { n.set! 0; repeat(9, stop_when: done == 1) { n.add! 1 } }
+      game_loop { n = 0; repeat(9, stop_when: done == 1) { n += 1 } }
     end, frames: 2)
 
     assert_equal 0, run[:n]

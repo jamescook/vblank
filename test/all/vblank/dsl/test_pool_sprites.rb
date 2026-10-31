@@ -11,14 +11,14 @@ module PoolSpritesGames
 
   # A tiled program with an :ufo image (8x8 green) and an enemy pool; the block spawns
   # instances and adds per-frame behavior via the pool handle.
-  private def enemy_program
+  private def enemy_program(&game)
     b = Builder.new
     handle = nil
     b.instance_eval do
       screen :tiled
       image(:ufo, "#" => :green) { "########\n" * 8 }
       handle = pool :enemy, x: 0, y: 0, capacity: 8, image: :ufo
-      yield(self, handle)
+      instance_exec(self, handle, &game)
     end
     b.finalize_program
     b.program
@@ -38,9 +38,9 @@ module PoolSpritesGames
       declare_pool.call if pool_first
       sprite :green_square, at: [40, 40]
       declare_pool.call unless pool_first
-      placed = var :placed, 0
+      placed = 0
       game_loop do
-        (placed == 0).then do
+        if placed == 0
           crowd.spawn(x: 40, y: 40)
           placed = 1
         end
@@ -80,7 +80,7 @@ class TestPoolSprites < Minitest::Test
       enemies.spawn x: 60, y: 40
       b.game_loop do
         b.wait_vblank
-        enemies.each { |e| (e.x == 60).then { e.remove } }
+        enemies.each { |e| e.remove if e.x == 60 }
       end
     end
     i = game_player.run(prog)
@@ -95,8 +95,8 @@ class TestPoolSprites < Minitest::Test
     b.instance_eval do
       screen :tiled
       image(:ufo, "#" => :green) { "########\n" * 8 }
-      var :near_hit, 0
-      var :far_hit, 0
+      near_hit = 0
+      far_hit = 0
       enemies = pool :enemy, x: 0, y: 0, capacity: 8, image: :ufo
       near = box(50, 50, 8, 8)
       far = box(150, 100, 8, 8)
@@ -104,8 +104,8 @@ class TestPoolSprites < Minitest::Test
       game_loop do
         wait_vblank
         enemies.each do |e|
-          set! :near_hit, 1 if e.overlaps?(near)
-          set! :far_hit, 1 if e.overlaps?(far)
+          near_hit = 1 if e.overlaps?(near)
+          far_hit = 1 if e.overlaps?(far)
         end
       end
     end
@@ -123,7 +123,7 @@ class TestPoolSprites < Minitest::Test
       enemies.spawn x: 40, y: 60  # on screen
       b.game_loop do
         b.wait_vblank
-        enemies.each { |e| e.off_screen?.then { e.remove } }
+        enemies.each { |e| e.remove if e.off_screen? }
       end
     end
     i = game_player.run(prog)

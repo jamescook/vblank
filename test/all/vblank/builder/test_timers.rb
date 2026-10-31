@@ -12,12 +12,12 @@ module TimersGames
     builder = VBlank::Builder.new
     builder.instance_eval do
       screen :bitmap
-      shown = var :shown, 0
-      f = var :f, 0
+      shown = 0
+      f = 0
       game_loop do
         wait_vblank
         clear_screen :white
-        after(2) { shown.set! 1 } # turn the marker on after 2 frames
+        after(2) { shown = 1 } # turn the marker on after 2 frames
         dma_fill_rect 100, 80, 8, 8, :red if shown == 1
         f += 1
         halt if f >= frames
@@ -55,16 +55,15 @@ class TestTimers < Minitest::Test
 
   # A loop that runs `frames` frames, counting them in :frame, then halts — so a
   # timer's behavior over a known window is observable. The block is spliced into
-  # the loop body after the frame counter ticks.
+  # the loop body after the frame counter ticks, and handed the numbers it may read and change.
   private def run_for(frames, &body)
     interpret(frames: frames) do
-      var :frame, 0
-      var :fires, 0
-      var :last_fire, 0
+      frame = var :frame, 0
+      marks = { fires: var(:fires, 0), last_fire: var(:last_fire, 0), frame: frame }
       game_loop do
         wait_vblank
-        add! :frame, 1
-        instance_exec(&body)
+        frame += 1
+        instance_exec(marks, &body)
         if_ge :frame, frames do
           halt
         end
@@ -75,17 +74,17 @@ class TestTimers < Minitest::Test
   # ---- after: once, on the nth frame ----
 
   def test_after_fires_exactly_once
-    i = run_for(20) do
-      after(5) { add! :fires, 1 }
+    i = run_for(20) do |marks|
+      after(5) { marks[:fires] += 1 }
     end
     assert_equal 1, i[:fires], "after(5) should fire exactly once across 20 frames"
   end
 
   def test_after_fires_on_the_nth_frame
-    i = run_for(20) do
+    i = run_for(20) do |marks|
       after(5) do
-        add! :fires, 1
-        copy! :last_fire, :frame # capture which frame it fired on
+        marks[:fires] += 1
+        marks[:last_fire] = marks[:frame] # capture which frame it fired on
       end
     end
     assert_equal 5, i[:last_fire], "after(5) should fire on the 5th frame"
@@ -94,8 +93,8 @@ class TestTimers < Minitest::Test
   # If it fired inside the loop with the counter re-zeroed each pass, it would
   # never reach n. Reaching n exactly once proves the counter is hoisted to boot.
   def test_after_does_not_fire_before_its_time
-    i = run_for(3) do
-      after(5) { add! :fires, 1 }
+    i = run_for(3) do |marks|
+      after(5) { marks[:fires] += 1 }
     end
     assert_equal 0, i[:fires], "after(5) shouldn't fire within the first 3 frames"
   end
@@ -103,15 +102,15 @@ class TestTimers < Minitest::Test
   # ---- every: on a regular schedule ----
 
   def test_every_fires_on_each_multiple
-    i = run_for(12) do
-      every(3) { add! :fires, 1 }
+    i = run_for(12) do |marks|
+      every(3) { marks[:fires] += 1 }
     end
     assert_equal 4, i[:fires], "every(3) over 12 frames should fire on 3,6,9,12"
   end
 
   def test_every_one_fires_each_frame
-    i = run_for(7) do
-      every(1) { add! :fires, 1 }
+    i = run_for(7) do |marks|
+      every(1) { marks[:fires] += 1 }
     end
     assert_equal 7, i[:fires], "every(1) should fire every frame"
   end
@@ -120,10 +119,10 @@ class TestTimers < Minitest::Test
 
   def test_after_seconds_converts_at_the_frame_rate
     # 1 second is 60 frames, so it should fire on the 60th.
-    i = run_for(80) do
+    i = run_for(80) do |marks|
       after(1, :seconds) do
-        add! :fires, 1
-        copy! :last_fire, :frame
+        marks[:fires] += 1
+        marks[:last_fire] = marks[:frame]
       end
     end
     assert_equal 1, i[:fires]
@@ -132,8 +131,8 @@ class TestTimers < Minitest::Test
 
   def test_every_seconds_can_be_fractional
     # Half a second is 30 frames -> fires on 30 and 60.
-    i = run_for(60) do
-      every(0.5, :seconds) { add! :fires, 1 }
+    i = run_for(60) do |marks|
+      every(0.5, :seconds) { marks[:fires] += 1 }
     end
     assert_equal 2, i[:fires], "every(0.5, :seconds) should fire on frames 30 and 60"
   end
@@ -147,14 +146,14 @@ class TestTimers < Minitest::Test
 
   def test_two_timers_do_not_interfere
     i = interpret do
-      var :frame, 0
-      var :a, 0
-      var :b, 0
+      frame = var :frame, 0
+      a = var :a, 0
+      b = var :b, 0
       game_loop do
         wait_vblank
-        add! :frame, 1
-        every(2) { add! :a, 1 } # 2,4,6,8,10 -> 5
-        every(5) { add! :b, 1 } # 5,10 -> 2
+        frame += 1
+        every(2) { a += 1 } # 2,4,6,8,10 -> 5
+        every(5) { b += 1 } # 5,10 -> 2
         if_ge :frame, 10 do
           halt
         end

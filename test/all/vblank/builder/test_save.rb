@@ -9,16 +9,18 @@ module SaveGames
 
   # A game that keeps a high score: sets a score of 7, and records it when it beats
   # the saved best. Beating a fresh (0) best on the first frame saves 7.
-  KEEPER = Ractor.make_shareable(proc do
-    screen :bitmap
-    high = save_var :high_score, 0
-    s = var :s, 0
-    game_loop do
-      wait_vblank
-      s.set! 7
-      (s > high).then { high.set! s }
+  private def keeper_game
+    proc do
+      screen :bitmap
+      high = save_var :high_score, 0
+      s = 0
+      game_loop do
+        wait_vblank
+        s = 7
+        high = s if s > high
+      end
     end
-  end)
+  end
 
   private def build(&block)
     b = VBlank::Builder.new
@@ -49,7 +51,7 @@ class TestSave < Minitest::Test
 
   def test_a_saved_value_comes_back_on_the_next_boot
     store = SaveImage.new
-    game_player(save: store).run(build(&KEEPER), frames: 3)
+    game_player(save: store).run(build(&keeper_game), frames: 3)
 
     reborn = game_player(save: store).run(build(&READER), frames: 1)
     assert_equal 7, reborn[:high_score], "the saved high score should load at the next boot"
@@ -62,7 +64,7 @@ class TestSave < Minitest::Test
 
   def test_changing_a_saved_variable_writes_it_through_immediately
     store = SaveImage.new
-    game_player(save: store).run(build(&KEEPER), frames: 3)
+    game_player(save: store).run(build(&keeper_game), frames: 3)
     assert_equal 7, store.word(4), "the new high score is mirrored to its save slot, where the console keeps it"
     assert_equal SAVE_MAGIC, store.word(0), "the marker is stamped so the next boot trusts the data"
   end

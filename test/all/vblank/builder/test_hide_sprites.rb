@@ -18,44 +18,49 @@ class TestHideSprites < Minitest::Test
   TEXT = [100, 40].freeze
 
   # A red square, the word HI, and a counter of passes.
-  GAME = proc do
-    screen :tiled
-    image :hero, "#" => :red do
-      Array.new(8) { "#" * 8 }.join("\n")
-    end
-    passes = var :passes, 0
-    sprite :hero, at: TestHideSprites::HERO
-    draw_text "HI", *TestHideSprites::TEXT, :white
-    game_loop do
-      passes.add! 1
-      (passes == TestHideSprites::CALLED_ON).then { hide_sprites }
+  private def hiding_game
+    proc do
+      screen :tiled
+      image :hero, "#" => :red do
+        Array.new(8) { "#" * 8 }.join("\n")
+      end
+      passes = var :passes, 0
+      sprite :hero, at: TestHideSprites::HERO
+      draw_text "HI", *TestHideSprites::TEXT, :white
+      game_loop do
+        passes += 1
+        hide_sprites if passes == TestHideSprites::CALLED_ON
+      end
     end
   end
 
   # The same, asked on the pass that leaves a bare title for play over scenery: the frame where a
   # room comes up is the one a game hides its sprites for.
   CALLED_ON_ARRIVAL = 3
-  ARRIVAL = proc do
-    screen :tiled
-    image :hero, "#" => :red do
-      Array.new(8) { "#" * 8 }.join("\n")
-    end
-    image(:sea_art, "#" => :blue) { Array.new(8) { "#" * 8 }.join("\n") }
-    tiles :sea, "#" => :sea_art
-    scene(:title) {}
-    scene(:play) { background :field, tiles: :sea, map: Array.new(20) { "#" * 30 } }
-    passes = var :passes, 0
-    var :state, 0
-    sprite :hero, at: TestHideSprites::HERO
-    game_loop do
-      passes.add! 1
-      (passes == TestHideSprites::CALLED_ON_ARRIVAL).then do
-        set! :state, 1
-        hide_sprites
+
+  private def arrival_game
+    proc do
+      screen :tiled
+      image :hero, "#" => :red do
+        Array.new(8) { "#" * 8 }.join("\n")
       end
-      case_var(:state) do
-        when_val 0, :title
-        when_val 1, :play
+      image(:sea_art, "#" => :blue) { Array.new(8) { "#" * 8 }.join("\n") }
+      tiles :sea, "#" => :sea_art
+      scene(:title) {}
+      scene(:play) { background :field, tiles: :sea, map: Array.new(20) { "#" * 30 } }
+      passes = var :passes, 0
+      state = var :state, 0
+      sprite :hero, at: TestHideSprites::HERO
+      game_loop do
+        passes += 1
+        if passes == TestHideSprites::CALLED_ON_ARRIVAL
+          state = 1
+          hide_sprites
+        end
+        case_var(:state) do
+          when_val 0, :title
+          when_val 1, :play
+        end
       end
     end
   end
@@ -83,7 +88,7 @@ class TestHideSprites < Minitest::Test
       passes = player[:passes]
       seen[passes] = [player.screen.pixel(HERO[0] + 1, HERO[1] + 1), player.screen.pixel(*text_pixel)] if passes >= 2
     end
-    player.run(program(GAME), frames: CALLED_ON + 4)
+    player.run(program(hiding_game), frames: CALLED_ON + 4)
 
     red = Color.resolve(:red)
     white = Color.resolve(:white)
@@ -103,14 +108,14 @@ class TestHideSprites < Minitest::Test
   # On the console the sprite layer goes off for that one frame and comes back on the next:
   # every pixel of every frame around the call is the interpreter's.
   def test_the_console_hides_the_same_frame
-    assert_backends_agree(program(GAME), frames: 2..(CALLED_ON + 4), name: "HIDE")
+    assert_backends_agree(program(hiding_game), frames: 2..(CALLED_ON + 4), name: "HIDE")
   end
 
   def test_sprites_hide_for_the_frame_a_scene_comes_up
     player = game_player
     seen = {}
     player.each_vblank { seen[player[:passes]] = player.screen.pixel(HERO[0] + 1, HERO[1] + 1) }
-    player.run(program(ARRIVAL), frames: CALLED_ON_ARRIVAL + 4)
+    player.run(program(arrival_game), frames: CALLED_ON_ARRIVAL + 4)
 
     red = Color.resolve(:red)
     hidden = CALLED_ON_ARRIVAL + framework_drawing_lag

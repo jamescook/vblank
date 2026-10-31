@@ -201,8 +201,8 @@ class TestLayers < Minitest::Test
   def test_a_variable_declared_beside_a_sprite_is_not_nagged
     prog = stacked_game do
       layer :actors do
-        var :speed, 2
-        set! :speed, 3
+        speed = var :speed, 2
+        speed = 3
       end
     end
 

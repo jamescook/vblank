@@ -30,8 +30,8 @@ class TestVariables < Minitest::Test
 
   def test_var_then_set_is_one_variable
     builder = build_with_builder do
-      var :ball_x, 100
-      set! :ball_x, 200
+      ball_x = var :ball_x, 100
+      ball_x = 200
     end
 
     assert_equal [:ball_x], builder.variables
@@ -158,8 +158,8 @@ class TestVariables < Minitest::Test
       screen :bitmap
       game_loop do
         wait_vblank
-        var :ticks, 0 # declared inside the per-frame loop
-        add! :ticks, 1 # ++ every frame
+        ticks = var :ticks, 0 # declared inside the per-frame loop
+        ticks += 1 # ++ every frame
       end
     end
     builder.finalize_program

@@ -58,9 +58,9 @@ class TestCallOneOf < Minitest::Test
       n = var :n, 0
       step = var :step, 1
       b = self
-      b.func(:first) { n.set! 11 }
-      b.func(:second) { n.set! 22 }
-      b.func(:third) { n.set! 33 }
+      b.func(:first) { n = 11 }
+      b.func(:second) { n = 22 }
+      b.func(:third) { n = 33 }
       game_loop { b.call %i[first second third], number: step + 1 }
     end
 
@@ -76,8 +76,8 @@ class TestCallOneOf < Minitest::Test
       waited = var :waited, 0
       scripts = pool :script, step: 0, capacity: 4
       b = self
-      b.func(:op_walk) { walked.add! 1 }
-      b.func(:op_wait) { waited.add! 1 }
+      b.func(:op_walk) { walked += 1 }
+      b.func(:op_wait) { waited += 1 }
       scripts.spawn(step: 0)
       scripts.spawn(step: 1)
       scripts.spawn(step: 1)
@@ -154,8 +154,8 @@ class TestCallOneOf < Minitest::Test
       screen :bitmap
       n = var :n, 0
       b = self
-      b.func(:first) { n.set! 11 }
-      b.func(:second) { n.set! 22 }
+      b.func(:first) { n = 11 }
+      b.func(:second) { n = 22 }
       game_loop { b.call %i[first second], number: 1 }
     end
     kinds = program.walk.map(&:kind)
@@ -188,9 +188,9 @@ class TestCallOneOf < Minitest::Test
       n = var :n, 0
       picked = var :picked, which
       b = self
-      b.func(:first) { n.set! 11 }
-      b.func(:second) { n.set! 22 }
-      b.func(:third) { n.set! 33 }
+      b.func(:first) { n = 11 }
+      b.func(:second) { n = 22 }
+      b.func(:third) { n = 33 }
       game_loop { b.call %i[first second third], number: picked }
     end
     game_player.run(program)

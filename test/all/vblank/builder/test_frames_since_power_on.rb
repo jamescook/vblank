@@ -14,11 +14,11 @@ module FramesSincePowerOnGames
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      spin = var :spin, 0
-      passes = var :passes, 0
-      first = var :first, -1
-      now = var :now, -1
-      repeat(busy) { spin.add! 1 } if busy.positive?
+      spin = 0
+      passes = 0
+      first = -1
+      now = -1
+      repeat(busy) { spin += 1 } if busy.positive?
       game_loop do
         first = frames_since_power_on if passes == 0
         now = frames_since_power_on

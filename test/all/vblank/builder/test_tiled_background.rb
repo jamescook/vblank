@@ -150,7 +150,7 @@ class TestTiledBackground < Minitest::Test
       b = grass_builder(screen_kind)
       err = assert_raises(ArgumentError, "on screen :#{screen_kind}") do
         b.instance_eval do
-          game_loop { (held(:a) == 1).then { background :meadow, tiles: :field, map: Array.new(16, "#" * 16) } }
+          game_loop { background :meadow, tiles: :field, map: Array.new(16, "#" * 16) if held(:a) }
         end
       end
       assert_match(/above your game_loop/, err.message)

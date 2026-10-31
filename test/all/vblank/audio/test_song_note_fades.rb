@@ -145,7 +145,7 @@ class TestSongNoteFades < Minitest::Test
         voice(:bass) { |v| v.note :C3, :whole }
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         music_volume 50 if count == 10
@@ -173,7 +173,7 @@ class TestSongNoteFades < Minitest::Test
         voice(:pad) { |v| v.volume 0; v.swell :fast; v.note :G4, :whole }
       end
       play_song :tune
-      count = var :count, 0
+      count = 0
       game_loop do
         count += 1
         instance_exec(count, &volume)
@@ -192,7 +192,7 @@ class TestSongNoteFades < Minitest::Test
   # full, whatever the music volume is. So the player counts with it, and when the note reaches
   # the loudest the music volume lets a note be, strikes it again there, holding.
   def test_a_swelling_note_stops_at_the_music_volume
-    entries = loudness_of_pad(swelling_pad_game { |count| (count == 1).then { music_volume 50 } }, frames: 40)
+    entries = loudness_of_pad(swelling_pad_game { |count| music_volume 50 if count == 1 }, frames: 40)
 
     assert_equal [:loudness, 1, 7], entries.last, "at half, the pad holds at 7 of 15"
     assert_equal 1, entries.count { |entry| entry[2] == 7 }, "and is struck there once"
@@ -201,7 +201,7 @@ class TestSongNoteFades < Minitest::Test
   # ...AND FADES WITH THE MUSIC. While the music fades out, the pad held at the music volume is
   # struck lower each time the volume drops below it, down to nothing.
   def test_a_swelling_note_fades_out_with_the_music
-    entries = loudness_of_pad(swelling_pad_game { |count| (count == 30).then { fade_music_out frames: 20 } }, frames: 80)
+    entries = loudness_of_pad(swelling_pad_game { |count| fade_music_out frames: 20 if count == 30 }, frames: 80)
     struck_down = entries.drop(1).map { |entry| entry[2] } # past the note's own start, at nothing
 
     assert_operator struck_down.first.to_i, :>, 7, "the pad had swelled up before the fade"

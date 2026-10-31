@@ -48,7 +48,7 @@ module SoundEffectsGames
       enable_sound
       music = songs :music, Array(tune) if tune
       sfx = sound_effects :sfx, effects
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         pass += 1
         music&.play 0
@@ -267,7 +267,7 @@ module SoundEffectsGames
     first = Score.new(tempo: 150, parts: [Part.new(volume: 5, notes: [Note.new(at: 0, key: :C5)])])
     second = Score.new(tempo: 150, parts: [Part.new(volume: 9, notes: [Note.new(at: 0, key: :C5), Note.new(at: 30, key: :E5)])])
     game([first, second]) do |sfx, pass|
-      (pass == 3).then do
+      if pass == 3
         sfx.play 1
         sfx.play 0
       end
@@ -317,7 +317,7 @@ class TestSoundEffects < Minitest::Test
   # Asked for on pass 3, it starts on the frame after, the way a song does, plays each note once
   # and goes quiet at its end rather than coming round again.
   def test_an_effect_plays_once_from_the_frame_it_is_asked_for
-    program = game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| (pass == 3).then { sfx.play 0 } }
+    program = game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| sfx.play 0 if pass == 3 }
 
     assert_equal({ 4 => [[:"sfx.0", NOTES[:C5]]], 14 => [[:"sfx.0", NOTES[:E5]]], 38 => [[:"sfx.0", 0]] },
                  notes_by_frame(program, 80))
@@ -424,7 +424,7 @@ class TestSoundEffects < Minitest::Test
   # Asked for again while it sounds, it starts again from its first note — it does not play twice
   # over itself, and it does not wait to finish.
   def test_an_effect_asked_for_again_starts_again_from_its_first_note
-    program = game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| ((pass == 3) | (pass == 8)).then { sfx.play 0 } }
+    program = game([every_ten_ticks(:C5, :E5)]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 8 }
 
     assert_equal({ 4 => [[:"sfx.0", NOTES[:C5]]], 9 => [[:"sfx.0", NOTES[:C5]]], 19 => [[:"sfx.0", NOTES[:E5]]],
                    43 => [[:"sfx.0", 0]] }, notes_by_frame(program, 80))
@@ -434,7 +434,7 @@ class TestSoundEffects < Minitest::Test
   def test_two_effects_on_different_voices_sound_together
     drums = every_ten_ticks(:C3, plays: :noise)
     program = game([every_ten_ticks(:C5), drums]) do |sfx, pass|
-      (pass == 3).then do
+      if pass == 3
         sfx.play 0
         sfx.play 1
       end
@@ -448,7 +448,7 @@ class TestSoundEffects < Minitest::Test
   def test_of_two_effects_on_one_voice_the_higher_priority_sounds
     heard_when_both_start = lambda do |low_priority|
       program = game([every_ten_ticks(:C5, priority: low_priority), every_ten_ticks(:E5, priority: 50)]) do |sfx, pass|
-        (pass == 3).then do
+        if pass == 3
           sfx.play 1
           sfx.play 0
         end
@@ -507,7 +507,7 @@ class TestSoundEffects < Minitest::Test
   # Asked for again while it sounds, an effect in a group stops before it starts again: its voice
   # goes quiet on that frame, the same as the one it would cut off.
   def test_an_effect_in_a_group_asked_for_again_stops_first
-    program = game([cry(64)]) { |sfx, pass| ((pass == 3) | (pass == 8)).then { sfx.play 0 } }
+    program = game([cry(64)]) { |sfx, pass| sfx.play 0 if pass == 3 || pass == 8 }
 
     assert_equal [[:"sfx.0", 0], [:"sfx.0", NOTES[:C5]]], notes_by_frame(program, 20)[9]
   end
@@ -522,7 +522,7 @@ class TestSoundEffects < Minitest::Test
         sfx.play 1
       end
     end
-    twice = game([cry(72), hurt(64)]) { |sfx, pass| (pass == 3).then { sfx.play 0; sfx.play 0; sfx.play 1 } }
+    twice = game([cry(72), hurt(64)]) { |sfx, pass| if pass == 3 then sfx.play 0; sfx.play 0; sfx.play 1 end }
 
     [sounding, twice].each do |program|
       i = game_player.run(program, frames: 20)
@@ -533,7 +533,7 @@ class TestSoundEffects < Minitest::Test
   # Two of a group asked for on one pass: the higher priority starts, whichever was asked first.
   def test_of_two_asked_for_together_in_a_group_the_higher_priority_starts
     [[1, 0], [0, 1]].each do |order|
-      program = game([cry(64), hurt(72)]) { |sfx, pass| (pass == 3).then { order.each { |which| sfx.play which } } }
+      program = game([cry(64), hurt(72)]) { |sfx, pass| order.each { |which| sfx.play which } if pass == 3 }
       i = game_player.run(program, frames: 10)
 
       assert_equal [[:sound_effect, :"sfx.1"]], i.audio.select { |entry| entry[0] == :sound_effect }, order.inspect
@@ -673,7 +673,7 @@ class TestSoundEffects < Minitest::Test
 
   # The song starting over while an effect sounds leaves the effect's voice alone.
   def test_the_song_starting_over_leaves_the_effects_voice_setting_alone
-    program = long_note_under_an_effect { |pass| (pass == 15).then { stop_music } }
+    program = long_note_under_an_effect { |pass| stop_music if pass == 15 }
 
     assert_equal [[0, SONG_SETTING[:"music.0"]], [9, SONG_SETTING[:"sfx.0"]], [43, 0]],
                  interpreted_changes(program, 1, SONG_TONES, frames: 60)
@@ -682,7 +682,7 @@ class TestSoundEffects < Minitest::Test
   # ...and a music volume moving while an effect sounds does not start the song's lost note again
   # over it, then or after the effect ends.
   def test_the_music_volume_moving_leaves_the_effects_voice_setting_alone
-    program = long_note_under_an_effect { |pass| (pass == 20).then { music_volume 50 } }
+    program = long_note_under_an_effect { |pass| music_volume 50 if pass == 20 }
 
     assert_equal [[0, SONG_SETTING[:"music.0"]], [9, SONG_SETTING[:"sfx.0"]], [43, 0]],
                  interpreted_changes(program, 1, SONG_TONES, frames: 60)

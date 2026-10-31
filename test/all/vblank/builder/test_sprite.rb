@@ -101,7 +101,7 @@ class TestSprite < Minitest::Test
   # ---- it moves, and leaves no trail ----
 
   def test_moving_the_sprite_leaves_no_trail
-    prog = sprite_program(frames: 20) { |hero| hero.x.add! 2 } # drift right every frame
+    prog = sprite_program(frames: 20) { |hero| hero.x += 2 } # drift right every frame
     screen = game_player.run(prog).screen
 
     # exactly one block of red survives, wherever it ended up — no smear
@@ -134,7 +134,7 @@ class TestSprite < Minitest::Test
 
       back = sprite :blob_a, at: [50, 50]
       front = sprite :blob_b, at: [54, 50] # overlaps the right half of the green one
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         front.move_to 120, 50 if frame == 2 # the front one leaves first...
@@ -153,7 +153,7 @@ class TestSprite < Minitest::Test
   end
 
   def test_steering_with_held_input_moves_the_sprite
-    prog = sprite_program(frames: 15) { |hero| held(:right).then { hero.x.add! 2 } }
+    prog = sprite_program(frames: 15) { |hero| hero.x += 2 if held(:right) }
     i = game_player.input_each_frame { |_f| [:right] }.run(prog)
     assert_operator i[:__spr1_x], :>, START[0], "holding right didn't move the sprite"
     assert_equal BLOCK * BLOCK, count_color(i.screen, :red), "held-move left a trail"
@@ -189,7 +189,7 @@ class TestSprite < Minitest::Test
 
   def test_hide_removes_the_sprite_and_show_brings_it_back
     hidden = game_player.input_each_frame { |f| f >= 2 ? [:a] : [] }
-                 .run(sprite_program(frames: 6) { |hero| pressed(:a).then { hero.hide } }).screen
+                 .run(sprite_program(frames: 6) { |hero| hero.hide if pressed(:a) }).screen
     assert_equal 0, count_color(hidden, :red), "hide left the sprite on screen"
     assert_equal Color.resolve(FIELD), hidden.pixel(START[0] + 1, START[1] + 1), "hide didn't restore the field"
 

@@ -12,9 +12,9 @@ class TestBuildRecord < Minitest::Test
     VBlank.build("RECORD", console: :gba, code: "ZREC", maker: "01", out: StringIO.new, err: StringIO.new) do
       screen :bitmap
       clear_screen :black
-      t = var :t, 0
+      t = 0
       game_loop do
-        repeat(50) { |i| t.add! i }
+        repeat(50) { |i| t += i }
         fill_rect 0, 0, 40, 8, :green
       end
     end

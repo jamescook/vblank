@@ -22,7 +22,7 @@ module ListFillWordGames
       readings = %i[first before inside after last held].to_h { |name| [name, var(name, 0)] }
       game_loop do
         instance_exec(canvas, shade, start, &fill)
-        { first: 0, before: 4, inside: 6, after: 8, last: SIZE - 1 }.each { |name, at| readings[name].set! canvas[at] }
+        { first: 0, before: 4, inside: 6, after: 8, last: SIZE - 1 }.each { |name, at| readings[name] = canvas[at] }
         readings[:held] = canvas.length
       end
     end

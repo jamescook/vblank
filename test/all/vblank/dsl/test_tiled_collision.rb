@@ -62,12 +62,12 @@ class TestTiledCollision < Minitest::Test
   # but it can still step left (open floor).
   def test_can_move_reports_whether_a_wall_blocks_the_way
     prog = scene(hero_at: [24, 16]) do |hero| # already flush against the wall at x32
-      var :went_right, 0
-      var :went_left, 0
+      went_right = var :went_right, 0
+      went_left = var :went_left, 0
       game_loop do
         wait_vblank
-        set! :went_right, 1 if hero.can_move?(:right, by: 2)
-        set! :went_left, 1 if hero.can_move?(:left, by: 2)
+        went_right = 1 if hero.can_move?(:right, by: 2)
+        went_left = 1 if hero.can_move?(:left, by: 2)
         halt
       end
     end
@@ -119,7 +119,7 @@ class TestTiledCollision < Minitest::Test
       game_loop do
         wait_vblank
         tick += 1
-        (tick == 10).then do
+        if tick == 10
           room.set_tile 4, 2, "."
           room.set_tile 8, 2, "#"
         end
@@ -151,7 +151,7 @@ class TestTiledCollision < Minitest::Test
         tick += 1
         room.set_tile 4, 2, "." if tick == 3
         where = 1 if tick == 5
-        (tick == 7).then do
+        if tick == 7
           where = 0
           hero.x = 16
         end
@@ -172,7 +172,7 @@ class TestTiledCollision < Minitest::Test
   private def a_door_shut_again_by_its_scene
     with_dungeon_tiles do |hero|
       tick = var :tick, 0
-      var :state, 0
+      state = var :state, 0
       scene(:hall) do
         room = background :room, tiles: :dungeon, map: HALL
         hero.blocked_by room
@@ -183,9 +183,9 @@ class TestTiledCollision < Minitest::Test
       game_loop do
         wait_vblank
         tick += 1
-        set! :state, 1 if tick == 5
-        (tick == 7).then do
-          set! :state, 0
+        state = 1 if tick == 5
+        if tick == 7
+          state = 0
           hero.x = 16
         end
         case_var(:state) do
@@ -215,7 +215,7 @@ class TestTiledCollision < Minitest::Test
       image(:hero_t, "#" => :red) { SOLID_TILE }
       tiles :dungeon, "#" => :wall_t, "." => :floor_t, solid: ["#"]
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       hero = sprite :hero_t, at: [16, 16]
       { one: 4, two: 8 }.each do |level, wall_at|
         scene(level) do
@@ -226,7 +226,7 @@ class TestTiledCollision < Minitest::Test
       end
       game_loop do
         tick += 1
-        (tick == 20).then do
+        if tick == 20
           state = 1
           hero.x = 16
         end

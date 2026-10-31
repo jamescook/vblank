@@ -38,7 +38,7 @@ module DrawInOrderGames
       enemy = sprite :enemy, at: enemy_at
       hero = sprite :hero, at: [enemy_at[0] + 8, hero_y]
       draw_in_order(*(hero_named_first ? [hero, enemy] : [enemy, hero])) if ordered
-      game_loop { hero.y.add! step unless step.zero? }
+      game_loop { hero.y += step unless step.zero? }
     end
   end
 end

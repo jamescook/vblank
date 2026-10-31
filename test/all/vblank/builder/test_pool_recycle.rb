@@ -45,18 +45,18 @@ class TestPoolRecycle < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      %i[saw1 saw2 saw3 saw4 saw5].each { |v| var v, 0 }
-      var :total, 0
+      saws = (1..5).to_h { |n| [n, var(:"saw#{n}", 0)] }
+      total = var :total, 0
       things = pool :thing, tag: 0, capacity: capacity, on_full: policy
       spawn_tags.each_with_index do |tag, i|
         things.spawn tag: tag
         # Optionally remove one instance partway through, to free a slot before a later
         # spawn — so "oldest" is tested by age, not by which slot happens to be free.
-        things.each { |t| (t.tag == remove_tag).then { t.remove } } if remove_tag && i == 1
+        things.each { |t| t.remove if t.tag == remove_tag } if remove_tag && i == 1
       end
       things.each do |t|
-        (1..5).each { |n| (t.tag == n).then { set! :"saw#{n}", 1 } }
-        add! :total, 1
+        (1..5).each { |n| saws[n] = 1 if t.tag == n }
+        total += 1
       end
       halt
     end

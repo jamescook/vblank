@@ -125,7 +125,7 @@ class TestPictureGroups < Minitest::Test
     b.instance_eval do
       screen :tiled
       paint.call(self)
-      passes = var :passes, 0
+      passes = 0
       rooms = picture_groups :rooms, { 0 => %i[red_box], 1 => %i[blue_box] }
       fish = pool :fish, x: 40, y: 40, capacity: 4, image: :blue_box
       rooms.show 0
@@ -196,7 +196,7 @@ class TestPictureGroups < Minitest::Test
       screen :tiled
       paint.call(self)
       var :state, 0
-      passes = var :passes, 0
+      passes = 0
       scene(:sea) do
         rooms = picture_groups :rooms, { 0 => %i[red_box] }
         sprite :boat, facing: { red: :red_box }, at: [40, 40]
@@ -222,7 +222,7 @@ class TestPictureGroups < Minitest::Test
   # A scene taking over for the first time has none of its groups up until it says so: the boat,
   # drawn before the scene says which room is up, has nothing to draw from.
   def test_a_scene_taking_over_has_no_group_up_until_it_says
-    program = harbor_scene { |rooms, passes| (passes > 2).then { rooms.show 0 } }
+    program = harbor_scene { |rooms, passes| rooms.show 0 if passes > 2 }
 
     error = assert_raises(Reference::ProgramError) { game_player.run(program, frames: 3) }
     assert_match(/No group of :rooms is up/, error.message)
@@ -238,7 +238,7 @@ class TestPictureGroups < Minitest::Test
       screen :tiled
       paint.call(self)
       state = var :state, 0
-      passes = var :passes, 0
+      passes = 0
       scene(:sea, loads_first: true) do
         rooms = picture_groups :rooms, { 0 => %i[red_box], 1 => %i[blue_box] }
         sprite :boat, facing: { red: :red_box }, at: [40, 40]

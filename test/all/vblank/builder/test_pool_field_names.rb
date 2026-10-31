@@ -34,7 +34,7 @@ module PoolFieldNamesGames
       things = pool :thing, x: 0, y: 0, frame: 7, capacity: 2, frames: %i[one two], rate: 2
       seen = var :seen, 0
       things.spawn x: 20, y: 20
-      game_loop { things.each { |t| seen.set! t.frame } }
+      game_loop { things.each { |t| seen = t.frame } }
     end
   end
 
@@ -63,9 +63,9 @@ module PoolFieldNamesGames
       live = var :live, 0
       3.times { |n| things.spawn x: 20 * n, y: 20, **words.each_with_index.to_h { |word, at| [word, at + n] } }
       game_loop do
-        things.each { |t| (t.x == 20).then { t.remove } }
+        things.each { |t| t.remove if t.x == 20 }
         sum = 0
-        things.each { |t| words.each { |word| sum.add! t.public_send(word) } }
+        things.each { |t| words.each { |word| sum += t.public_send(word) } }
         live = things.count
       end
     end
@@ -88,8 +88,8 @@ module PoolFieldNamesGames
       short.spawn walk_x: 3, walk_active: 9
       long.spawn x: 40
       game_loop do
-        short.each { |g| seen.set! (g.walk_x * 10) + g.walk_active }
-        long.each { |g| long_seen.set! g.x }
+        short.each { |g| seen = (g.walk_x * 10) + g.walk_active }
+        long.each { |g| long_seen = g.x }
       end
     end
   end

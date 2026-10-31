@@ -51,7 +51,7 @@ module SpriteBorrowedColorsGames
       tick = var :tick, 0
       game_loop do
         tick += 1
-        (tick % 3 == 1).then do
+        if tick % 3 == 1
           things.spawn x: ((made % 10) * 20) + 10, y: ((made / 10) % 2 * 20) + 40, kind: made % KINDS
           made += 1
         end

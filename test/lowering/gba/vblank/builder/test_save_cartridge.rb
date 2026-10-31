@@ -14,7 +14,7 @@ class TestSaveCartridge < Minitest::Test
   # --- Console (the emulator): the game writes real SRAM, read straight back ---
 
   def test_the_console_writes_the_high_score_into_battery_ram
-    rom = VBlank::Cartridge::ROM.assemble(GBA.new.lower(build(&KEEPER)), title: "SAVE", code: "BSAV", maker: "01")
+    rom = VBlank::Cartridge::ROM.assemble(GBA.new.lower(build(&keeper_game)), title: "SAVE", code: "BSAV", maker: "01")
     v = assert_emulator_loads_rom(rom, frames: 6)
 
     assert_equal SAVE_MAGIC, sram_word(v, SRAM), "the marker should be written to save memory"
@@ -24,7 +24,7 @@ class TestSaveCartridge < Minitest::Test
   # --- The save-type signature the emulator/flashcart scans for ---
 
   def test_a_saving_rom_carries_the_sram_signature
-    code = GBA.new.lower(build(&KEEPER))
+    code = GBA.new.lower(build(&keeper_game))
     assert_includes code, "SRAM_V".b, "a ROM that saves must declare its save type"
   end
 

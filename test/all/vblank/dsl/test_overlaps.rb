@@ -3,7 +3,7 @@
 require "test_helper"
 
 # a.overlaps?(b): a rectangle-collision test built from the expression DSL. It
-# returns a Condition you branch on with `.then`, so a game bounces a ball, picks up
+# returns a Condition you branch on with `if`, so a game bounces a ball, picks up
 # an item, or takes damage in one readable line. It works on anything with bounds —
 # an explicit `box`, or a sprite that knows its own size. These assert the observable
 # result — a marker drawn only when the shapes actually touch — on every run. The same
@@ -49,7 +49,7 @@ class TestOverlaps < Minitest::Test
     b = Builder.new
     a = b.box(0, 0, 4, 4)
     c = b.box(2, 2, 4, 4)
-    assert_kind_of Condition, a.overlaps?(c), "overlaps? is a Condition, usable in .then / & / |"
+    assert_kind_of Condition, a.overlaps?(c), "overlaps? is a Condition, usable in if / && / ||"
   end
 
   # A box can be pinned to a variable, so it tracks a moving thing. Slide a ball
@@ -58,8 +58,8 @@ class TestOverlaps < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      ball_x = var :ball_x, 0
-      hits   = var :hits, 0
+      ball_x = 0
+      hits   = 0
       wall   = box(20, 0, 4, 8) # spans x 20..24
       game_loop do
         ball_x += 1
@@ -88,7 +88,7 @@ class TestOverlaps < Minitest::Test
       clear_screen :black
       hero  = sprite :hero, at: hero_at
       item  = sprite :item, at: item_at
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         wait_vblank
         pixel 0, 0, :green if hero.overlaps?(item)
@@ -123,7 +123,7 @@ class TestOverlaps < Minitest::Test
       clear_screen :black
       hero  = sprite :hero, at: [8, 20]  # drawn first — it's the one that captures
       coin  = sprite :coin, at: [20, 20]
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         wait_vblank
         hero.x += 2

@@ -73,7 +73,7 @@ class TestSpriteDrawsWith < Minitest::Test
       tag = image :tag, from: canvas, width: 8, height: 8, colors: :ink
       tag.changed
       ship = sprite :tag, at: [40, 40]
-      step = var :step, 0
+      step = 0
       game_loop do
         ship.draw_with [:ink, :hurt], showing: step
         step += 1
@@ -107,7 +107,7 @@ class TestSpriteDrawsWith < Minitest::Test
       repeat(8) { [0x11, 0x11, 0x22, 0x22].each { |two_pixels| canvas.push two_pixels } }
       tag = image :tag, from: canvas, width: 8, height: 8, colors: :ink
       ship = sprite :tag, at: [40, 40]
-      pass = var :pass, 0
+      pass = 0
       game_loop do
         ship.draw_with :hurt
         pass += 1
@@ -138,7 +138,7 @@ class TestSpriteDrawsWith < Minitest::Test
       colors :warm, [:transparent, :yellow, :white]
       colors :hot, [:transparent, :orange, :blue]
       ship = sprite :ship, at: [40, 40]
-      step = var :step, 0
+      step = 0
       game_loop do
         ship.draw_with [:warm, :hot], showing: step
         ship.x += 1
@@ -195,16 +195,18 @@ class TestSpriteDrawsWith < Minitest::Test
       ships = pool :ship, x: 0, y: 0, capacity: 2, image: :ship
       ships.spawn x: 40, y: 40
       ships.spawn x: 80, y: 40
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         ships.each do |ship|
           if frame == 1
             ship.draw_with :hurt if ship.x == 80
           end
-          (frame == respawn_at).then { (ship.x == 80).then { ship.remove } } if respawn_at
+          if respawn_at && frame == respawn_at
+            ship.remove if ship.x == 80
+          end
         end
-        (frame == respawn_at).then { ships.spawn x: 80, y: 40 } if respawn_at
+        ships.spawn x: 80, y: 40 if respawn_at && frame == respawn_at
       end
     end
     builder.finalize_program
@@ -234,7 +236,7 @@ class TestSpriteDrawsWith < Minitest::Test
       colors :hurt, HURT
       ships = pool :ship, x: 0, y: 0, capacity: 1, image: :ship, on_full: :recycle_oldest
       ships.spawn x: 40, y: 40
-      frame = var :frame, 0
+      frame = 0
       game_loop do
         frame += 1
         if frame == 1
@@ -430,7 +432,7 @@ class TestSpriteDrawsWith < Minitest::Test
       image :ship, width: 8, height: 8, data: SHIP, colors: OWN
       names = (1..15).map { |n| colors :"pulse#{n}", [:magenta, VBlank::Graphics::Color.rgb(n * 2, 31 - n, n), :white] }
       ship = sprite :ship, at: [40, 40]
-      step = var :step, -1
+      step = -1
       game_loop do
         ship.draw_with names, showing: step
         step += 1
@@ -470,7 +472,7 @@ class TestSpriteDrawsWith < Minitest::Test
         end
       end
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tick += 1
         state = 1 if tick > SECOND_SCENE_AT
@@ -508,7 +510,7 @@ class TestSpriteDrawsWith < Minitest::Test
         end
       end
       state = var :state, 0
-      tick = var :tick, 0
+      tick = 0
       game_loop do
         tint :red, 50
         tick += 1

@@ -30,7 +30,7 @@ class TestShowMap < Minitest::Test
       image(:floor, "#" => :blue) { SOLID_TILE }
       tiles :dungeon, "#" => :wall, "." => :floor
       rooms = background :rooms, tiles: :dungeon, map: { hall: HALL, cave: CAVE, mixed: MIXED }
-      frames = var :frames, 0
+      frames = 0
       game_loop do
         frames += 1
         instance_exec(rooms, frames, &steering)
@@ -57,7 +57,7 @@ class TestShowMap < Minitest::Test
   end
 
   def test_naming_another_map_hands_the_background_that_whole_map
-    program = rooms_program { |rooms, frames| (frames == 2).then { rooms.show_map :cave } }
+    program = rooms_program { |rooms, frames| rooms.show_map :cave if frames == 2 }
 
     assert_equal Color.resolve(:blue), cell_of(program, frames: 6), "every cell is the cave's floor"
   end
@@ -73,7 +73,7 @@ class TestShowMap < Minitest::Test
   end
 
   def test_the_cells_a_map_actually_holds_are_the_ones_it_was_drawn_with
-    program = rooms_program { |rooms, frames| (frames == 2).then { rooms.show_map :mixed } }
+    program = rooms_program { |rooms, frames| rooms.show_map :mixed if frames == 2 }
     screen = game_player.run(program, frames: 6).screen
 
     assert_equal Color.resolve(:blue), pixel_at(0, 1, screen), "the two floor cells of row 1"
@@ -180,7 +180,7 @@ class TestShowMap < Minitest::Test
   # --- reading it back ---
 
   def test_which_map_is_showing_reads_back_as_a_value
-    program = rooms_program { |rooms, frames| (frames == 2).then { rooms.show_map :mixed } }
+    program = rooms_program { |rooms, frames| rooms.show_map :mixed if frames == 2 }
 
     assert_equal 2, game_player.run(program, frames: 6)[:__bg_rooms_map]
   end
@@ -213,7 +213,7 @@ class TestShowMap < Minitest::Test
   # --- the console draws the same thing ---
 
   def test_both_backends_agree_after_a_map_changed
-    assert_backends_agree(rooms_program { |rooms, frames| (frames == 2).then { rooms.show_map :mixed } },
+    assert_backends_agree(rooms_program { |rooms, frames| rooms.show_map :mixed if frames == 2 },
                           frames: 6)
   end
 
@@ -248,7 +248,7 @@ class TestShowMap < Minitest::Test
       left = Array.new(32) { ("#" * 32) + ("." * 32) }
       right = Array.new(32) { ("." * 32) + ("#" * 32) }
       rooms = background :rooms, tiles: :dungeon, map: { left: left, right: right }
-      frames = var :frames, 0
+      frames = 0
       game_loop do
         frames += 1
         rooms.show_map :right if frames == 2
@@ -290,7 +290,7 @@ class TestShowMap < Minitest::Test
         [:"room#{n}", rows]
       end
       rooms = background :rooms, tiles: :dungeon, map: maps
-      frames = var :frames, 0
+      frames = 0
       game_loop do
         frames += 1
         rooms.show_map pick if frames == 2

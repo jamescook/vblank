@@ -8,7 +8,7 @@ module PoolPosesGames
   include SharedConstants
 
   # A tiled program with four 8x8 pictures and a pool the block sets up.
-  private def pool_program(**pool_opts)
+  private def pool_program(**pool_opts, &game)
     b = Builder.new
     handle = nil
     b.instance_eval do
@@ -18,7 +18,7 @@ module PoolPosesGames
       image(:right1, "#" => :green) { "########\n" * 8 }
       image(:right2, "#" => :yellow) { "########\n" * 8 }
       handle = pool :guard, x: 0, y: 0, capacity: 8, **pool_opts
-      yield(self, handle)
+      instance_exec(self, handle, &game)
     end
     b.finalize_program
     b.program
@@ -37,7 +37,7 @@ module PoolPosesGames
       scene :play do
         guards = pool :guard, x: 0, y: 0, capacity: 8, frames: %i[left1 left2], rate: 2
         placed = var :placed, 0
-        (placed == 0).then do
+        if placed == 0
           guards.spawn x: 20, y: 20
           placed = 1
         end
@@ -79,7 +79,7 @@ class TestPoolPoses < Minitest::Test
       guards.spawn x: 60, y: 20
       b.game_loop do
         b.wait_vblank
-        guards.each { |g| (g.x == 20).then { g.face :left }.else { g.face :right } }
+        guards.each { |g| if g.x == 20 then g.face :left else g.face :right end }
       end
     end
 
@@ -106,7 +106,7 @@ class TestPoolPoses < Minitest::Test
       turned = b.var :turned, 0
       b.game_loop do
         b.wait_vblank
-        (turned == 0).then do
+        if turned == 0
           guards.each { |g| g.face :right; g.remove }
           guards.spawn x: 20, y: 20
           turned = 1
@@ -150,7 +150,7 @@ class TestPoolPoses < Minitest::Test
       guards.spawn x: 60, y: 20
       b.game_loop do
         b.wait_vblank
-        guards.each { |g| (g.x == 20).then { g.face :left }.else { g.face :right } }
+        guards.each { |g| if g.x == 20 then g.face :left else g.face :right end }
       end
     end
 

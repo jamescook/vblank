@@ -43,7 +43,7 @@ class TestPool < Minitest::Test
     assert_equal 3, i[live_count_of(:bullet)], "three instances are live"
   end
 
-  # A row handle's field is a mutable Value: b.y.add! moves it, b.y.clamp! pins it (the
+  # A row handle's field is a mutable Value: b.y += 1 moves it, b.y.clamp! pins it (the
   # read-modify-write path through a scratch var). The instance settles at the clamp.
   def test_a_field_is_mutable_per_instance
     b = Builder.new
@@ -120,7 +120,7 @@ class TestPool < Minitest::Test
     b = Builder.new
     b.instance_eval do
       screen :bitmap
-      found = var :found, -1
+      found = -1
       things = pool :thing, x: 0, y: 0, tag: 0, capacity: 8
       things.spawn x: 10, y: 40, tag: 1
       things.spawn x: 20, y: 40, tag: 2
@@ -128,7 +128,7 @@ class TestPool < Minitest::Test
       game_loop do
         wait_vblank
         clear_screen :black
-        things.each { |t| (t.tag == 2).then { found.set! t.index } }
+        things.each { |t| found = t.index if t.tag == 2 }
         draw_rect_at things.field_ref(:x, found), 100, 2, 2, :green
       end
     end
