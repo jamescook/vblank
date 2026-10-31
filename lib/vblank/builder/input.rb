@@ -3,8 +3,8 @@
 module VBlank
   class Builder
     # The input verbs: gate a block on a button — if_held / if_pressed — or turn a
-    # button into a {Condition} — held / pressed — to branch with `.then` and
-    # compose with `&` / `|`. Button names are validated against the shared IR
+    # button into a {Condition} — held / pressed — to branch with `if` and
+    # join with `&&` / `||`. Button names are validated against the shared IR
     # vocabulary. A concern of {Builder}, mixed in so these stay flat DSL verbs.
     module Input
       # Run the block only while a button is held down.
@@ -29,7 +29,7 @@ module VBlank
       end
 
       # A {Condition} that holds while a button is down — branch on it with
-      # `held(:up).then { ... }`.
+      # `if held(:up)`.
       #
       # @param button [Symbol] button name
       def held(button)
@@ -110,7 +110,7 @@ module VBlank
       # ignored — so name the fix instead of losing the code.
       def reject_block!(verb, button)
         raise ArgumentError,
-              "#{verb}(:#{button}) takes no block. To run code, write #{verb}(:#{button}).then { ... }. " \
+              "#{verb}(:#{button}) takes no block. To run code, write `if #{verb}(:#{button})`. " \
               "Or use the block form: if_#{verb} :#{button} do ... end."
       end
     end

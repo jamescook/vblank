@@ -13,7 +13,7 @@ module VBlank
         # A "per-frame container" is one whose body re-runs each frame: the game loop, a
         # runtime-counted repeat, an every-N-frames timer, or a per-frame func (a scene
         # dispatched by case_var, or a routine the loop calls). `after` is one-shot, so
-        # its body runs once and isn't one. A conditional (`.then`) isn't a container
+        # its body runs once and isn't one. A conditional (`if`) isn't a container
         # either — a setup op it guards may be a deliberate, one-off re-run — so only a
         # verb that is a DIRECT statement of a per-frame body is caught.
         module PerFrameScope
@@ -21,7 +21,7 @@ module VBlank
           # loop (the game loop and its timers) by UNCONDITIONAL calls, followed
           # transitively — a func a per-frame func unconditionally calls is itself
           # per-frame. A call guarded by a condition or an input edge
-          # (`pressed(:start).then { call :new_game }`) runs on demand, not each frame,
+          # (`call :new_game if pressed(:start)`) runs on demand, not each frame,
           # so it does NOT put its target on the every-frame path — that's what keeps a
           # one-off reset routine (which may legitimately re-seed or rebuild a list) from
           # being mistaken for per-frame setup.

@@ -258,8 +258,8 @@ module VBlank
       #
       #   bar = status_bar :score, tiles: :hud, map: SCORE_BAR, top: screen_height - 16
       #   game_loop do
-      #     (ball_y > 132).then { bar.move_to screen_height }      # out of view while the ball is low
-      #     (ball_y <= 132).then { bar.move_to screen_height - 16 }
+      #     bar.move_to screen_height if ball_y > 132        # out of view while the ball is low
+      #     bar.move_to screen_height - 16 if ball_y <= 132
       #   end
       #
       # It does not scroll. It hides the backgrounds under it from its top to the bottom of the

@@ -7,7 +7,7 @@ module VBlank
     # A game block written in normal Ruby.
     #
     # A block runs once, while the game is built, to record what the game will do. Ruby lets
-    # nobody change what `if`, `&&` or `x = 1` mean, so the ordinary DSL spells them `.then`,
+    # nobody change what `if`, `&&` or `x = 1` mean, so underneath they are the calls `.then`,
     # `&` and `set!`. This reads the block's own source with Prism and writes those few
     # constructs out as calls, and runs that instead. Everything else in the block, the verbs
     # above all, is left as it was written.

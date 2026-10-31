@@ -3,12 +3,12 @@
 module VBlank
   module DSL
     # The result of comparing two Values: a yes/no test the program branches on.
-    # Branch with `.then` (and an optional `.else`). Combine tests with & (both)
-    # and | (either) — Ruby's `&&`/`||` can't be overloaded, so the single-character
-    # forms are the ones that build a combined Condition.
+    # A game branches on one with `if` and joins two with `&&` and `||` (see PlainRuby).
+    # Ruby lets nobody change what those mean, so the rewrite turns them into the calls
+    # below: #open_branch for `if`, and & (both) and | (either) to combine tests.
     #
-    # Always branch with `.then`, never a native Ruby `if`. `if (x > 5)` looks
-    # right, but a Condition is *truthy* to Ruby, so its body would emit
+    # Code that the rewrite does not read must call those itself. There, a native `if
+    # (x > 5)` looks right, but a Condition is *truthy* to Ruby, so its body would emit
     # unconditionally at build time with the comparison silently ignored — no error,
     # just a ROM that always runs the branch.
     class Condition

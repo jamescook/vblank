@@ -7,7 +7,7 @@ module VBlank
     # it ticks four times a second. See Builder#timer.
     #
     #   beat = timer :beat, per_second: 4
-    #   (beat.ticks > last).then { ... }   # ticks climbs 4 times a second
+    #   if beat.ticks > last ...   # ticks climbs 4 times a second
     #   beat.stop
     #
     # `ticks` is how many times it has ticked (overflowed) since it started — a {Value},

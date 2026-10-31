@@ -6,9 +6,11 @@ module VBlank
     # (see Builder#clock), and each reading is a {Value} like any variable's:
     #
     #   now = clock
-    #   (now.present? & now.set?)
-    #     .then { draw_number now.hour, 40, 60, :white, digits: 2 }
-    #     .else { draw_text "SET THE CLOCK", :center, 70, :white }
+    #   if now.present? && now.set?
+    #     draw_number now.hour, 40, 60, :white, digits: 2
+    #   else
+    #     draw_text "SET THE CLOCK", :center, 70, :white
+    #   end
     #
     # Every reading in one pass of the game loop is of the same moment, so a minute cannot turn
     # over between reading the minute and the second. Where a build has no clock to read yet,

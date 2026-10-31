@@ -7,7 +7,7 @@ module VBlank
     # instance's slot in the field's backing list, so it behaves like an ordinary variable
     # {Value} — arithmetic, comparisons, set/add/… — even though it lives at a computed
     # index rather than in a named variable. This front-end handle is the whole trick that
-    # makes a pool read like game code: `b.y.add! b.vy` is really `y[i] = y[i] + vy[i]`.
+    # makes a pool read like game code: `b.y += b.vy` is really `y[i] = y[i] + vy[i]`.
     class FieldRef < Value
       Build = IR::Build
 

@@ -7,7 +7,7 @@ module VBlank
     # hands one back. See Builder#sample.
     #
     #   boom = sample :boom, pcm: [0, 80, 120, 80, 0, -80, -120, -80], rate: 8000
-    #   pressed(:a).then { boom.play }
+    #   boom.play if pressed(:a)
     #
     # The framework manages the hardware behind it — the sound FIFO, the DMA that feeds it,
     # and the timer that clocks the playback rate — so playing a real recorded sound is

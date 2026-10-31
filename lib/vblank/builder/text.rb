@@ -482,7 +482,8 @@ module VBlank
         raise ArgumentError,
               "On a tiled screen, draw_number follows a variable and updates itself each frame. " \
               "Give it a variable (like :score), not an expression. Store the value in a variable " \
-              "first (for example `set! :shown, hp - 1`). Then draw that variable."
+              "first (for example `shown = var :shown, 0`, then `shown = hp - 1`). Then draw that " \
+              "variable."
       end
 
       # The sprite pose that shows the digit of +source+ at +place+ (1, 10, 100, …).
@@ -504,7 +505,7 @@ module VBlank
         # A HUD glyph is always shown, so active starts at 1 — and then picks up the two
         # things that can narrow it. gated_by_scene scopes it to when its scene is the live
         # one, so a scene's HUD comes and goes with the scene. gated_by_open_conditions carries the
-        # tests it was written under, so `(blink == 1).then { draw_text ... }` blinks
+        # tests it was written under, so `draw_text ... if blink == 1` blinks
         # instead of standing still. Neither needs anything toggled by hand.
         record(Build.object(name, poses: poses, pose: pose, x: Build.int(x), y: Build.int(y),
                                   active: gated_by_open_conditions(gated_by_scene(Build.int(1))),
@@ -588,8 +589,8 @@ module VBlank
         @verb_owns_text = outer
       end
 
-      # The containers that are a test rather than a per-frame body — a `.then` and its
-      # `.else`. Text declared under one of these is declared once, like text at the top
+      # The containers that are a test rather than a per-frame body — an `if` and its
+      # `else`. Text declared under one of these is declared once, like text at the top
       # level, and shown while the test holds.
       CONDITION_CONTAINERS = %i[if else].freeze
 

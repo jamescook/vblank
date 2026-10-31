@@ -7,7 +7,7 @@ module VBlank
     # operators build more of them:
     #
     #   center = cpu_y + PADDLE_H / 2   # a Value (an expression, no variable of its own)
-    #   (ball_y > center).then { ... }  # a comparison makes a Condition
+    #   if ball_y > center ...          # a comparison makes a Condition
     #
     # A Value that names a variable can be mutated — set / add / sub / clamp /
     # approach — which records the matching statement into the program. An
@@ -16,13 +16,13 @@ module VBlank
     #
     # Each Value wraps an IR value node; comparisons and arithmetic just build
     # bigger nodes, so nothing is committed to the program until a Condition's
-    # `.then` (or a mutator) runs.
+    # `if` (or a change to a variable) runs.
     #
     # Deliberately no `<=>` / Comparable: those demand a build-time -1/0/1, but a
     # Value's magnitude isn't known until the ROM runs — which is exactly why the
     # comparison operators return a Condition (a runtime test), not a Ruby boolean.
     # Comparable would also redefine < > == to derive from `<=>` and hand back
-    # plain booleans, reviving the `if (x > 5)` footgun that `.then` exists to stop.
+    # plain booleans, and a game's `if x > 5` would be decided while building, once, for good.
     class Value
       Build = IR::Build
 

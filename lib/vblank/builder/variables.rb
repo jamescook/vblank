@@ -35,7 +35,7 @@ module VBlank
       # A STARTING VALUE THAT IS A NAME — `var :mode, :title` — declares a variable that holds
       # one of a set of names rather than a count: the states a game can be in, the moves an
       # enemy can make. The framework gives each name a number, in the order it first appears,
-      # and nothing in the game ever writes one (see {NameSet}). `mode.set! :playing` and
+      # and nothing in the game ever writes one (see {NameSet}). `mode = :playing` and
       # `(mode == :playing)` read as they look, and `call mode` runs the routine of that name.
       #
       # @param name [Symbol] variable name
@@ -72,7 +72,7 @@ module VBlank
       #     there is no separate "save" step to remember.
       #
       #   high = save_var :high_score, 0
-      #   (score > high).then { high.set! score }   # a new record — saved on the spot
+      #   high = score if score > high   # a new record — saved on the spot
       #
       # @param name [Symbol] variable name
       # @param default [Integer] the value on a brand-new cartridge (nothing saved yet)

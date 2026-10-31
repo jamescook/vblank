@@ -8,7 +8,7 @@ module VBlank
     #
     #   bullets = pool :bullet, x: 0, y: 0, vy: 0, capacity: 64
     #   bullets.spawn x: ship.x, y: ship.y, vy: -4
-    #   bullets.each { |b| b.y.add! b.vy; (b.y < 0).then { b.remove } }
+    #   bullets.each { |b| b.y += b.vy; b.remove if b.y < 0 }
     #
     # Behind the scenes each field is a backing {List}, one slot per instance, alongside
     # an `active` column (which slots are live) and a `free` stack (open slot indices). So
@@ -459,7 +459,7 @@ module VBlank
       end
 
       # Run the block once per LIVE instance, oldest first, handing it a row handle whose
-      # fields are mutable (`b.x.add!`, `b.y.set!`, read `b.x`) and which can retire itself
+      # fields are mutable (`b.x += 1`, `b.y = 0`, read `b.x`) and which can retire itself
       # (`b.remove`).
       #
       # The walk follows the chain from its first thing and stops after the thing that was last
@@ -547,7 +547,7 @@ module VBlank
       # How many instances are live right now, as a {Value}.
       def count = Value.new(@builder, Build.var_ref(count_var))
 
-      # Whether the pool is full (no free slot), as a {Condition} — branch with `.then`.
+      # Whether the pool is full (no free slot), as a {Condition} — branch with `if`.
       # That is whether a free slot is left, rather than how many are live: during a walk a
       # thing removed is no longer counted but its slot is not free until the walk ends, and
       # `full?` says what a spawn will find.

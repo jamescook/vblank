@@ -19,8 +19,8 @@ module VBlank
         # naming the verb and the fix, leaving a deliberate re-seed free to proceed.
         #
         # Only an UNCONDITIONAL seed — a direct statement of the per-frame body — is
-        # flagged. A seed gated by a condition or an input edge (`pressed(:start).then {
-        # seed ... }`) is a normal, deliberate re-seed and is left alone. A churn
+        # flagged. A seed gated by a condition or an input edge (`seed ... if
+        # pressed(:start)`) is a normal, deliberate re-seed and is left alone. A churn
         # (`randomize`/`roll`/`rand`) reads the stream to advance it, so it isn't a
         # re-seed and belongs in the loop; only a fresh assignment counts.
         class SeedInLoop

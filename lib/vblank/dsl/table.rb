@@ -4,7 +4,7 @@ module VBlank
   module DSL
     # A read-only ROM table declared with `table`. Index it with `[]` to read an
     # element at run time as a {Value}; its size is fixed at build time. Reads compose
-    # with the expression DSL, so `sin[angle]` drops straight into `y.set! sin[angle]`.
+    # with the expression DSL, so `sin[angle]` drops straight into `y = sin[angle]`.
     class Table
       Build = IR::Build
 

@@ -10,7 +10,7 @@ module VBlank
     #   piano = instrument :piano, from: "piano_c4.wav", note: :C4
     #   piano.play(:E4)                 # a single note
     #   piano.play(:C4, :E4, :G4)       # ...or a chord — all three sound together
-    #   pressed(:a).then { piano.play(:C4) }   # play it live from a button
+    #   piano.play(:C4) if pressed(:a)   # play it live from a button
     #
     # It's a thin layer over a {Sample}: each note becomes a pitched voice in the mixer, shifted
     # from the sample's own recorded note. No voices, rates, or mixer detail to think about —

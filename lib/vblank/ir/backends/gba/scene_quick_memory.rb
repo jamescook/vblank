@@ -94,7 +94,7 @@ module VBlank
           # WHAT THE GAME LOOP DOES FOR ONE SCENE IS MADE A ROUTINE OF THAT SCENE'S. The loop's
           # body holds the scene dispatch, so it is kept for the whole game, in every scene's room
           # — and a block in it that runs only while one scene is up (a scene's map scrolled, its
-          # pool put in order, a game's own `(where == :play).then { … }`) held that room on
+          # pool put in order, a game's own `if where == :play`) held that room on
           # every other scene too. Written as a routine of its own, called from where the block
           # was, it is that scene's: it goes in the scene's set, and the loop keeps only the test
           # and the call.
@@ -197,7 +197,7 @@ module VBlank
           # is up — under a test of the variable the dispatch picks scenes with, asking for that
           # scene's value. The gap after each frame tends each scene's things that way (its
           # pool put in order: Builder#while_scene_up writes that test), and a game's own
-          # `(where == :play).then { call :x }` reads the same; either is that scene's work
+          # `call :x if where == :play` reads the same; either is that scene's work
           # however it is reached. A test of any other shape is the frame's, which is only ever
           # slower, never wrong.
           def frame_calls_by_owner(frame, dispatch, scenes)

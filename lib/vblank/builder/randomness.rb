@@ -119,10 +119,10 @@ module VBlank
       end
 
       # A {Condition} that is true +percent+% of the time (0–100) — branch on it with
-      # `.then`, compose it with `&` / `|`, exactly like a comparison. Churns the
+      # `if`, join it with `&&` / `||`, exactly like a comparison. Churns the
       # stream.
       #
-      #   chance(30).then { beep :powerup }   # a 30% drop
+      #   beep :powerup if chance(30)   # a 30% drop
       #
       # @param percent [Integer] how often it holds, 0 (never) to 100 (always)
       # @return [Condition] the yes/no test
