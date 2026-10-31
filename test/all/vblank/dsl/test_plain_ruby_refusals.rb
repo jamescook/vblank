@@ -63,13 +63,6 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
-  def test_a_splat_writing_a_game_variable_is_refused
-    assert_refused("`*`") do
-      first, *rest = 1, 2
-      game_loop { first += rest.first }
-    end
-  end
-
   def test_a_plain_number_changed_in_a_ruby_block_under_a_game_test_is_refused
     assert_refused("inside a block") do
       def counted(a)
@@ -82,6 +75,16 @@ class TestPlainRubyRefusals < Minitest::Test
       hp = var :hp, 5
       seen = 0
       game_loop { seen = counted(hp) }
+    end
+  end
+
+  Thing = Struct.new(:x)
+
+  def test_an_object_name_changed_under_a_game_test_is_refused
+    assert_refused("`marker` holds") do
+      marker = Thing.new(1)
+      other = Thing.new(2)
+      game_loop { marker = other if pressed(:a) }
     end
   end
 

@@ -346,7 +346,7 @@ module VBlank
           when :declare then "#{prefix}#{declaration(node)}"
           # The line that makes a variable in game code sets it on every pass, as Ruby would.
           when :start then "#{prefix}#{start_text(node)}"
-          when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
+          when :assign then "#{prefix}#{assign_text(node.name, "(#{value_text(node.value)})")}"
           else "#{prefix}#{kept_value_text(node.value, node)}"
           end
         end
@@ -398,28 +398,42 @@ module VBlank
         # its own, one write at a time, so each goes the way the same line alone would. A right
         # side reading a target already written has to be kept first, or it would see the new
         # number: that is the one place a swap needs a hidden variable.
+        # Ruby does the unpacking, `*` and nested names included, into names of its own. Each
+        # target then goes the way one line would, looking at what it was given, so sprites stay
+        # sprites and a number given to a game variable changes it.
         def multi_write_text(node)
-          return refused_or_copied_multi_write(node) unless plain_targets?(node)
-
-          held = node.lefts.map { "__plain_ruby_#{@answers += 1}" }
-          writes = node.lefts.zip(held).map { |target, value| target_write_text(target, value) }
-          "(#{held.join(', ')} = #{multi_write_values(node)}; #{writes.join('; ')}; [#{held.join(', ')}])"
+          held = []
+          shape = targets_shape(node, held)
+          writes = held.map { |target, value| target_write_text(target, value) }
+          "(#{shape} = #{multi_write_values(node)}; #{writes.join('; ')}; [#{held.map(&:last).join(', ')}])"
         end
 
-        def plain_targets?(node)
-          node.rest.nil? && node.rights.empty? && node.lefts.none?(Prism::MultiTargetNode)
+        # The left of the assignment with a name of its own for each target, which go in +held+.
+        def targets_shape(node, held)
+          parts = node.lefts.map { |target| target_shape(target, held) }
+          parts << rest_shape(node.rest, held) if node.rest
+          parts += node.rights.map { |target| target_shape(target, held) }
+          parts.join(", ")
         end
 
-        def refused_or_copied_multi_write(node)
-          return copied_text(node) unless node.compact_child_nodes.any? { |target| @names.variable_write?(target) }
+        def target_shape(target, held)
+          return "(#{targets_shape(target, held)})" if target.is_a?(Prism::MultiTargetNode)
 
-          raise Refused, "`#{node.slice}` writes a game variable with `*` or nested names. A game cannot do that. " \
-                         "To fix this, write each name on a line of its own. (at line #{node.location.start_line})"
+          name = "__plain_ruby_#{@answers += 1}"
+          held << [target, name]
+          name
+        end
+
+        def rest_shape(rest, held)
+          return "*" unless rest.is_a?(Prism::SplatNode) && rest.expression
+
+          "*#{target_shape(rest.expression, held)}"
         end
 
         def multi_write_values(node)
           values = node.value
-          return rewritten_text(values) unless values.is_a?(Prism::ArrayNode) && values.opening_loc.nil? &&
+          flat = node.rest.nil? && node.rights.empty? && node.lefts.none?(Prism::MultiTargetNode)
+          return rewritten_text(values) unless flat && values.is_a?(Prism::ArrayNode) && values.opening_loc.nil? &&
                                                values.elements.length == node.lefts.length
 
           values.elements.each_with_index.map do |value, index|
@@ -456,9 +470,17 @@ module VBlank
           case @names.action_for(target)
           when :declare, :start
             "#{name} = #{STEPS}.start_name(#{value}) { |start| var(:#{@names.variable_name_of(target)}, start) }"
-          when :assign then "#{name} = #{STEPS}.assign(#{name}, #{value})"
+          when :assign then "#{name} = #{assign_text(name, value)}"
           else "#{name} = #{value}"
           end
+        end
+
+        # A name that turns out to hold an object cannot follow a test the game makes, so under an
+        # open test the step looks.
+        def assign_text(name, value)
+          return "#{STEPS}.assign(#{name}, #{value})" if @open_tests.empty?
+
+          "#{STEPS}.assign_under(#{open_tests_text}, :#{name}, #{name}, #{value})"
         end
 
         def promoted?(node) = @names.promoted?(node) && !@open_tests.empty?

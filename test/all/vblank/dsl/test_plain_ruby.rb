@@ -666,6 +666,37 @@ class TestPlainRuby < Minitest::Test
 
   MovedThing = Struct.new(:x)
 
+  def test_a_splat_unpacks_things_that_are_not_numbers_and_game_code_changes_them
+    player = played do
+      def things = [MovedThing.new(var(:first_x, 1)), MovedThing.new(var(:second_x, 2)), :extra]
+      marker, choice_marker, *rest = things
+      seen = 0
+      passes = 0
+      game_loop do
+        marker = choice_marker
+        passes += 1
+        marker.x = 5
+        seen = rest.length
+      end
+    end
+
+    assert_equal [1, 5, 1], [player[:first_x], player[:second_x], player[:seen]]
+  end
+
+  def test_a_splat_and_nested_names_keep_numbers_as_game_variables
+    player = played do
+      first, *rest = 1, 2, 3
+      (inner, other), last = [4, 5], 6
+      game_loop do
+        first += rest.first
+        inner += 1
+        other += last
+      end
+    end
+
+    assert_equal [7, 7, 23], [player[:first], player[:inner], player[:other]]
+  end
+
   def test_multiple_assignment_swaps_on_every_pass
     player = played do
       a = 1

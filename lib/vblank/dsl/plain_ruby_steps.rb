@@ -311,6 +311,13 @@ module VBlank
         value
       end
 
+      # `x = value` under open tests, where x may turn out to hold an object.
+      def assign_under(tests, name, target, value)
+        refuse_object_under_test!(name, target) if tests.any?(&:game?) && !target.nil? && !number_kept?(target)
+
+        assign(target, value)
+      end
+
       # `x += amount` on such a name.
       def change_under(tests, target, operator, amount)
         tests.any?(&:game?) ? change(target, operator, amount) : target.public_send(operator, amount)
