@@ -30,9 +30,9 @@ class TestQuickMemoryByScene < Minitest::Test
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        t.add! 1
-        (t == 6).then { set! :where, 1 }
-        (t == 12).then { set! :where, 0 }
+        t += 1
+        set! :where, 1 if t == 6
+        set! :where, 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -56,9 +56,9 @@ class TestQuickMemoryByScene < Minitest::Test
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        t.add! 1
-        (t == 6).then { where.set! :play }
-        (t == 12).then { where.set! :title }
+        t += 1
+        where = :play if t == 6
+        where = :title if t == 12
         call where
       end
     end
@@ -80,10 +80,10 @@ class TestQuickMemoryByScene < Minitest::Test
       files = save_data(:file, copies: 1, fast: true) { keep hearts }
       func(:play_work, fast: true) { adds.times { b.add! 1 } }
       scene(:logos) { pressed(:a).then { set! :where, 0 } } if logos
-      scene(:files) { pressed(:a).then { files[0].save } }
+      scene(:files) { files[0].save if pressed(:a) }
       scene(:play) { call :play_work }
       game_loop do
-        pressed(:start).then { set! :where, 1 }
+        set! :where, 1 if pressed(:start)
         case_var(:where) do
           when_val 2, :logos if logos
           when_val 1, :play if play_first
@@ -115,7 +115,7 @@ class TestQuickMemoryByScene < Minitest::Test
         call :play_work
       end
       game_loop do
-        pressed(:a).then { set! :where, 1 }
+        set! :where, 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -150,16 +150,16 @@ class TestQuickMemoryByScene < Minitest::Test
       scene :play do
         ground = background :ground, tiles: :field, map: Array.new(30) { |row| ("#.." * 24)[row % 3, 70] }
         sparks = pool :spark, x: 0, y: 0, capacity: 4, image: :dot
-        (sparks.count == 0).then { sparks.spawn(x: 10, y: 10) }
+        sparks.spawn(x: 10, y: 10) if sparks.count == 0
         sparks.each { |spark| spark.x.add! 1 }
         ground.scroll_by 1, 0
         call :play_work
       end
       game_loop do
-        t.add! 1
-        (t == 3).then { where.set! 1 }
-        (t == 9).then { where.set! 0 }
-        (where == 1).then { call :play_extra }
+        t += 1
+        where = 1 if t == 3
+        where = 0 if t == 9
+        call :play_extra if where == 1
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -187,10 +187,12 @@ class TestQuickMemoryByScene < Minitest::Test
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        t.add! 1
-        (t == 3).then { where.set! 1 }
-        (t == 9).then { where.set! 0 }
-        (where == 1).then { extra.times { c.add! 1 } }
+        t += 1
+        where = 1 if t == 3
+        where = 0 if t == 9
+        if where == 1
+          extra.times { c.add! 1 }
+        end
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -248,7 +250,7 @@ class TestQuickMemoryByScene < Minitest::Test
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        repeat(5) { |i| (where == 1).then { c.add! i } }
+        repeat(5) { |i| c += i if where == 1 }
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -282,7 +284,7 @@ class TestQuickMemoryByScene < Minitest::Test
         call :play_work
       end
       game_loop do
-        pressed(:a).then { set! :where, 1 }
+        set! :where, 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -471,12 +473,12 @@ class TestQuickMemoryByScene < Minitest::Test
       end
       play_song :tune
       func(:play_work) { adds.times { b.add! 1 } }
-      scene(:files) { pressed(:a).then { files[0].save } }
+      scene(:files) { files[0].save if pressed(:a) }
       scene(:play) { call :play_work }
       game_loop do
         heap.push 1
         300.times { spin.add! 1 }
-        pressed(:start).then { set! :where, 1 }
+        set! :where, 1 if pressed(:start)
         case_var(:where) do
           when_val 0, :files
           when_val 1, :play

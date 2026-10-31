@@ -34,8 +34,8 @@ class TestFlickerMeasured < Minitest::Test
       clear_screen :black
       n = var :n, 0
       game_loop do
-        n.add! 1
-        (n <= MARKS).then { draw_rect_at n * STEP, 40, 6, 6, :red }
+        n += 1
+        draw_rect_at n * STEP, 40, 6, 6, :red if n <= MARKS
       end
     end
   end
@@ -50,13 +50,13 @@ class TestFlickerMeasured < Minitest::Test
       clear_screen :black
       n = var :n, 0
       game_loop do
-        n.add! 1
-        (n <= MARKS).then { draw_rect_at n * STEP, 40, 6, 6, :red }
+        n += 1
+        draw_rect_at n * STEP, 40, 6, 6, :red if n <= MARKS
         # ...and the frame before's mark again, so every one is drawn on two frames
         # running, which is one of each picture. Both ends are guarded: without the
         # lower one the first mark is drawn on its own frame only, and without the
         # upper one the last mark is — and either leaves one mark on one picture.
-        ((n >= 2) & (n <= MARKS + 1)).then { draw_rect_at (n - 1) * STEP, 40, 6, 6, :red }
+        draw_rect_at (n - 1) * STEP, 40, 6, 6, :red if n >= 2 && n <= MARKS + 1
       end
     end
   end
@@ -72,7 +72,7 @@ class TestFlickerMeasured < Minitest::Test
       screen :bitmap, tear_free: true
       n = var :n, 0
       game_loop do
-        n.add! 1
+        n += 1
         clear_screen :black
         draw_rect_at (n * 8) % 200, 40, 6, 6, :red
       end
@@ -139,7 +139,7 @@ class TestFlickerMeasured < Minitest::Test
       screen :bitmap
       n = var :n, 0
       game_loop do
-        n.add! 1
+        n += 1
         draw_rect_at (n * 8) % 200, 40, 6, 6, :red
       end
     end

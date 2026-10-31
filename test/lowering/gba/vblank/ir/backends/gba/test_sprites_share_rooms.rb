@@ -47,7 +47,7 @@ class TestSpritesShareRooms < Minitest::Test
       tick = var :tick, 0
       shards = pool :shard, x: 0, y: 0, look: 0, capacity: 3, facing: POSES.to_h { |name| [name, name] }
       game_loop do
-        tick.add! 1
+        tick += 1
         (tick == 2).then do
           shards.spawn(x: 0, y: 8, look: 2)
           shards.spawn(x: 80, y: 8, look: 2)
@@ -85,21 +85,21 @@ class TestSpritesShareRooms < Minitest::Test
           shards.spawn(x: 80, y: 8, look: 1)
           shards.spawn(x: 160, y: 8, look: 4)
         end
-        (tick == 7).then { shards.spawn(x: 80, y: 80, look: 1) }
+        shards.spawn(x: 80, y: 80, look: 1) if tick == 7
         shards.each do |shard|
-          ((tick == 4) & (shard.x == 0)).then { shard.look.set! 5 }
-          ((tick == 6) & (shard.x == 80)).then { shard.remove }
-          ((tick == 9) & (shard.x == 160)).then { shard.look.set! 9 }
-          ((tick == 9) & (shard.y == 80)).then { shard.look.set! 12 }
-          ((tick == 10) & (shard.x == 0)).then { shard.look.set! 4 }
+          shard.look = 5 if tick == 4 && shard.x == 0
+          shard.remove if tick == 6 && shard.x == 80
+          shard.look = 9 if tick == 9 && shard.x == 160
+          shard.look = 12 if tick == 9 && shard.y == 80
+          shard.look = 4 if tick == 10 && shard.x == 0
           shard.face POSES, showing: shard.look
         end
       end
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       game_loop do
-        tick.add! 1
-        (tick == 12).then { state.set! 1 }
-        (tick == 15).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == 12
+        state = 0 if tick == 15
         case_var(:state) { when_val 0, :playing; when_val 1, :away }
       end
     end
@@ -214,14 +214,14 @@ class TestSpritesShareRooms < Minitest::Test
       tick = var :tick, 0
       walkers = pool :giant, x: 0, y: 0, look: 0, capacity: 2, facing: poses.to_h { |name| [name, name] }
       game_loop do
-        tick.add! 1
+        tick += 1
         (tick == 1).then do
           walkers.spawn(x: 8, y: 8, look: 0)
           walkers.spawn(x: 120, y: 8, look: 1)
         end
         walkers.each do |giant|
-          giant.look.set!((giant.look + 1) % 64)
-          ((tick == 6) & (giant.x == 120)).then { giant.look.set! 6 }
+          giant.look = (giant.look + 1) % 64
+          giant.look = 6 if tick == 6 && giant.x == 120
           giant.face poses, showing: giant.look
         end
       end

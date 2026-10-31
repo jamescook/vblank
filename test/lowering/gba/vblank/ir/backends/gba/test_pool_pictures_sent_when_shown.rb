@@ -57,18 +57,18 @@ class TestPoolPicturesSentWhenShown < Minitest::Test
       tick = var :tick, 0
       scene(:playing) do
         shards = pool :shard, x: 0, y: 0, look: 0, capacity: 3, facing: POSES.to_h { |name| [name, name] }
-        (tick == 2).then { shards.spawn(x: 8, y: 8, look: 0) }
-        (tick == 4).then { shards.spawn(x: 96, y: 8, look: 5) }
+        shards.spawn(x: 8, y: 8, look: 0) if tick == 2
+        shards.spawn(x: 96, y: 8, look: 5) if tick == 4
         shards.each do |shard|
-          (tick == 6).then { shard.look.set! 3 }
+          shard.look = 3 if tick == 6
           shard.face POSES, showing: shard.look
         end
       end
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       game_loop do
-        tick.add! 1
-        (tick == 8).then { state.set! 1 }
-        (tick == 11).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == 8
+        state = 0 if tick == 11
         case_var(:state) { when_val 0, :playing; when_val 1, :away }
       end
     end
@@ -122,8 +122,8 @@ class TestPoolPicturesSentWhenShown < Minitest::Test
       end
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { state.set! 0 }
+        tick += 1
+        state = 0 if tick == 3
         case_var(:state) { when_val 0, :playing; when_val 1, :away }
       end
     end

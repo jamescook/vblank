@@ -69,7 +69,7 @@ class TestSnakeCore < Minitest::Test
         set! :hx, xs.last + dx
         set! :hy, ys.last + dy
         # Scan the current body: does the new head land on an existing cell?
-        repeat(xs.length) { |i| ((xs[i] == :hx) & (ys[i] == :hy)).then { set! :hit, 1 } }
+        repeat(xs.length) { |i| set! :hit, 1 if xs[i] == :hx && ys[i] == :hy }
         xs.push :hx
         ys.push :hy
         unless grow

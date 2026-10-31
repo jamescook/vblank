@@ -18,7 +18,7 @@ class TestNativePicture < Minitest::Test
         fill_rect 10, 10, 20, 8, :red
         draw_rect_at x, 40, 30, 12, :yellow # runs off the right edge, and is clipped there
         pixel 5, 100, :white
-        x.sub! 7
+        x -= 7
       end
     end
 
@@ -36,7 +36,7 @@ class TestNativePicture < Minitest::Test
         draw_text "PONG", :center, 40, :white
         draw_text "HI", 8, 8, [:gray, :white], showing: score > 2
         draw_number score, 100, 100, :green, digits: 2
-        score.add! 1
+        score += 1
       end
     end
 
@@ -50,9 +50,9 @@ class TestNativePicture < Minitest::Test
       game_loop do
         clear_screen :cyan
         fill_rect 0, 0, 120, 160, :white
-        (n == 1).then { flash_screen :red, frames: 6 }
-        (n == 8).then { fade_out frames: 4 }
-        n.add! 1
+        flash_screen :red, frames: 6 if n == 1
+        fade_out frames: 4 if n == 8
+        n += 1
       end
     end
 
@@ -103,8 +103,8 @@ class TestNativePicture < Minitest::Test
       image :brick, "#" => :red do "########\n" * 8 end
       tiles :wall, "#" => :brick
       scene(:waiting) do
-        ticks.add! 1
-        (ticks >= 3).then { state.set! 1 }
+        ticks += 1
+        state = 1 if ticks >= 3
       end
       scene(:walled) { background :wall, tiles: :wall, map: ["#" * 30] * 20 }
       game_loop do
@@ -135,7 +135,11 @@ class TestNativePicture < Minitest::Test
       inside = var :inside, 0
       game_loop do
         dot.move :right, by: 1
-        dot.overlaps?(ring).then { hits.add! 1 }.else { (dot.x > 100).then { inside.add! 1 } }
+        if dot.overlaps?(ring)
+          hits += 1
+        else
+          (dot.x > 100).then { inside.add! 1 }
+        end
       end
     end
 
@@ -158,9 +162,9 @@ class TestNativePicture < Minitest::Test
       game_loop do
         ball.move :left, by: 5
         ball.move :down, by: 2
-        (n == 6).then { ball.hide }
-        (n == 9).then { ball.show }
-        n.add! 1
+        ball.hide if n == 6
+        ball.show if n == 9
+        n += 1
       end
     end
 
@@ -184,7 +188,7 @@ class TestNativePicture < Minitest::Test
       game_loop do
         gem.draw_with %i[hot cold], showing: n >> 1
         gem.move :right, by: 3
-        n.add! 1
+        n += 1
       end
     end
 
@@ -262,22 +266,22 @@ class TestNativePicture < Minitest::Test
       scene(:nowhere) do
         ball = sprite :ball, at: [60, 100]
         ball.move :left, by: 4
-        ticks.add! 1
-        (ticks == 3).then { state.set! 1 }
+        ticks += 1
+        state = 1 if ticks == 3
       end
       scene(:indoors) do
         background :wall, tiles: :wall, map: ["#" * 30] * 20
         ball = sprite :ball, at: [20, 20]
         ball.move :right, by: 4
-        ticks.add! 1
-        (ticks == 7).then { state.set! 2 }
+        ticks += 1
+        state = 2 if ticks == 7
       end
       scene(:outdoors) do
         background :lawn, tiles: :lawn, map: ["#" * 30] * 10
         ball = sprite :ball, at: [100, 30]
         ball.move :down, by: 4
-        ticks.add! 1
-        (ticks == 11).then { state.set! 0 }
+        ticks += 1
+        state = 0 if ticks == 11
       end
       game_loop do
         case_var :state do
@@ -312,8 +316,8 @@ class TestNativePicture < Minitest::Test
       call :put_up_red
       scene(:with_scenery) do
         background :floor, tiles: :whites, map: (["    "] * 10) + ["####"]
-        ticks.add! 1
-        (ticks >= 3).then { state.set! 1 }
+        ticks += 1
+        state = 1 if ticks >= 3
       end
       scene(:without) { ticks.add! 1 }
       game_loop do
@@ -343,9 +347,13 @@ class TestNativePicture < Minitest::Test
       lamp = sprite :lamp, at: [40, 100], facing: { off: :lamp_off, on: :lamp_on }
       n = var :n, 0
       game_loop do
-        (n < 6).then { hero.move :right, by: 3 }.else { hero.move :left, by: 3 }
+        if n < 6
+          hero.move :right, by: 3
+        else
+          hero.move :left, by: 3
+        end
         lamp.face %i[off on], showing: n >> 2
-        n.add! 1
+        n += 1
       end
     end
 
@@ -441,8 +449,8 @@ class TestNativePicture < Minitest::Test
           order[0] = 0
           order[1] = 1
         end
-        (n == 6).then { order.pop }
-        n.add! 1
+        order.pop if n == 6
+        n += 1
       end
     end
 
@@ -486,7 +494,7 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         twins.draw_with [:split], showing: n >> 1
-        n.add! 1
+        n += 1
       end
     end
 
@@ -506,7 +514,7 @@ class TestNativePicture < Minitest::Test
       clear_screen :blue
       game_loop do
         draw_rect_at n * 4, 20, 2, 10, :white
-        n.add! 1
+        n += 1
       end
     end
 
@@ -526,7 +534,7 @@ class TestNativePicture < Minitest::Test
         clear_screen :blue
         draw_rect_at 20 + n * 4, 30, 10, 10, :white
         draw_rect_at 100, 80 - n * 2, 6, 6, :red
-        n.add! 1
+        n += 1
       end
     end
 
@@ -549,7 +557,7 @@ class TestNativePicture < Minitest::Test
         blit :ring, 20 + n, 30
         blit :ring, 236, 156 - n
         blit %i[calm hurt], 100, 100, showing: n >> 1
-        n.add! 1
+        n += 1
       end
     end
 
@@ -575,9 +583,9 @@ class TestNativePicture < Minitest::Test
       game_loop do
         ball.move :left, by: 6
         ball.move :down, by: 2
-        (n == 5).then { ball.hide }
-        (n == 8).then { ball.show }
-        n.add! 1
+        ball.hide if n == 5
+        ball.show if n == 8
+        n += 1
       end
     end
 
@@ -602,7 +610,7 @@ class TestNativePicture < Minitest::Test
           blit :ring, 136, 86 - n
         end
         draw_rect_at 0, 150, 240, 4, :white
-        n.add! 1
+        n += 1
       end
     end
 
@@ -633,8 +641,8 @@ class TestNativePicture < Minitest::Test
         background :wall, tiles: :wall, map: ["#" * 30] * 4
       end
       game_loop do
-        ticks.add! 1
-        state.set! ticks / 4 % 3
+        ticks += 1
+        state = ticks / 4 % 3
         case_var :state do
           when_val 0, :tear_free
           when_val 1, :plain
@@ -658,10 +666,10 @@ class TestNativePicture < Minitest::Test
       clear_screen :blue
       fill_rect 100, 60, 40, 40, :yellow
       game_loop do
-        (n < 5).then { camera n * 7, n * -3 }
-        (n == 5).then { camera 0, 0 }
-        (n == 6).then { shake_screen intensity: 3, frames: 4 }
-        n.add! 1
+        camera n * 7, n * -3 if n < 5
+        camera 0, 0 if n == 5
+        shake_screen intensity: 3, frames: 4 if n == 6
+        n += 1
       end
     end
 
@@ -686,7 +694,7 @@ class TestNativePicture < Minitest::Test
         draw_column_at :wall, slice: n & 3, x: 20, top: 80 - n * 30, height: n * 60, width: 3
         draw_column_at :wall, slice: 1, x: 60 + n, top: 70, height: 3
         draw_column_at :wall, slice: 9, x: 100, top: 150, height: 40 - n * 10
-        n.add! 1
+        n += 1
       end
     end
 
@@ -706,10 +714,10 @@ class TestNativePicture < Minitest::Test
         clear_screen :black
         bar = keep_showing(:bar) { draw_rect_at 10, 10, score * 4, 6, :green }
         game_loop do
-          (n == 2).then { score.set! 5 }
-          (n == 2).then { bar.changed }
+          score = 5 if n == 2
+          bar.changed if n == 2
           bar.draw
-          n.add! 1
+          n += 1
         end
       end
 
@@ -734,7 +742,7 @@ class TestNativePicture < Minitest::Test
           clear_screen :red
           fill_rect 90, 60, 60, 30, :green
         end
-        n.add! 1
+        n += 1
       end
     end
 
@@ -785,7 +793,7 @@ class TestNativePicture < Minitest::Test
       game_loop do
         room.rotate 30
         record_statement(VBlank::IR::Build.scroll_background(:room, x: VBlank::IR::Build.var_ref(:n), y: VBlank::IR::Build.int(5)))
-        n.add! 7
+        n += 7
       end
     end
 
@@ -813,7 +821,7 @@ class TestNativePicture < Minitest::Test
         room.set_tile(-1, 2, ".")
         room.set_tile 1, -1, "."
         room.set_tile 1, 4, "."
-        n.add! 1
+        n += 1
         ball.move :right, by: 2
       end
     end
@@ -843,10 +851,10 @@ class TestNativePicture < Minitest::Test
       order = table :order, [0, 0, 1, 1, 0, 0, 2, 2, 5, 5, 5]
       n = var :n, 0
       game_loop do
-        (n == 1).then { rooms.set_tile 2, 1, "~" }
-        (n == 3).then { rooms.set_tile 0, 0, "." }
+        rooms.set_tile 2, 1, "~" if n == 1
+        rooms.set_tile 0, 0, "." if n == 3
         rooms.show_map order[n]
-        n.add! 1
+        n += 1
       end
     end
 
@@ -889,7 +897,7 @@ class TestNativePicture < Minitest::Test
           own.set_tile 0, 0, "~"
           shared.set_tile 9, 0, "~"
         end
-        (ticks == 15).then { shared.show_map 1 }
+        shared.show_map 1 if ticks == 15
       end
       scene(:bare) {}
       scene(:painted) do
@@ -897,8 +905,8 @@ class TestNativePicture < Minitest::Test
         fill_rect 100, 100, 20, 20, :yellow
       end
       game_loop do
-        ticks.add! 1
-        state.set! order[ticks]
+        ticks += 1
+        state = order[ticks]
         case_var :state do
           when_val 0, :room
           when_val 1, :bare
@@ -936,16 +944,16 @@ class TestNativePicture < Minitest::Test
       order = table :order, [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
       scene(:first) do
         room = background :room, tiles: :rooms, map: ["##..", "#..."]
-        (ticks == 10).then { room.set_tile 1, 1, "#" }
+        room.set_tile 1, 1, "#" if ticks == 10
       end
       scene(:second) do
         room = background :room, tiles: :rooms, map: ["..~~~~", "~~..~~", "......"]
         room.scroll_by 2, 0
-        (ticks == 5).then { room.set_tile 2, 0, "#" }
+        room.set_tile 2, 0, "#" if ticks == 5
       end
       game_loop do
-        ticks.add! 1
-        state.set! order[ticks]
+        ticks += 1
+        state = order[ticks]
         case_var :state do
           when_val 0, :first
           when_val 1, :second
@@ -981,8 +989,8 @@ class TestNativePicture < Minitest::Test
         background :room, tiles: :rooms, map: ["  ~~", "~~  "]
       end
       game_loop do
-        ticks.add! 1
-        state.set! order[ticks]
+        ticks += 1
+        state = order[ticks]
         case_var :state do
           when_val 0, :first
           when_val 1, :second
@@ -1016,11 +1024,11 @@ class TestNativePicture < Minitest::Test
       end
       scene(:second) do
         room = layer(:back) { background :room, tiles: :rooms, map: ["  ~~", "~~  "] }
-        (ticks == 4).then { room.set_tile 0, 0, "#" }
+        room.set_tile 0, 0, "#" if ticks == 4
       end
       game_loop do
-        ticks.add! 1
-        state.set! order[ticks]
+        ticks += 1
+        state = order[ticks]
         case_var :state do
           when_val 0, :first
           when_val 1, :second
@@ -1058,8 +1066,8 @@ class TestNativePicture < Minitest::Test
         layer(:ground) { background :room, tiles: :rooms, map: ["  ##"] * 2 }
       end
       game_loop do
-        ticks.add! 1
-        state.set! order[ticks]
+        ticks += 1
+        state = order[ticks]
         case_var :state do
           when_val 0, :first
           when_val 1, :second
@@ -1092,7 +1100,7 @@ class TestNativePicture < Minitest::Test
       game_loop do
         world.show_map n / 6
         world.scroll_to ((n % 6) * 150) - 100, ((n % 6) * 130) - 60
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1130,7 +1138,7 @@ class TestNativePicture < Minitest::Test
       game_loop do
         hero.put_in_layer %i[walking stairs], showing: (n / 2) - 1
         hero.move :right, by: 1
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1162,11 +1170,11 @@ class TestNativePicture < Minitest::Test
       game_loop do
         every(2) { drops.spawn(x: 40 + n, y: 20, drift: (n % 3) - 1) }
         drops.each do |drop|
-          drop.x.add! drop.drift
-          drop.y.add! 3
-          ((drop.y > 30) & (drop.drift == 0)).then { drop.remove }
+          drop.x += drop.drift
+          drop.y += 3
+          drop.remove if drop.y > 30 && drop.drift == 0
         end
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1201,10 +1209,14 @@ class TestNativePicture < Minitest::Test
       below = var :below, 0
       game_loop do
         hero.move :right, by: 2
-        (n == 24).then { rooms.show_map :open }
-        hero.can_move?(:down, by: 8).then { below.set! 1 }.else { below.set! 0 }
-        reached.set! hero.x
-        n.add! 1
+        rooms.show_map :open if n == 24
+        if hero.can_move?(:down, by: 8)
+          below = 1
+        else
+          below = 0
+        end
+        reached = hero.x
+        n += 1
       end
     end
 
@@ -1236,9 +1248,9 @@ class TestNativePicture < Minitest::Test
       game_loop do
         arrow.turn 37
         arrow.move :right, by: 4
-        (n == 5).then { arrow.hide }
-        (n == 7).then { arrow.show }
-        n.add! 1
+        arrow.hide if n == 5
+        arrow.show if n == 7
+        n += 1
       end
     end
 
@@ -1271,8 +1283,8 @@ class TestNativePicture < Minitest::Test
         gem.scale size
         gem.face_angle n * 50
         gem.draw_with %i[hot], showing: (n / 3) % 2
-        size.add! 0.2
-        n.add! 1
+        size += 0.2
+        n += 1
       end
     end
 
@@ -1308,9 +1320,9 @@ class TestNativePicture < Minitest::Test
         ground.scroll_by 1, 2
         fence.scroll_by(-3, 0)
         kite.turn(-29)
-        kite.scale.add! 0.125
+        kite.scale += 0.125
         kite.move :left, by: 6
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1368,8 +1380,8 @@ class TestNativePicture < Minitest::Test
       game_loop do
         left.move :right, by: 4
         right.move :left, by: 4
-        (n == 6).then { right.hide }
-        n.add! 1
+        right.hide if n == 6
+        n += 1
       end
     end
 
@@ -1405,7 +1417,7 @@ class TestNativePicture < Minitest::Test
         left.move :right, by: 4
         right.move :left, by: 4
         right.turn 20
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1435,8 +1447,8 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         ground.scroll_by 2, 1
-        thick.set! (n % 6) * 20
-        n.add! 1
+        thick = (n % 6) * 20
+        n += 1
       end
     end
 
@@ -1472,8 +1484,8 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         hero.move :right, by: 3
-        ((n % 3) == 0).then { thick.add! 15 }
-        n.add! 1
+        thick += 15 if (n % 3) == 0
+        n += 1
       end
     end
 
@@ -1502,13 +1514,13 @@ class TestNativePicture < Minitest::Test
       level = var :level, 0.0
       game_loop do
         floor.scroll_by 1, 0
-        (n < 6).then { fade :black, n * 15 }
-        (n == 6).then { fade :white, level }
-        (n == 8).then { fade :black, 0 }
-        (n == 9).then { tint :green, 40 }
-        (n == 11).then { flash_screen :red }
-        level.add! 12.5
-        n.add! 1
+        fade :black, n * 15 if n < 6
+        fade :white, level if n == 6
+        fade :black, 0 if n == 8
+        tint :green, 40 if n == 9
+        flash_screen :red if n == 11
+        level += 12.5
+        n += 1
       end
     end
 
@@ -1535,9 +1547,9 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         hero.move :right, by: 4
-        (n == 3).then { fade :black, 50 }
-        (n == 6).then { fade :black, 0 }
-        n.add! 1
+        fade :black, 50 if n == 3
+        fade :black, 0 if n == 6
+        n += 1
       end
     end
 
@@ -1562,7 +1574,7 @@ class TestNativePicture < Minitest::Test
       scene(:title) do
         screen :bitmap
         clear_screen :green
-        (n == 1).then { fade :black, 25 }
+        fade :black, 25 if n == 1
       end
       scene(:pool) do
         screen :tiled
@@ -1570,15 +1582,15 @@ class TestNativePicture < Minitest::Test
         layer(:water, transparency: 40) { background :waves, tiles: :waves, map: ["~" * 30] * 20 }
         duck = layer(:swimmers) { sprite :duck, at: [20, 40] }
         duck.move :right, by: 5
-        (n == 8).then { fade :black, 0 }
+        fade :black, 0 if n == 8
       end
       game_loop do
         case_var :state do
           when_val 0, :title
           when_val 1, :pool
         end
-        (n == 3).then { state.set! 1 }
-        n.add! 1
+        state = 1 if n == 3
+        n += 1
       end
     end
 
@@ -1607,7 +1619,7 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         fade :black, n * 10, under: :frame
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1639,9 +1651,9 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         hero.move :right, by: 3
-        (n < 8).then { fade :white, n * 15, under: :score }
-        (n == 8).then { fade :white, 100 }
-        n.add! 1
+        fade :white, n * 15, under: :score if n < 8
+        fade :white, 100 if n == 8
+        n += 1
       end
     end
 
@@ -1672,9 +1684,9 @@ class TestNativePicture < Minitest::Test
       game_loop do
         field.scroll_by 0, 1
         ship.move :right, by: 2
-        (n == 2).then { fade_out frames: 8, under: :ui }
-        (n == 14).then { fade_in }
-        n.add! 1
+        fade_out frames: 8, under: :ui if n == 2
+        fade_in if n == 14
+        n += 1
       end
     end
 
@@ -1706,10 +1718,10 @@ class TestNativePicture < Minitest::Test
       layer(:ui) { sprite :digit, at: [8, 8] }
       n = var :n, 0
       game_loop do
-        (n == 2).then { fade :black, 0, under: :ui }
-        (n == 4).then { fade :black, 25, under: :ui }
-        (n == 8).then { tint :red, 0 }
-        n.add! 1
+        fade :black, 0, under: :ui if n == 2
+        fade :black, 25, under: :ui if n == 4
+        tint :red, 0 if n == 8
+        n += 1
       end
     end
 
@@ -1747,9 +1759,9 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         mover.put_in_layer :front
-        (n == 2).then { fade :white, 50, under: :middle }
-        (n == 6).then { fade :white, 50, under: :front }
-        n.add! 1
+        fade :white, 50, under: :middle if n == 2
+        fade :white, 50, under: :front if n == 6
+        n += 1
       end
     end
 
@@ -1801,9 +1813,9 @@ class TestNativePicture < Minitest::Test
       sky = background :sky, tiles: :skies, map: ["s" * 30] * 20
       n = var :n, 0
       game_loop do
-        (n == 3).then { sky.draw_with :dusk }
-        (n == 6).then { sky.draw_with :own }
-        n.add! 1
+        sky.draw_with :dusk if n == 3
+        sky.draw_with :own if n == 6
+        n += 1
       end
     end
 
@@ -1835,7 +1847,7 @@ class TestNativePicture < Minitest::Test
       game_loop do
         light.scroll_by 1, 0
         light.draw_with %i[pale bright], showing: (n >> 1) - 1
-        n.add! 1
+        n += 1
       end
     end
 
@@ -1872,9 +1884,9 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       game_loop do
         backdrop.draw_with({ sea: %i[sea_dusk sea_night], sky: %i[sky_dusk sky_night] }, showing: (n >> 2) - 1)
-        (n == 8).then { fade :black, 50 }
-        (n == 10).then { fade :black, 50, under: :ui }
-        n.add! 1
+        fade :black, 50 if n == 8
+        fade :black, 50, under: :ui if n == 10
+        n += 1
       end
     end
 
@@ -1922,8 +1934,8 @@ class TestNativePicture < Minitest::Test
       n = var :n, 0
       scene(:outside) do
         sky = background :sky, tiles: :skies, map: { whole: ["s" * 30] * 20, half: ["s" * 15] * 20 }
-        (n == 2).then { sky.draw_with :dusk }
-        (n == 11).then { sky.show_map :half }
+        sky.draw_with :dusk if n == 2
+        sky.show_map :half if n == 11
       end
       scene(:inside) { n.add! 0 }
       game_loop do
@@ -1931,9 +1943,9 @@ class TestNativePicture < Minitest::Test
           when_val 0, :outside
           when_val 1, :inside
         end
-        (n == 5).then { state.set! 1 }
-        (n == 7).then { state.set! 0 }
-        n.add! 1
+        state = 1 if n == 5
+        state = 0 if n == 7
+        n += 1
       end
     end
 
@@ -1973,9 +1985,9 @@ class TestNativePicture < Minitest::Test
           when_val 0, :pool
           when_val 1, :shrine
         end
-        (n == 3).then { state.set! 1 }
-        (n == 7).then { state.set! 0 }
-        n.add! 1
+        state = 1 if n == 3
+        state = 0 if n == 7
+        n += 1
       end
     end
 
@@ -2027,7 +2039,7 @@ class TestNativePicture < Minitest::Test
         game_loop do
           camera n % 8, 0
           fill_rect 0, 0, 240, 160, :green
-          n.add! 1
+          n += 1
         end
       end
     end
@@ -2080,7 +2092,7 @@ class TestNativePicture < Minitest::Test
       scene(:lake) do
         water = background :water, tiles: :water, map: ["~ ~~ ~~~ ~~~~"] * 24
         water.scroll_each_row do |row|
-          asked.add! 1
+          asked += 1
           ((row * 37) % 700) - 300 + n
         end
         water.scroll_by(-5, 3)
@@ -2092,9 +2104,9 @@ class TestNativePicture < Minitest::Test
           when_val 1, :shore
         end
         ball.move :right, by: 3
-        (n == 3).then { state.set! 1 }
-        (n == 6).then { state.set! 0 }
-        n.add! 1
+        state = 1 if n == 3
+        state = 0 if n == 6
+        n += 1
       end
     end
 
@@ -2134,7 +2146,7 @@ class TestNativePicture < Minitest::Test
         lonely[row % 4]
       end
       water.scroll_each_row do |row|
-        ball.overlaps?(coin).then { touching.add! 1 }
+        touching += 1 if ball.overlaps?(coin)
         (row % 6) + touching
       end
       build = VBlank::IR::Build
@@ -2171,7 +2183,7 @@ class TestNativePicture < Minitest::Test
                                                  body: [build.add(:asked, build.int(1))]))
       game_loop do
         water.scroll_to (n * 40) - 60, (n * 90) - 100
-        n.add! 1
+        n += 1
       end
     end
 
@@ -2213,13 +2225,13 @@ class TestNativePicture < Minitest::Test
           sheet[40] = 0x33
           board.changed
         end
-        (n == 4).then { sheet[70] = 0x12 }
+        sheet[70] = 0x12 if n == 4
         room.draw_with({ ink: [:dusk] }, showing: n - 6)
-        (n == 8).then { state.set! 1 }
+        state = 1 if n == 8
       end
-      scene(:hall) { (n == 11).then { state.set! 0 } }
+      scene(:hall) { state = 0 if n == 11 }
       game_loop do
-        n.add! 1
+        n += 1
         case_var(:state) { when_val 0, :room; when_val 1, :hall }
       end
     end
@@ -2256,17 +2268,17 @@ class TestNativePicture < Minitest::Test
       sprite :label, at: [100, 60]
       n = var :n, 0
       game_loop do
-        n.add! 1
+        n += 1
         (n == 2).then do
           repeat(64) { |i| sheet[i] = 0x10 + (i % 3) }
           tag.changed
         end
-        (n == 4).then { first.draw_with :hurt }
+        first.draw_with :hurt if n == 4
         first.move :right, by: 3
-        (n == 3).then { label.fill_rect 1, 1, 9, 5, :red }
-        (n == 5).then { label.draw_text "HI", 12, 2, :white }
-        (n == 7).then { label.pixel 30, 14, :blue }
-        (n == 9).then { label.clear :blue }
+        label.fill_rect 1, 1, 9, 5, :red if n == 3
+        label.draw_text "HI", 12, 2, :white if n == 5
+        label.pixel 30, 14, :blue if n == 7
+        label.clear :blue if n == 9
       end
     end
 
@@ -2300,10 +2312,10 @@ class TestNativePicture < Minitest::Test
       other = sprite :ship, at: [120, 40]
       n = var :n, 0
       game_loop do
-        n.add! 1
+        n += 1
         ship.draw_with [:plain, :slot], showing: n / 6
         rock.draw_with :slot
-        (n == 9).then { other.draw_with :plain }
+        other.draw_with :plain if n == 9
         recolor :slot, %i[warm cold], showing: (n / 2) - 1
       end
     end

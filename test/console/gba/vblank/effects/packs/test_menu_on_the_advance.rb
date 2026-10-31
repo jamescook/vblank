@@ -102,7 +102,7 @@ class TestMenuOnTheAdvance < Minitest::Test
   # raced down the list one row a frame can land on the right row by coincidence, and
   # in a three-row walk it often does.
   private def counting_moves(repeat_every:)
-    menu_program(repeat_every: repeat_every) { |m| m.moved.then { add! :chose, 1 } }
+    menu_program(repeat_every: repeat_every) { |m| add! :chose, 1 if m.moved }
   end
 
   # ---- choosing ----
@@ -213,8 +213,8 @@ class TestMenuOnTheAdvance < Minitest::Test
       t = var :t, 0
       game_loop do
         clear_screen :black if on == :bitmap
-        t.add! 1
-        pressed(:l).then { open.set! 1 - open }
+        t += 1
+        open = 1 - open if pressed(:l)
         (t == opens_at).then { open.set! 1 } if opens_at
         options = { at: [X, Y], spacing: SPACING, color: :gray, picked: :white, disabled: :red }
         options[:repeat_every] = repeat_every if repeat_every
