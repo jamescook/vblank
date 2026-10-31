@@ -82,7 +82,12 @@ module VBlank
                 refuse_unmade!("a hardware sprite on a painted (bitmap) screen") unless @objects.empty?
               end
               @program.walk.select { |node| node.kind == :background }.each do |bg|
-                refuse_unmade!("background tiles of #{bg.tile_w}×#{bg.tile_h}") unless bg.tile_w == 8 && bg.tile_h == 8
+                unless bg.tile_w == bg.tile_h && [8, BIG_TILE].include?(bg.tile_w)
+                  refuse_unmade!("background tiles of #{bg.tile_w}×#{bg.tile_h}")
+                end
+                if bg.tile_w == BIG_TILE && @tile_runs.any? { |run| !run.picture && run.tiles.intersect?(bg.tiles) }
+                  refuse_unmade!("16×16 background tiles that the game paints from a list")
+                end
                 refuse_unmade!("a background drawn with other colours") unless Array(bg.recolors).empty? && Array(bg.palettes).empty?
                 refuse_unmade!("a background drawn from several sets of tiles") if bg.several_sets?
                 refuse_unmade!("a background whose maps are of different sizes or too big to hold") if bg.streams?
@@ -305,6 +310,21 @@ module VBlank
             # The layers bent, in #bends' order, whose line tables the runtime makes.
             def bent_layers = painted? ? [] : bends.map { |bend| layer_of(background_declared_for(bend)) }
 
+            # BGMODE'S SIZE BITS for the layers drawn from 16×16 tiles: BG1's is bit 4, BG2's bit 5. The
+            # console is told once, at power-on, so a layer that shows a background of 16×16 tiles in
+            # one scene and one of 8×8 in another is not made yet.
+            def big_tile_layers
+              return 0 if painted?
+
+              @big_tile_layers ||= @layers.group_by { |_, layer| layer }.sum do |layer, held|
+                sizes = held.map { |bg, _| bg.tile_w }.uniq
+                refuse_unmade!("one layer showing backgrounds of 16×16 tiles and of 8×8 in different scenes") if sizes.length > 1
+                sizes == [BIG_TILE] ? BIG_TILE_BIT << layer : 0
+              end
+            end
+
+            BIG_TILE_BIT = 0x10
+
             private
 
             def by_kind(kind) = @program.walk.select { |node| node.kind == kind }.to_h { |node| [node.name, node] }
@@ -440,8 +460,14 @@ module VBlank
               return nil if tile.nil? || tile.negative?
 
               name = bg.tiles.fetch(tile)
-              @run_cells.fetch(name) { @art.background_cell(Assets::Image.of(picture_named(name))) }
+              @run_cells.fetch(name) do
+                image = Assets::Image.of(picture_named(name))
+                bg.tile_w == BIG_TILE ? @art.background_big_cell(image) : @art.background_cell(image)
+              end
             end
+
+            # The side of a background tile the console draws itself, beside 8×8 (BGMODE's size bits).
+            BIG_TILE = 16
 
             # Reference#exec_scroll_background.
             def emit_scroll_background(node) = for_background(node) { |bg| emit_scroll_background_on(node, bg) }

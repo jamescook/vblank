@@ -94,11 +94,46 @@ module VBlank
             end
             bytes = tile_bytes(places)
             number = @background_tile_numbers[bytes] ||= begin
-              refuse_too_many!(@background_tiles.length, MOST_BACKGROUND_TILES, "backgrounds")
-              @background_tiles << bytes
-              @background_tiles.length - 1
+              at = @background_tiles.index(nil) || @background_tiles.length
+              refuse_too_many!(at, MOST_BACKGROUND_TILES, "backgrounds")
+              @background_tiles[at] = bytes
+              at
             end
             [number, palette]
+          end
+
+          # THE CELL A 16×16 TILE MAKES, on a background the console draws from tiles of that size. The
+          # console still keeps 8×8 tiles, and draws a big one as four: the one a cell names, the one
+          # after it, and the two sixteen on (the row below, in video memory's rows of sixteen tiles).
+          # So the four quarters of +image+ (an Assets::Image of 16×16) go in four places that
+          # pattern takes, the first of them at an even place in an even row, and the whole tile is
+          # drawn from one palette. Its tile number (the top left quarter's) and the palette.
+          def background_big_cell(image)
+            drawn = (0...256).reject { |at| image.tile_see_through_at?(at) }
+            palette = palette_for(@background_palettes, drawn.map { |at| image.color_at(at) }.uniq, "backgrounds")
+            quarters = (0...4).map do |quarter|
+              tile_bytes(Array.new(64) do |at|
+                pixel = ((((quarter / 2) * 8) + (at / 8)) * 16) + ((quarter % 2) * 8) + (at % 8)
+                image.tile_see_through_at?(pixel) ? 0 : @background_palettes[palette].index(image.color_at(pixel)) + 1
+              end)
+            end
+            number = @background_tile_numbers[quarters.join] ||= begin
+              at = free_big_place
+              refuse_too_many!(at + BIG_TILE_PLACES.last, MOST_BACKGROUND_TILES, "backgrounds")
+              BIG_TILE_PLACES.zip(quarters) { |offset, bytes| @background_tiles[at + offset] = bytes }
+              at
+            end
+            [number, palette]
+          end
+
+          # Where a big tile's quarters go, from the place its cell names.
+          BIG_TILE_PLACES = [0, 1, 16, 17].freeze
+
+          # The first place a big tile fits: even, in an even row of sixteen, with all four places free.
+          def free_big_place
+            at = 0
+            at += 2 until (at % 32) < 16 && BIG_TILE_PLACES.all? { |offset| @background_tiles[at + offset].nil? }
+            at
           end
 
           # The map +cells+ ([tile, palette] or nil, by row and column) made into the console's grid
@@ -209,7 +244,7 @@ module VBlank
           end
 
           def sprite_tile_data = @sprite_tiles.join
-          def background_tile_data = @background_tiles.join
+          def background_tile_data = @background_tiles.map { |bytes| bytes || blank_tile }.join
 
           private
 

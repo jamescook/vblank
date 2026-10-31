@@ -180,10 +180,11 @@ module VBlank
             # +see_through+ is the colour math a see-through layer needs, [the layers it mixes, the
             # layers behind them] a bit each, or nil (Lowering::Picture#refuse_unmade_see_through!).
             # +sprite_depths+ for a game with a sprite behind a background: rt_sprite_place takes a
-            # sixth number then (Lowering::Picture#sprite_depths).
+            # sixth number then (Lowering::Picture#sprite_depths). +big_tiles+ is BGMODE's size bits for the
+            # layers drawn from 16×16 tiles (Lowering::Picture#big_tile_layers).
             def emit(asm, memory, work:, painted: false, bar: false, bent: [], tile_runs: 0, run_scratch: nil,
-                     see_through: nil, sprite_depths: false)
-              emit_start(asm, memory, painted, see_through)
+                     see_through: nil, sprite_depths: false, big_tiles: 0)
+              emit_start(asm, memory, painted, see_through, big_tiles)
               emit_sprites(asm, memory, work, sprite_depths)
               emit_backgrounds(asm, memory, work)
               emit_bar(asm, memory) if bar
@@ -202,7 +203,7 @@ module VBlank
 
             # The registers, then the tiles and the colours copied in while the screen is off — or,
             # for a +painted+ screen, Runtime::Paint's.
-            def emit_start(asm, memory, painted, see_through = nil)
+            def emit_start(asm, memory, painted, see_through = nil, big_tiles = 0)
               h = Console::SNESHardware
               asm.label("rt_picture_start")
               # WRIO's top bit lets a read of SLHV latch the line the picture is on, which the copy
@@ -219,7 +220,7 @@ module VBlank
               end
 
               asm.sep(0x20)
-              asm.lda(0x01) # mode 1, every tile 8×8
+              asm.lda(0x01 | big_tiles) # mode 1, every tile 8×8 but on the layers of +big_tiles+
               asm.sta(asm.abs(h::BGMODE))
               asm.stz(asm.abs(h::BG12NBA)) # both layers' tiles at $0000
               asm.lda(SPRITE_TILES >> 13) # sprites' tiles at $6000, the next 256 straight after; 8×8 and 16×16
