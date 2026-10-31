@@ -1708,6 +1708,33 @@ class TestPlainRuby < Minitest::Test
     assert_equal [5, 1, 7, -1], [player[:x], player[:y], player[:first], player[:second]]
   end
 
+  # A name first given inside a branch has nothing to promote before that branch.
+  def test_a_name_first_given_in_a_branch_is_written_through_in_that_branch
+    pick = 2
+    holder = Struct.new(:size).new(1)
+    player = played(frames: 1) do
+      total = 0
+      case pick
+      when 1 then total = 1
+      when 2
+        if pick == 2
+          spot = [1, 2]
+          spot[0] = 5
+          at = 1
+          spot[at] = 6
+          box = holder
+          box.size = 7
+          found = { size: 1 } and found[:size] = 8
+          total = spot[0] + spot[1] + box.size + found[:size]
+        end
+      end
+      shown = 0
+      game_loop { shown = total }
+    end
+
+    assert_equal 26, player[:shown]
+  end
+
   def test_a_plain_number_in_a_frozen_hash_under_a_game_test_stays_ruby_s_error
     assert_raises(FrozenError) do
       played(frames: 1) do

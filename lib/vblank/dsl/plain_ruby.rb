@@ -553,10 +553,22 @@ module VBlank
         def slot_promotion_text(place, keys, given)
           return unless keys.all? { |key| LocalNames.plain_key?(key) }
 
-          "#{WRITES}.promote_slot(#{place.receiver.slice}, [#{keys.map(&:slice).join(', ')}], #{given}); "
+          promotion = "#{WRITES}.promote_slot(#{place.receiver.slice}, [#{keys.map(&:slice).join(', ')}], #{given})"
+          text_once_names_exist(promotion, [place.receiver, *keys])
         end
 
-        def attribute_promotion_text(place, name, given) = "#{WRITES}.promote_attribute(#{place.receiver.slice}, :#{name}, #{given}); "
+        def attribute_promotion_text(place, name, given)
+          text_once_names_exist("#{WRITES}.promote_attribute(#{place.receiver.slice}, :#{name}, #{given})", [place.receiver])
+        end
+
+        # +text+ stands before a branch, and +parts+ are written inside it. A local that branch is
+        # first to give does not exist yet up here, and has nothing to promote. `defined?` asks Ruby
+        # itself, so a name an earlier side gave, which a game test's both sides run, still counts.
+        # It must answer "local-variable": up here `box` would otherwise be the builder's verb.
+        def text_once_names_exist(text, parts)
+          names = parts.grep(Prism::LocalVariableReadNode).map { |local| "defined?(#{local.slice}) == 'local-variable'" }.uniq
+          names.empty? ? "#{text}; " : "#{text} if #{names.join(' && ')}; "
+        end
 
         def change_text(node)
           return "#{node.name} = #{change_call(node, ', second_name: true')}" if promoted?(node)
