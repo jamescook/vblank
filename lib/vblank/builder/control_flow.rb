@@ -45,9 +45,11 @@ module VBlank
       # counted instead, and Checks::DroppedFrameSync reports the count once.
       #
       # Outside a game loop nothing is pacing the program, so the wait is emitted as
-      # written — that is how a program presents a frame on its own.
+      # written — that is how a program presents a frame on its own. Inside a normal Ruby
+      # `while` on a game test it is emitted too: the loop's passes are not the game loop's, and
+      # the wait is what lets the screen go on being drawn while it goes round.
       def wait_vblank
-        return @dropped_syncs += 1 if @frame_sync == :auto && @has_paced_loop
+        return @dropped_syncs += 1 if @frame_sync == :auto && @has_paced_loop && !inside_game_while?
 
         emit_frame_boundary
       end

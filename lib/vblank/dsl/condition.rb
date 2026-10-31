@@ -58,6 +58,42 @@ module VBlank
         Branch.new(@builder, if_node)
       end
 
+      # The same branch taken a step at a time, for normal Ruby's `if` (see PlainRuby), whose
+      # sides are not blocks. Statements recorded until #close_branch go in it.
+      def open_branch
+        @builder.consume_condition(self)
+        @builder.open_branch(@node)
+      end
+
+      # ...and its other side, with the node #open_branch gave back.
+      def open_other_branch(if_node) = @builder.open_other_branch(if_node)
+
+      def close_branch = @builder.close_branch
+
+      # A loop on this test, stopping once it holds, taken a step at a time as a branch is.
+      def open_repeat(most_passes)
+        @builder.consume_condition(self)
+        @builder.open_repeat(most_passes, @node)
+      end
+
+      def close_repeat = @builder.close_repeat
+
+      def hidden_variable = @builder.hidden_variable
+
+      # The opposite test. A Ruby `!` on a Condition would otherwise answer plain false, and
+      # the comparison would be lost with no word said.
+      def !
+        @builder.consume_condition(self)
+        Condition.new(@builder, Build.binop(:==, @node, Build.int(0)))
+      end
+
+      # This test is not needed after all: a plain value beside it decided the answer
+      # (see PlainRubySteps.both). Marks it used, and answers false.
+      def discard
+        @builder.consume_condition(self)
+        false
+      end
+
       private
 
       # Build a combined Condition. Both sides must be Conditions — you compose

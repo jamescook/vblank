@@ -332,6 +332,16 @@ module VBlank
       handle
     end
 
+    # VBlank.game for a block written in normal Ruby (see DSL::PlainRuby). +allow+ names libraries
+    # the block may use, on the author's word that they are safe here.
+    def new_dsl(title, allow: [], **options, &block)
+      unless block
+        raise ArgumentError, %(VBlank.new_dsl needs a block: VBlank.new_dsl("NAME", consoles: %i[gba]) { ... })
+      end
+
+      game(title, **options, &DSL::PlainRuby.rewrite(block, allow: allow))
+    end
+
     private
 
     def refuse_unsaid_consoles!(title)

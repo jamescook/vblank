@@ -883,7 +883,63 @@ module VBlank
       if_node.else = else_node
     end
 
+    # #record_conditional and #record_else with no block: normal Ruby's `if` keeps its sides
+    # where they were written (see DSL::PlainRuby), so a side is opened, run, and closed. Each
+    # open goes with one #close_branch.
+    def open_branch(cond_node)
+      if_node = Build.if_(cond_node)
+      record(if_node)
+      open_container(if_node, if_node.cond)
+      if_node
+    end
+
+    def open_other_branch(if_node)
+      if_node.else = Build.else_
+      open_container(if_node.else, Build.binop(:==, if_node.cond.copy, Build.int(0)))
+    end
+
+    def close_branch
+      @shown_while.pop
+      @container_stack.pop
+    end
+
+    # A `repeat` with a stop test, likewise opened and closed rather than given a block.
+    def open_repeat(most_passes, stop_node)
+      @repeat_seq += 1
+      index = :"__repeat_#{@repeat_seq}"
+      ensure_var(index)
+      node = Build.repeat(DSL::Value.node_for(most_passes), index, stop_when: stop_node)
+      record(node)
+      @container_stack.push(node)
+      @game_whiles = (@game_whiles || 0) + 1
+    end
+
+    def close_repeat
+      @game_whiles -= 1
+      @container_stack.pop
+    end
+
+    # Is a `while` on a game test open, in normal Ruby? (see #wait_vblank)
+    def inside_game_while? = (@game_whiles || 0).positive?
+
+    # A variable of its own for a number the author never named: a value picked between two,
+    # or a number kept (see PlainRubySteps). Nothing reads it before something has set it.
+    def hidden_variable
+      @hidden_variables = (@hidden_variables || 0) + 1
+      name = :"__kept_#{@hidden_variables}"
+      ensure_var(name)
+      DSL::Value.new(self, Build.var_ref(name), name: name)
+    end
+
+    # Is what is recorded now code the game runs as it plays, rather than setting up?
+    def recording_game_code? = @container_stack.length > 1
+
     private
+
+    def open_container(node, shown_while)
+      @container_stack.push(node)
+      @shown_while.push(shown_while)
+    end
 
     # --- Boot-time initialization ---
 
@@ -1492,11 +1548,22 @@ module VBlank
     # script — so an asset path can be resolved relative to it. nil if the whole
     # stack is internal (nothing sensible to resolve against).
     def caller_script_dir
-      frame = caller_locations.find do |loc|
-        loc.absolute_path && !loc.absolute_path.start_with?(SOURCE_ROOT)
-      end
-      frame && File.dirname(frame.absolute_path)
+      path, = author_frame
+      path && File.dirname(path)
     end
+
+    # The file and line of the nearest caller that isn't framework code, or nil. A normal Ruby
+    # block is run through `eval` (see DSL::PlainRuby), and such a frame has no absolute path,
+    # only the file name it was given.
+    def author_frame
+      caller_locations.each do |loc|
+        path = loc.absolute_path || author_eval_path(loc)
+        return [path, loc.lineno] if path && !path.start_with?(SOURCE_ROOT)
+      end
+      nil
+    end
+
+    def author_eval_path(loc) = File.exist?(loc.path) ? File.expand_path(loc.path) : nil
 
     # A sheet cell's pixel size: one number means a square cell, [w, h] a rectangle.
     def sheet_tile_size(name, tile)
@@ -1582,10 +1649,8 @@ module VBlank
     # The user's call site that led here — "hero.rb:42", the nearest caller that
     # isn't framework code — for diagnostics. nil if the whole stack is internal.
     def caller_source_location
-      frame = caller_locations.find do |loc|
-        loc.absolute_path && !loc.absolute_path.start_with?(SOURCE_ROOT)
-      end
-      frame && "#{File.basename(frame.absolute_path)}:#{frame.lineno}"
+      path, line = author_frame
+      path && "#{File.basename(path)}:#{line}"
     end
 
     # Build a container node, attach it, and keep it open while the block runs so

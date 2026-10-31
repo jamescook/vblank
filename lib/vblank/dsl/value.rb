@@ -116,6 +116,16 @@ module VBlank
         !@name.nil?
       end
 
+      # This variable's number kept as it is now, for `old = hp` in normal Ruby (see
+      # PlainRubySteps.copy). In setting up there is nothing to keep yet, so a second name will do.
+      def kept_copy
+        return self unless @builder.recording_game_code?
+
+        kept = @builder.hidden_variable
+        kept.set!(self)
+        kept
+      end
+
       # How many fraction bits this value carries, or nil if it is a plain whole number.
       def fraction_bits
         @scale.bits

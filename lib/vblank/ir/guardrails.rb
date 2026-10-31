@@ -289,6 +289,7 @@ require_relative "guardrails/dropped_frame_sync"
 require_relative "guardrails/estimate_does_nothing"
 require_relative "guardrails/vblank_sync"
 require_relative "guardrails/termination"
+require_relative "guardrails/loop_never_waits"
 require_relative "guardrails/off_screen_draw"
 require_relative "guardrails/orphaned_condition"
 require_relative "guardrails/orphaned_expression"
@@ -347,6 +348,7 @@ module VBlank
         Checks::TintNeverLifted.new,
         Checks::VblankSync.new,
         Checks::Termination.new,
+        Checks::LoopNeverWaits.new,
         Checks::OffScreenDraw.new,
         Checks::ChannelConflict.new,
         Checks::SongNeedsFrames.new,

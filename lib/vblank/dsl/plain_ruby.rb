@@ -1,0 +1,286 @@
+# frozen_string_literal: true
+
+require "prism"
+
+module VBlank
+  module DSL
+    # A game block written in normal Ruby.
+    #
+    # A block runs once, while the game is built, to record what the game will do. Ruby lets
+    # nobody change what `if`, `&&` or `x = 1` mean, so the ordinary DSL spells them `.then`,
+    # `&` and `set!`. This reads the block's own source with Prism and writes those few
+    # constructs out as calls, and runs that instead. Everything else in the block, the verbs
+    # above all, is left as it was written.
+    #
+    # NOTHING HERE GUESSES A TYPE. Whether `if hp > 0` is a test for the game or for the build
+    # cannot be read off the source, so each construct becomes a small step (PlainRubySteps)
+    # that looks at the value as the block runs: `if console == :gbc` stays plain Ruby.
+    #
+    # A BRANCH'S CODE STAYS WHERE IT WAS WRITTEN, inside parentheses in a real Ruby `if`, and is
+    # never moved into a block. So the locals it sets outlive it and every line keeps its
+    # number, which is what makes an error name the author's own line.
+    module PlainRuby
+      # Something a game block cannot do, said in plain words before the game is built.
+      class Refused < BuildError; end
+
+      module_function
+
+      # +block+ again, as a proc that runs the rewritten source. It closes over what +block+
+      # closed over, so the game's own constants and locals still resolve. +allow+ names
+      # libraries the block may use, on the author's word that they are safe here.
+      #
+      # THIS RUNS AS THE GAME IS DECLARED, because the block's binding is only there to read until
+      # a game is made shareable between Ractors (Cartridge::Game#shareable_if_possible). The proc
+      # this makes is cut loose in its place, so everything it needs later is written into it.
+      def rewrite(block, allow: [])
+        file, line = block.source_location
+        rewriter = Rewriter.new(File.binread(file), line)
+        checks = BlockChecks.new(rewriter.block_node, file: file, allow: allow)
+        checks.refuse_outside_calls!
+        source = "proc { #{checks.constant_check}; (proc #{rewriter.rewritten_block}).call }"
+        eval(source, block.binding, file, line) # rubocop:disable Security/Eval
+      end
+
+      # What the block's source is rewritten into, for reading and for a test.
+      def rewritten_source(block)
+        file, line = block.source_location
+        Rewriter.new(File.binread(file), line).rewritten_block
+      end
+
+      # The block's source with its constructs written out as calls. It builds new text rather
+      # than editing in place, since a trailing `if` is evaluated before what stands to its left.
+      class Rewriter
+        STEPS = "::VBlank::DSL::PlainRubySteps"
+
+        # The first block opening on +line+ of +source+.
+        attr_reader :block_node
+
+        def initialize(source, line)
+          @source = source
+          @block_node = block_nodes(Prism.parse(source).value).find { |block| block.location.start_line == line }
+          raise ArgumentError, "No block starts on line #{line}, so this game cannot be read." unless @block_node
+
+          @names = LocalNames.new(@block_node)
+          @answers = 0
+          @open_tests = []
+        end
+
+        def rewritten_block = text(@block_node)
+
+        private
+
+        def block_nodes(node)
+          own = node.is_a?(Prism::BlockNode) ? [node] : []
+          own + node.compact_child_nodes.flat_map { |child| block_nodes(child) }
+        end
+
+        def between(from, upto) = @source.byteslice(from...upto).force_encoding(Encoding::UTF_8)
+
+        # Only the line ends between two places, so what follows keeps its line number.
+        def line_ends_between(from, upto) = "\n" * between(from, upto).count("\n")
+
+        def text(node)
+          case node
+          when Prism::IfNode, Prism::UnlessNode then conditional_text(node)
+          when Prism::WhileNode then loop_text(node, "loop_while")
+          when Prism::UntilNode then loop_text(node, "loop_until")
+          when Prism::AndNode then joined_text(node, "both")
+          when Prism::OrNode then joined_text(node, "either")
+          when Prism::CallNode then call_text(node)
+          when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
+          when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
+          when Prism::IndexOperatorWriteNode then place_change_text(node, index_text(node))
+          when Prism::CallOperatorWriteNode then place_change_text(node, "#{text(node.receiver)}.#{node.read_name}")
+          when Prism::ReturnNode, Prism::BreakNode, Prism::NextNode then jump_text(node)
+          when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then own_scope_text(node)
+          else copied_text(node)
+          end
+        end
+
+        # The node's text, with what is inside it rewritten. A heredoc's lines sit past the end
+        # of the node that opened them, and the text around the node carries them, so they
+        # are left out here.
+        def copied_text(node)
+          at = node.location.start_offset
+          ends = node.location.end_offset
+          pieces = node.compact_child_nodes.sort_by { |child| child.location.start_offset }.map do |child|
+            start = child.location.start_offset
+            next "" if start < at || start >= ends
+
+            piece = between(at, start) + text(child)
+            at = child.location.end_offset
+            piece
+          end
+          pieces.join + between(at, node.location.end_offset)
+        end
+
+        # A `return` in a block belongs to that block, so tests open outside it do not apply.
+        def own_scope_text(node)
+          outer = @open_tests
+          @open_tests = []
+          copied_text(node)
+        ensure
+          @open_tests = outer
+        end
+
+        def under_open_test(test)
+          @open_tests += [test]
+          yield
+        ensure
+          @open_tests = @open_tests[0...-1]
+        end
+
+        # Plain Ruby jumps as it always has. Under a test the game makes, the step refuses it.
+        # The `if true` is for Ruby's parser, which will not let a jump stand as a value.
+        def jump_text(node)
+          return copied_text(node) if @open_tests.empty?
+
+          word = node.is_a?(Prism::ReturnNode) ? "return" : node.is_a?(Prism::BreakNode) ? "break" : "next"
+          refusals = @open_tests.map { |test| "#{test}.refuse_jump!(:#{word})" }.join("; ")
+          "(#{refusals}; if true then #{copied_text(node)} end)"
+        end
+
+        def call_text(node)
+          return "#{STEPS}.opposite(#{argument(node.receiver)})" if node.name == :! && node.receiver
+          return index_write_text(node) if node.name == :[]= && node.receiver
+          return attribute_write_text(node) if node.attribute_write? && node.receiver
+
+          copied_text(node)
+        end
+
+        def index_write_text(node)
+          arguments = node.arguments.arguments.map { |each_argument| argument(each_argument) }.join(", ")
+          "#{STEPS}.assign_index(#{argument(node.receiver)}, #{arguments})"
+        end
+
+        def attribute_write_text(node)
+          name = node.name.to_s.delete_suffix("=")
+          value = argument(node.arguments.arguments.first)
+          "#{STEPS}.assign_attribute(#{argument(node.receiver)}, :#{name}, #{value})"
+        end
+
+        def index_text(node) = "#{text(node.receiver)}[#{node.arguments ? text(node.arguments) : ''}]"
+
+        # `+=` on a place. The block is what Ruby would do, for a place that holds no variable.
+        def place_change_text(node, place)
+          "#{STEPS}.change_place(#{place}, :#{node.binary_operator}, #{argument(node.value)}) " \
+            "{ |__plain_ruby_changed| #{place} = __plain_ruby_changed }"
+        end
+
+        # A plain number changed from inside a block no one can place: `each` may be Ruby's, which
+        # runs now, or a pool's, which records game code. Only running it can tell, so the step
+        # looks, using the question the block's builder answers.
+        def guarded_write_text(node, written)
+          return written unless @names.plain_number_changed_from_block?(node)
+
+          recording = "(respond_to?(:recording_game_code?) && recording_game_code?)"
+          "(#{STEPS}.refuse_lost_number!(:#{node.name}, #{recording}); #{written})"
+        end
+
+        def write_text(node)
+          prefix =between(node.location.start_offset, node.value.location.start_offset)
+          case @names.action_for(node)
+          when :declare then "#{prefix}#{declaration(node)}"
+          when :start then "#{prefix}#{STEPS}.start(#{declaration(node)}, #{text(node.value)})"
+          when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
+          when :rename then "#{prefix}#{STEPS}.rename(#{node.name}, (#{value_text(node.value)}))"
+          else "#{prefix}#{kept_value_text(node.value)}"
+          end
+        end
+
+        def declaration(node) = "var(:#{@names.variable_name_of(node)}, #{text(node.value)})"
+
+        def kept_value_text(value)
+          return value_text(value) unless value.is_a?(Prism::LocalVariableReadNode) && @names.variable_read?(value)
+
+          "#{STEPS}.copy(#{text(value)})"
+        end
+
+        def value_text(value)
+          conditional = value.is_a?(Prism::IfNode) || value.is_a?(Prism::UnlessNode)
+          conditional ? conditional_text(value, kept: true) : text(value)
+        end
+
+        def change_text(node)
+          "#{node.name} = #{STEPS}.change(#{node.name}, :#{node.binary_operator}, #{argument(node.value)})"
+        end
+
+        # The right side is a block so plain values keep Ruby's skipping of it.
+        def joined_text(node, step) = "#{STEPS}.#{step}(#{argument(node.left)}) { #{text(node.right)} }"
+
+        # A value handed to a step. The parentheses are for a call written without its own, like
+        # `actions = menu :actions do ... end`, which Ruby takes alone but not as an argument.
+        def argument(node) = "(#{text(node)})"
+
+        # A real `while`: a plain test goes round as usual, and a game test's body runs once,
+        # recording itself into a loop the game makes.
+        def loop_text(node, step)
+          test = "__plain_ruby_#{@answers += 1}"
+          statements = node.statements
+          trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
+          opened = node.predicate.location.end_offset
+          shut_at = node.closing_loc&.start_offset || node.location.end_offset
+          body = under_open_test(test) do
+            if trailing then text(statements)
+            elsif statements then side_text(opened, statements, shut_at)
+            else line_ends_between(opened, shut_at)
+            end
+          end
+          "(#{test} = #{STEPS}.#{step} { #{text(node.predicate)} }; while #{test}.again?; #{body}; end)"
+        end
+
+        # A conditional as two real `if`s, one for each side. A plain test takes one; a game
+        # test takes both, once each. +kept+ is for one whose value is used, by `x = ...`.
+        def conditional_text(node, kept: false)
+          answer = "__plain_ruby_#{@answers += 1}"
+          shut_at = node.end_keyword_loc&.start_offset || node.location.end_offset
+          sides = under_open_test(answer) do
+            "#{yes_side_text(node, answer, shut_at, kept)}#{no_side_text(node, answer, shut_at, kept)}"
+          end
+          "(#{answer} = #{STEPS}.test(#{test_text(node)}); #{sides}#{answer}.#{kept ? 'kept' : 'answer'})"
+        end
+
+        def test_text(node)
+          node.is_a?(Prism::UnlessNode) ? "#{STEPS}.opposite(#{argument(node.predicate)})" : argument(node.predicate)
+        end
+
+        def other_side(node) = node.is_a?(Prism::UnlessNode) ? node.else_clause : node.subsequent
+
+        def side_step(kept) = kept ? "keep" : "finish"
+
+        def yes_side_text(node, answer, shut_at, kept)
+          statements = node.statements
+          trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
+          ends = other_side(node)&.location&.start_offset || shut_at
+          opened = node.predicate.location.end_offset
+          body = if trailing then text(statements)
+                 elsif statements then side_text(opened, statements, ends)
+                 else line_ends_between(opened, ends)
+                 end
+          "if #{answer}.run_yes_side?; #{answer}.#{side_step(kept)}((#{body})); end; "
+        end
+
+        def no_side_text(node, answer, shut_at, kept)
+          other = other_side(node)
+          return "" unless other
+
+          body = if other.is_a?(Prism::ElseNode)
+                   opened = other.else_keyword_loc.end_offset
+                   statements = other.statements
+                   statements ? side_text(opened, statements, shut_at) : line_ends_between(opened, shut_at)
+                 else
+                   "#{conditional_text(other, kept: kept)}#{line_ends_between(other.location.end_offset, shut_at)}"
+                 end
+          "if #{answer}.run_no_side?; #{answer}.#{side_step(kept)}((#{body})); end; "
+        end
+
+        # One side's statements. What follows them is kept as written, because a heredoc's
+        # lines sit there, past the end of the statement that opened it.
+        def side_text(opened, statements, ends)
+          "#{line_ends_between(opened, statements.location.start_offset)}#{text(statements)}" \
+            "#{between(statements.location.end_offset, ends)}"
+        end
+      end
+    end
+  end
+end
