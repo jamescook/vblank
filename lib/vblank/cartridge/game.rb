@@ -337,13 +337,15 @@ module VBlank
 
     # `require_relative` for a file of a game written in normal Ruby (see DSL::PlainRuby): a part
     # the game splits out, which the block given to #game does not reach. Returns false for a
-    # file already brought in, as `require` does.
+    # file already brought in, as `require` does. Compiled on its own, the file's locals are its
+    # own too, and its constants and methods reach every other file. Saying no real path keeps
+    # its blocks from being rewritten a second time (DSL::PlainRuby.rewritable?).
     def require_game_file(name)
       from = caller_locations(1, 1).first.path
       path = File.expand_path("#{name}.rb", File.dirname(from))
       return false if $LOADED_FEATURES.include?(path)
 
-      TOPLEVEL_BINDING.eval(DSL::PlainRuby.rewritten_file(path), path, 1)
+      RubyVM::InstructionSequence.compile(DSL::PlainRuby.rewritten_file(path), path, nil, 1).eval
       $LOADED_FEATURES << path
       true
     end
