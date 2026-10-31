@@ -16,7 +16,7 @@ Integer is a literal, a `Value` (from `var`) is an expression. Handles (`Value`,
 
 **Mistakes that raise nothing** (each in full in its group file):
 
-- `flags |= 4` (or `hp + 1` alone) changes only the Ruby name; write `flags.set! flags | 4`. (variables)
+- In a pack's module, outside the game block, `flags |= 4` changes only the Ruby name; write `flags.set! flags | 4`. (effects)
 - A fraction divide that saturates, then has something added, wraps negative; floor the divisor (`d.clamp(NEAR, FAR)`). (variables)
 - A `:byte`/`:half` slot keeps the low bits: 200 in a `:byte` reads -56. (lists)
 - `pressed` inside `once_a_frame` fires once per caught-up frame; test presses in the loop. (control-flow)
@@ -77,14 +77,16 @@ Integer is a literal, a `Value` (from `var`) is an expression. Handles (`Value`,
 
 ## Variables & math — `.claude/dsl/variables.md`
 
-- `var :name, init` → `Value`; `var :mode, :title` holds a name, and `call mode` runs it.
+- `hp = 10` — a game variable, if game code changes it. `var :name, init` → `Value`; `var :mode, :title` holds a name, and `call mode` runs it.
 - `save_var :name, default`; `save_data :file do keep … end` → save records; `saves_keep_everything except:`.
-- `set!`, `add!`/`add_var!`, `sub!`/`sub_var!`, `copy!`, `negate!`/`flip!`, `abs!`, `negate_abs!`, `clamp!`, `approach!` — change a variable.
+- `x = 5`, `x += 1`, `x -= 1`, `flags |= 4` — change a variable (the verbs behind them: `set!`, `add!`/`add_var!`, `sub!`/`sub_var!`).
+- `copy!`, `negate!`/`flip!`, `abs!`, `negate_abs!`, `clamp!`, `approach!` — words of their own that change a variable.
 - Without `!` nothing changes: on a Value (`abs`, `clamp`, `approach`, `flip`, `negate_abs`) a new number; flat (`set`, `add`, `sub`, `add_var`, `sub_var`, `copy`, `negate`) a friendly error.
-- On a Value: `+ - * / %`, comparisons → `Condition`, `&`/`|`, `.then { } .else { }`, bits; a Float makes a fraction. `estimate:` only warns.
+- On a Value: `+ - * / %`, comparisons → `Condition`, `&&`/`||`, `if`/`else`, bits; a Float makes a fraction. `estimate:` only warns.
 
 ## Control flow — `.claude/dsl/control-flow.md`
 
+- `if`, `unless`, `while`, `until`, `&&`, `||`, `!`, ternary — normal Ruby; a test the game makes becomes game code. `return`, `break`, `next` under one are refused.
 - `game_loop do … end` — once a frame. `repeat(n) { |i| … }`; `every(n)`, `after(n)`; `once_a_frame`.
 - `each_pass(:name) { |job| … }` → `PassJob`; `timer :name, per_second:` → `Timer`.
 - `frames_since_power_on` → a `Value`, real frames shown since power-on, setting up included.

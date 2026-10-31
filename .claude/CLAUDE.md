@@ -219,7 +219,7 @@ Test each layer the way a player experiences it, not by restating the code.
     On the Color it shows the pass just ended (`framework_drawing_lag` in a test). See
     "Which frame's numbers the picture was drawn from" in `.claude/rules/testing.md`.
   - Guardrail tests are behavioral too: assert the *friendly error* a misuse
-    raises (a dropped `.then`, an unknown button) — the class and a key phrase,
+    raises (a test nothing branches on, an unknown button) — the class and a key phrase,
     not the wording verbatim.
 
 - **IR backend level — opcodes and lowering are fair game.** Here the generated

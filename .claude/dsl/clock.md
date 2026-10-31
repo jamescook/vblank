@@ -8,7 +8,7 @@ The whole story of these verbs. The one-line index is `.claude/rules/dsl-referen
 
   ```ruby
   now = clock
-  (now.present? & now.set?).then { draw_number now.hour, 40, 60, :white, digits: 2 }
+  draw_number now.hour, 40, 60, :white, digits: 2 if now.present? && now.set?
   ```
 
   **A game that reads the time and never asks either one is warned when it builds**, naming the first line that reads it. A game that reads it where nobody sees it — to seed its random numbers — can leave the warning be.
