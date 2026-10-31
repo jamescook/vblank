@@ -24,7 +24,7 @@ class TestJSLowering < Minitest::Test
   def test_only_a_routine_that_can_wait_is_a_generator
     source = JS.new.lower(program_of(manual: true) do
       screen :bitmap
-      steps = var :steps, 0
+      steps = 0
       func(:draw) { fill_rect 0, 0, 8, 8, :red }
       func(:pause) { wait_vblank }
       func(:walk) do
@@ -49,8 +49,8 @@ class TestJSLowering < Minitest::Test
   def test_a_wait_inside_a_routine_ends_the_frame_there
     program = program_of(manual: true) do
       screen :bitmap
-      before = var :before, 0
-      after = var :after, 0
+      before = 0
+      after = 0
       func(:pause) do
         before += 1
         wait_vblank
@@ -69,9 +69,9 @@ class TestJSLowering < Minitest::Test
   def test_a_routine_picked_by_number_can_wait
     program = program_of(manual: true) do
       screen :bitmap
-      which = var :which, 0
-      count = var :count, 0
-      func(:quick) { count.add! 1 }
+      which = 0
+      count = 0
+      func(:quick) { count += 1 }
       func(:slow) do
         count += 10
         wait_vblank
@@ -103,7 +103,7 @@ class TestJSLowering < Minitest::Test
   def test_halt_ends_the_run_where_it_stands
     program = program_of do
       screen :bitmap
-      ticks = var :ticks, 0
+      ticks = 0
       game_loop do
         ticks += 1
         halt if ticks >= 3
@@ -123,10 +123,10 @@ class TestJSLowering < Minitest::Test
       halves = table :halves, (0...300).map { |i| (i * 97) - 15_000 }, width: :half
       words = table :words, (0...300).map { |i| (i * 1_000_003) - 150_000_000 }, width: :word
       bytes = table :bytes, (0...300).map { |i| (i % 256) - 128 }, width: :byte
-      at = var :at, 0
-      got_half = var :got_half, 0
-      got_word = var :got_word, 0
-      got_byte = var :got_byte, 0
+      at = 0
+      got_half = 0
+      got_word = 0
+      got_byte = 0
       game_loop do
         at = 299
         got_half = halves[at]

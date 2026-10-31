@@ -55,8 +55,8 @@ class TestJSCheckedRun < Minitest::Test
       def play_on_interpreter(...) = super.tap { |_, moments| moments.first.variables[:x] = 99 }
     end
     program = program_of do
-      x = var :x, 0
-      game_loop { x.add! 1 }
+      x = 0
+      game_loop { x += 1 }
     end
 
     error = assert_raises(Minitest::Assertion) { wrapper.new.run(program, frames: 2) }
@@ -68,7 +68,7 @@ class TestJSCheckedRun < Minitest::Test
   # JavaScript plays that many.
   def test_a_step_budget_plays_the_frames_the_interpreter_fits_in_it
     program = program_of do
-      x = var :x, 0
+      x = 0
       game_loop { x += 1 if held(:right) }
     end
     interpreter = Reference.new.hold(:right).run(program, max_steps: 60)

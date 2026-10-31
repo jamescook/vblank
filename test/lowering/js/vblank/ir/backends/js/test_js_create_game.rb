@@ -97,7 +97,7 @@ class TestJSCreateGame < Minitest::Test
     game = VBlank.game "KEEPER", consoles: %i[gba] do
       screen :bitmap
       count = save_var :count, 0
-      game_loop { count.add! 1 }
+      game_loop { count += 1 }
     end
     html = page_of(game, %w[one], <<~JS)
       window.kept = [];
@@ -116,7 +116,7 @@ class TestJSCreateGame < Minitest::Test
     game = VBlank.game "KEEPER", consoles: %i[gba] do
       screen :bitmap
       count = save_var :count, 0
-      game_loop { count.add! 1 }
+      game_loop { count += 1 }
     end
     html = page_of(game, %w[one], "window.games = [createGame({ canvas: #{canvas('one')}, storage: null })];")
     lines = played_page(["play 3", "js window.first = games[0].readSave(); first.length > 0 && first.some((byte) => byte !== 0xFF)",
