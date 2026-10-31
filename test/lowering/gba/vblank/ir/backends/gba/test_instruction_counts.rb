@@ -93,7 +93,7 @@ class TestInstructionCounts < Minitest::Test
     program, emitted = counts do
       x = var :x, 3
       y = var :y, 0
-      game_loop { (x > 3).then { y.set! 1 } }
+      game_loop { y = 1 if x > 3 }
     end
 
     refute_predicate emitted[find(program, :binop)], :branch_free?

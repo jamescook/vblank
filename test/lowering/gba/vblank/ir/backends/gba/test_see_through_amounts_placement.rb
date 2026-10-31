@@ -46,13 +46,13 @@ class TestSeeThroughAmountsPlacement < Minitest::Test
       scene :title, fast: false do
         layer(:back) { background :forest, tiles: :forests, map: full }
         layer(:rays, shows: shows, shows_behind: behind) { background :ray, tiles: :rays, map: full }
-        step.set! (step + 1) % 4
+        step = (step + 1) % 4
       end
       scene(:playing) { layer(:back) { background :field, tiles: :fields, map: full } }
       game_loop do
-        t.add! 1
-        (t == 6).then { where.set! 1 }
-        (t == 12).then { where.set! 0 }
+        t += 1
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :playing
@@ -131,11 +131,11 @@ class TestSeeThroughAmountsPlacement < Minitest::Test
         screen :tiled
         layer(:back) { background :forest, tiles: :forests, map: full }
         layer(:rays, shows: 57 - glow, shows_behind: 57 + glow) { background :ray, tiles: :rays, map: full }
-        glow.set! (glow + 1) % 6
+        glow = (glow + 1) % 6
       end
       game_loop do
-        t.add! 1
-        (t == 4).then { where.set! 1 }
+        t += 1
+        where = 1 if t == 4
         case_var(:where) do
           when_val 0, :intro
           when_val 1, :title
@@ -182,9 +182,9 @@ class TestSeeThroughAmountsPlacement < Minitest::Test
       end
       scene(:playing) { layer(:back) { background :field, tiles: :fields, map: full } }
       game_loop do
-        t.add! 1
-        step.set! t % 4
-        (t == 6).then { where.set! 1 }
+        t += 1
+        step = t % 4
+        where = 1 if t == 6
         case_var(:where) do
           when_val 0, :title
           when_val 1, :playing

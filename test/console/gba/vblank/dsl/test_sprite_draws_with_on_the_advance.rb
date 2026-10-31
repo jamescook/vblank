@@ -28,7 +28,7 @@ module SpriteDrawsWithOnTheAdvanceGames
       step = var :step, -1
       game_loop do
         ship.draw_with names, showing: step
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program
@@ -130,9 +130,9 @@ class TestSpriteDrawsWithOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -178,9 +178,9 @@ class TestSpriteDrawsWithOnTheAdvance < Minitest::Test
       tick = var :tick, 0
       game_loop do
         tint :red, 50
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

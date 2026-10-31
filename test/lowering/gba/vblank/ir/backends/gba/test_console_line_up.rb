@@ -33,7 +33,7 @@ class TestConsoleLineUp < Minitest::Test
       clear_screen :black
       x = var :x, 10
       game_loop do
-        x.add! 2
+        x += 2
         draw_rect_at x, 40, 8, 8, Color.resolve(:white)
       end
     end
@@ -71,7 +71,7 @@ class TestConsoleLineUp < Minitest::Test
       screen :bitmap, tear_free: tear_free
       x = var :x, 10
       game_loop do
-        held(:right).then { x.add! 3 }
+        x += 3 if held(:right)
         repeat(12) { clear_screen :black } # far more than a frame's worth of drawing
         draw_rect_at x, 40, 8, 8, Color.resolve(:white)
       end

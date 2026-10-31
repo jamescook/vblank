@@ -68,8 +68,8 @@ class TestCheckedBuild < Minitest::Test
       count = var :count, 0
       seen = var :seen, 0
       game_loop do
-        count.add! 1
-        (count == 3).then { seen.set! items[count + 2] }
+        count += 1
+        seen = items[count + 2] if count == 3
       end
     end
     play(rom, 12) do |core, at|

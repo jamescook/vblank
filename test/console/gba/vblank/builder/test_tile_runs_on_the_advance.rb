@@ -28,7 +28,7 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       background :front, tiles: :box, map: [[1, 2]]
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         instance_exec(canvas, box, frame, &body)
       end
     end
@@ -55,18 +55,24 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       frame = var :frame, 0
       scene(:house) do
         background :house_box, tiles: :box, map: [[1, 2]]
-        (frame == 2).then { canvas[0] = 0x01; box.changed }
-        (frame == 5).then { state.set! 1 }
+        if frame == 2
+          canvas[0] = 0x01
+          box.changed
+        end
+        state = 1 if frame == 5
       end
       scene(:shop) do
         tiles :floor, "#" => :red_tile
         background :floor, tiles: :floor, map: ["####"]
         background :shop_box, tiles: :box, map: [[1, 2]]
-        (frame == 8).then { canvas[32] = 0x01; box.changed }
-        (frame == 11).then { state.set! 0 }
+        if frame == 8
+          canvas[32] = 0x01
+          box.changed
+        end
+        state = 0 if frame == 11
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :house; when_val 1, :shop }
       end
     end
@@ -134,13 +140,16 @@ class TestTileRunsOnTheAdvance < Minitest::Test
       background :top_box, tiles: :box, map: [[1, 2]]
       state = var :state, 0
       frame = var :frame, 0
-      scene(:house) { (frame == 3).then { state.set! 1 } }
+      scene(:house) { state = 1 if frame == 3 }
       scene(:shop) do
         background :shop_box, tiles: :box, map: [[nil, nil, 1, 2]]
-        (frame == 5).then { canvas[0] = 0x01; box.changed }
+        if frame == 5
+          canvas[0] = 0x01
+          box.changed
+        end
       end
       game_loop do
-        frame.add! 1
+        frame += 1
         case_var(:state) { when_val 0, :house; when_val 1, :shop }
       end
     end
@@ -154,7 +163,10 @@ class TestTileRunsOnTheAdvance < Minitest::Test
   # rules a backend could get subtly wrong; both are compared here at the frames that decide.
   def test_the_console_agrees_on_when_a_copy_shows
     prog = game do |canvas, box, frame|
-      (frame == 3).then { canvas[0] = 0x01; box.changed }
+      if frame == 3
+        canvas[0] = 0x01
+        box.changed
+      end
     end
     [3, 4].each { |frames| assert_backends_agree(prog, frames: frames) }
   end

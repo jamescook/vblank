@@ -201,7 +201,7 @@ class TestJSCreateGame < Minitest::Test
     game = VBlank.game "SAVER", consoles: %i[gba] do
       screen :bitmap
       count = save_var :count, 0
-      count.add! 1
+      count += 1
       halt
     end
     html = page_of(game, %w[one], <<~JS)
@@ -221,7 +221,7 @@ class TestJSCreateGame < Minitest::Test
     game = VBlank.game "SAVER", consoles: %i[gba] do
       screen :bitmap
       count = save_var :count, 0
-      count.add! 1
+      count += 1
       halt
     end
     html = page_of(game, %w[one], <<~JS)

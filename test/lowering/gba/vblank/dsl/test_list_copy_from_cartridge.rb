@@ -49,7 +49,7 @@ class TestListCopyFromCartridge < Minitest::Test
       pieces = Array.new(18) { |n| list :"piece#{n}", capacity: 64, width: :byte, fast: false }
       letter = var :letter, 0
       game_loop do
-        letter.set! (letter + 1) & 63
+        letter = (letter + 1) & 63
         pieces.each { |piece| piece.copy_from pictures, at: letter * 64, count: 64 }
       end
     end

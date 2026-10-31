@@ -27,8 +27,8 @@ class TestHardwareSpriteRotationOnTheAdvance < Minitest::Test
       f = var :f, 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= 2).then { halt }
+        f += 1
+        halt if f >= 2
       end
     end
     builder.finalize_program
@@ -76,8 +76,8 @@ class TestHardwareSpriteRotationOnTheAdvance < Minitest::Test
         game_loop do
           wait_vblank
           disc.turn(100)
-          f.add! 1
-          (f >= 5).then { halt }
+          f += 1
+          halt if f >= 5
         end
       end
       builder.finalize_program

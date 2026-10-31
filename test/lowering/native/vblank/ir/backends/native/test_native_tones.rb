@@ -19,8 +19,8 @@ class TestNativeTones < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { beep 440, duty: :quarter, decay: :medium, volume: 15 }
+        count += 1
+        beep 440, duty: :quarter, decay: :medium, volume: 15 if count == 4
       end
     end
 
@@ -84,8 +84,8 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 100).then { fade_music_out frames: 20 }
+        count += 1
+        fade_music_out frames: 20 if count == 100
       end
     end
 
@@ -108,10 +108,10 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 2).then { music_volume 50 }
-        (count == 40).then { fade_music_out frames: 20 }
-        (count == 80).then { fade_music_in frames: 20 }
+        count += 1
+        music_volume 50 if count == 2
+        fade_music_out frames: 20 if count == 40
+        fade_music_in frames: 20 if count == 80
       end
     end
 
@@ -130,8 +130,8 @@ class TestNativeTones < Minitest::Test
       sfx = sound_effects :sfx, { zap: zap }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { sfx.play :zap }
+        count += 1
+        sfx.play :zap if count == 4
       end
     end
 
@@ -161,8 +161,8 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 100).then { fade_music_out frames: 20 }
+        count += 1
+        fade_music_out frames: 20 if count == 100
       end
     end
 
@@ -182,8 +182,8 @@ class TestNativeTones < Minitest::Test
       sfx = sound_effects :sfx, { laser: laser }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { sfx.play :laser }
+        count += 1
+        sfx.play :laser if count == 4
       end
     end
 
@@ -213,8 +213,8 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 40).then { music_volume 60 }
+        count += 1
+        music_volume 60 if count == 40
       end
     end
 
@@ -234,8 +234,8 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 30).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 30
       end
     end
 
@@ -274,8 +274,8 @@ class TestNativeTones < Minitest::Test
       sfx = sound_effects :sfx, { siren: siren }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { sfx.play :siren }
+        count += 1
+        sfx.play :siren if count == 4
       end
     end
 
@@ -314,9 +314,9 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 40).then { music_volume 60 }
-        (count == 100).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        music_volume 60 if count == 40
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 100
       end
     end
 
@@ -340,8 +340,8 @@ class TestNativeTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 100).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 100
       end
     end
 
@@ -363,10 +363,10 @@ class TestNativeTones < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 10).then { music_volume 50 }
-        (count == 30).then { fade_music_out frames: 20 }
-        (count == 70).then { fade_music_in frames: 20 }
+        count += 1
+        music_volume 50 if count == 10
+        fade_music_out frames: 20 if count == 30
+        fade_music_in frames: 20 if count == 70
       end
     end
 
@@ -387,9 +387,9 @@ class TestNativeTones < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 20).then { beep 990, duty: :eighth, decay: :slow }
-        (count == 30).then { music_volume 50 }
+        count += 1
+        beep 990, duty: :eighth, decay: :slow if count == 20
+        music_volume 50 if count == 30
       end
     end
 
@@ -406,11 +406,11 @@ class TestNativeTones < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { wave :triangle, :A4 }
-        (count == 20).then { wave :triangle, :A4, volume: :half }
-        (count == 36).then { wave THIN_PULSE, :C4, volume: :three_quarter }
-        (count == 52).then { stop_wave }
+        count += 1
+        wave :triangle, :A4 if count == 4
+        wave :triangle, :A4, volume: :half if count == 20
+        wave THIN_PULSE, :C4, volume: :three_quarter if count == 36
+        stop_wave if count == 52
       end
     end
 
@@ -424,10 +424,10 @@ class TestNativeTones < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { noise :explosion }
-        (count == 50).then { noise pitch: :mid, decay: :medium, volume: 13, metallic: true }
-        (count == 90).then { noise :zap }
+        count += 1
+        noise :explosion if count == 4
+        noise pitch: :mid, decay: :medium, volume: 13, metallic: true if count == 50
+        noise :zap if count == 90
       end
     end
 
@@ -441,10 +441,10 @@ class TestNativeTones < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { noise :kick }
-        (count == 50).then { noise :snare }
-        (count == 80).then { noise :hat }
+        count += 1
+        noise :kick if count == 4
+        noise :snare if count == 50
+        noise :hat if count == 80
       end
     end
 
@@ -462,8 +462,8 @@ class TestNativeTones < Minitest::Test
         enable_sound
         count = var :count, 0
         game_loop do
-          count.add! 1
-          (count == 4).then { noise pitch: :low, decay: :none, volume: 15, metallic: rattles }
+          count += 1
+          noise pitch: :low, decay: :none, volume: 15, metallic: rattles if count == 4
         end
       end
       step = VBlank::Audio::Sound.noise_hit_step_ticks(:low).fdiv(VBlank::Audio::Sound::NOISE_CLOCK_HZ)
@@ -519,10 +519,10 @@ class TestNativeTones < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 20).then { music_volume 50 }
-        (count == 70).then { fade_music_out frames: 30 }
-        (count == 130).then { fade_music_in frames: 30 }
+        count += 1
+        music_volume 50 if count == 20
+        fade_music_out frames: 30 if count == 70
+        fade_music_in frames: 30 if count == 130
       end
     end
 
@@ -542,9 +542,9 @@ class TestNativeTones < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 40).then { stop_wave }
-        (count == 100).then { wave THIN_PULSE, :A3, volume: :half }
+        count += 1
+        stop_wave if count == 40
+        wave THIN_PULSE, :A3, volume: :half if count == 100
       end
     end
 
@@ -595,10 +595,10 @@ class TestNativeTones < Minitest::Test
       sfx = sound_effects :sfx, { hit: hit }
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         music.play 0
-        (count == 25).then { sfx.play :hit }
-        (count == 70).then { wave :sawtooth, :A3, volume: :half }
+        sfx.play :hit if count == 25
+        wave :sawtooth, :A3, volume: :half if count == 70
       end
     end
 

@@ -164,7 +164,7 @@ class TestInputCartridge < Minitest::Test
       screen :bitmap
       presses = var :presses, 0
       repeat(20) { clear_screen :blue }
-      game_loop { pressed(:a).then { presses.add! 1 } }
+      game_loop { presses += 1 if pressed(:a) }
     end
     builder.finalize_program
     builder.program

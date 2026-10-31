@@ -108,7 +108,7 @@ class TestPerSceneModeCartridge < Minitest::Test
         board = background :board, tiles: :ground, map: (["#" * 32] * 32)
         board.scale(1.0)
         draw_text "HI", 100, 20, :white
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene(:playing) { clear_screen :black }
 

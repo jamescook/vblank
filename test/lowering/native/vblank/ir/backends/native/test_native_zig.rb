@@ -46,7 +46,7 @@ class TestNativeZig < Minitest::Test
       n = var :n, 0
       game_loop do
         clear_screen :red
-        n.add! 1
+        n += 1
       end
     end
     exe = Native.new.build_headless(program, mode: :checked)

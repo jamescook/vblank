@@ -39,7 +39,7 @@ class TestMusicVolumeOnTheAdvance < Minitest::Test
       end
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         named_once ? (pass == 1).then { play_song :hold } : play_song(:hold)
         instance_exec(pass, &body)
       end

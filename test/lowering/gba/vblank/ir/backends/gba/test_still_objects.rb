@@ -49,7 +49,7 @@ class TestStillObjects < Minitest::Test
       scene :title do
         made = Array.new(letters) { |i| sprite(:"letter#{i}", at: [(i * 16) + 8, 40]) }
         made.first.move(:right, by: 1) if moving && made.any?
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene(:playing) { sprite(:hero, at: [100, 100]).move(:right, by: 1) }
       game_loop do
@@ -189,7 +189,7 @@ class TestStillObjects < Minitest::Test
       var :state, 0
       scene :title do
         clear_screen :red
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene :play do
         screen :tiled

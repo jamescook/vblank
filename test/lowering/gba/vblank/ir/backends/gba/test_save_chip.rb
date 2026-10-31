@@ -40,8 +40,14 @@ class TestSaveChip < Minitest::Test
       file = save_data(:file) { keep hearts }
       file[0].load
       game_loop do
-        pressed(:a).then { hearts.set! 7; file[0].save }
-        pressed(:b).then { hearts.set! 9; file[0].save }
+        if pressed(:a)
+          hearts = 7
+          file[0].save
+        end
+        if pressed(:b)
+          hearts = 9
+          file[0].save
+        end
       end
     end
   end
@@ -128,14 +134,17 @@ class TestSaveChip < Minitest::Test
       page = var :page, 0
       file = save_data(:file) { keep pages, hearts }
       file[0].load
-      page.set! pages[4500]
+      page = pages[4500]
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           repeat(5000) { |i| pages.push(i & 127) }
-          hearts.set! 7
+          hearts = 7
           file[0].save
         end
-        pressed(:b).then { hearts.set! 9; file[0].save }
+        if pressed(:b)
+          hearts = 9
+          file[0].save
+        end
       end
     end.build_rom(out: nil, err: nil, profile: false)
     presses = { 80 => KEY_A, 500 => KEY_B }
@@ -157,9 +166,9 @@ class TestSaveChip < Minitest::Test
       saving = var :saving, 0
       file = save_data(:file) { keep flags }
       game_loop do
-        pressed(:a).then { file[0].save }
-        saving.set! 0
-        file.saving?.then { saving.set! 1 }
+        file[0].save if pressed(:a)
+        saving = 0
+        saving = 1 if file.saving?
       end
     end.build_rom(out: nil, err: nil, profile: false)
     v = assert_emulator_loads_rom(rom, frames: 30, count_passes: true, vars: rom.var_addresses)
@@ -186,7 +195,7 @@ class TestSaveChip < Minitest::Test
       screen :bitmap
       flags = list :flags, capacity: 20_000, width: :byte, fast: false
       file = save_data(:file) { keep flags }
-      game_loop { pressed(:a).then { file[0].save } }
+      game_loop { file[0].save if pressed(:a) }
     end.build_rom(out: nil, err: nil, profile: false)
     busiest = Dir.mktmpdir("flash-wipe") do |dir|
       path = File.join(dir, "wipe.gba")
@@ -228,7 +237,7 @@ class TestSaveChip < Minitest::Test
     rom = VBlank.game("EEPROMVR", consoles: %i[gba], save_memory: 8) do
       screen :bitmap
       best = save_var :best, 3
-      game_loop { pressed(:a).then { best.set! 7 } }
+      game_loop { best = 7 if pressed(:a) }
     end.build_rom(out: nil, err: nil, profile: false)
     chip = assert_emulator_loads_rom(rom, frames: 120, keys: ->(f) { f == 30 ? KEY_A : 0 }).save_image
 
@@ -244,7 +253,7 @@ class TestSaveChip < Minitest::Test
       screen :bitmap
       flags = list :flags, capacity: 600, width: :byte, fast: false
       file = save_data(:file) { keep flags }
-      game_loop { pressed(:a).then { file[0].save } }
+      game_loop { file[0].save if pressed(:a) }
     end.build_rom(out: nil, err: nil, profile: false)
     v = assert_emulator_loads_rom(rom, frames: 30, count_passes: true)
     passes = 2.times.map do

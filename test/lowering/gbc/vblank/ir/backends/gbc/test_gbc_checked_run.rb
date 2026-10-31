@@ -16,9 +16,9 @@ class TestGBCCheckedRun < Minitest::Test
       b = var :b, -3
       c = var :c, 0
       game_loop do
-        a.set! (a * 1103) + 12_345
-        b.set! (b - a) / 7
-        c.set! ((a % 97) ^ (b >> 3)) | ((a << 5) & 0xFF00)
+        a = (a * 1103) + 12_345
+        b = (b - a) / 7
+        c = ((a % 97) ^ (b >> 3)) | ((a << 5) & 0xFF00)
       end
     end
 
@@ -30,8 +30,8 @@ class TestGBCCheckedRun < Minitest::Test
       speed = var :speed, 1.25
       at = var :at, -3.5
       game_loop do
-        at.set! (at * speed) / 1.75
-        speed.add! 0.125
+        at = (at * speed) / 1.75
+        speed += 0.125
       end
     end
 
@@ -44,10 +44,10 @@ class TestGBCCheckedRun < Minitest::Test
       n = var :n, 120
       sum = var :sum, 0
       game_loop do
-        n.add! 3
+        n += 3
         trail.push n
-        (trail.length > 4).then { trail.shift }
-        sum.set! trail[0] + trail[trail.length - 1]
+        trail.shift if trail.length > 4
+        sum = trail[0] + trail[trail.length - 1]
       end
     end
 
@@ -73,8 +73,8 @@ class TestGBCCheckedRun < Minitest::Test
       held_a = var :held_a, 0
       presses = var :presses, 0
       game_loop do
-        held(:a).then { held_a.add! 1 }
-        pressed(:right).then { presses.add! 1 }
+        held_a += 1 if held(:a)
+        presses += 1 if pressed(:right)
       end
     end, frames: 12)
 
@@ -85,8 +85,8 @@ class TestGBCCheckedRun < Minitest::Test
     run = checked(frames: 20) do
       state = var :state, 0
       ticks = var :ticks, 0
-      scene(:title) { ticks.add! 1; (ticks > 3).then { state.set! 1 } }
-      scene(:play) { ticks.add! 10; (ticks > 50).then { state.set! 0; ticks.set! 0 } }
+      scene(:title) { ticks += 1; state = 1 if ticks > 3 }
+      scene(:play) { ticks += 10; if ticks > 50 then state = 0; ticks = 0 end }
       game_loop do
         case_var :state do
           when_val 0, :title
@@ -107,7 +107,7 @@ class TestGBCCheckedRun < Minitest::Test
       func(:three) { total.add! 300 }
       game_loop do
         call %i[one two three], number: pick
-        pick.set! (pick + 1) % 4
+        pick = (pick + 1) % 4
         repeat(3) { |i| total.add! i }
       end
     end
@@ -119,8 +119,8 @@ class TestGBCCheckedRun < Minitest::Test
     run = checked(frames: 60) do
       x = var :x, 0
       game_loop do
-        x.add! 1
-        (x >= 9).then { halt }
+        x += 1
+        halt if x >= 9
       end
     end
 
@@ -130,7 +130,7 @@ class TestGBCCheckedRun < Minitest::Test
   def test_a_game_that_never_waits_runs_to_its_end
     run = checked do
       x = var :x, 5
-      x.set! x * x
+      x = x * x
     end
 
     assert_equal 25, run[:x]
@@ -152,9 +152,9 @@ class TestGBCCheckedRun < Minitest::Test
       enable_sound
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass % 4 == 0).then { beep :blip }
-        (pass == 6).then { noise :hit }
+        pass += 1
+        beep :blip if pass % 4 == 0
+        noise :hit if pass == 6
       end
     end
 
@@ -193,7 +193,7 @@ class TestGBCCheckedRun < Minitest::Test
       once_a_frame { frames.add! 1 }
       game_loop do
         play_song :tune
-        passes.add! 1
+        passes += 1
         repeat(60) { x.set! (x * 1103) + 12_345 }
       end
     end

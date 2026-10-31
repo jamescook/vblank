@@ -27,7 +27,7 @@ class TestGBCBankedTables < Minitest::Test
       steps = table :steps, (0...LISTS).map { |s| (s + 1) % LISTS }
       step = var :step, 0
       game_loop do
-        step.set! steps[step]
+        step = steps[step]
         balls.each { |ball| ball.draw_with((0...LISTS).map { |s| :"fade#{s}" }, showing: step) }
       end
     end
@@ -56,10 +56,10 @@ class TestGBCBankedTables < Minitest::Test
         ball
       end
       game_loop do
-        tick.add! 1
-        (tick % 2 == 0).then { pose.set!((pose + 1) % POSES) }
-        (tick % 3 == 0).then { step.set!((step + 7) % LISTS) }
-        (tick % 5 == 0).then { balls.first.x.add! 1 }
+        tick += 1
+        pose = (pose + 1) % POSES if tick % 2 == 0
+        step = (step + 7) % LISTS if tick % 3 == 0
+        balls.first.x += 1 if tick % 5 == 0
         balls.each { |ball| ball.face(poses, showing: pose) }
       end
     end

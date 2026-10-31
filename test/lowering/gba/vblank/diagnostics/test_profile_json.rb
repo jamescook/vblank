@@ -40,9 +40,9 @@ class TestProfileJson < Minitest::Test
       screen :bitmap
       c = var :c, 0
       game_loop do
-        c.set!(1 - c)
-        (c == 0).then { fill_rect 0, 0, 240, 120, :red }
-        (c == 1).then { fill_rect 0, 0, 240, 120, :blue }
+        c = 1 - c
+        fill_rect 0, 0, 240, 120, :red if c == 0
+        fill_rect 0, 0, 240, 120, :blue if c == 1
       end
     end
   end

@@ -18,7 +18,7 @@ class TestRubyPrinter < Minitest::Test
   def test_a_condition_is_compared_with_nought
     text = printed do
       x = var :x, 0
-      game_loop { (x > 6).then { x.set! 0 } }
+      game_loop { x = 0 if x > 6 }
     end
 
     assert_includes text, "if rg_gt(@v_x, 6) != 0"

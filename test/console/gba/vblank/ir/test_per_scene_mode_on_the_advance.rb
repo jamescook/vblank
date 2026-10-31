@@ -19,7 +19,7 @@ module PerSceneModeOnTheAdvanceGames
       var :state, 0
       scene :title do
         clear_screen :red
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene :spin do
         screen :rotozoom

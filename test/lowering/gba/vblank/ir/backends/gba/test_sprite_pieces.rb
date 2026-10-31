@@ -136,9 +136,9 @@ class TestSpritePieces < Minitest::Test
       hero = sprite :big, at: [20, 20]
       step = var :step, 0
       game_loop do
-        (step < 4).then do
+        if step < 4
           hero.move 8, 5
-          step.add! 1
+          step += 1
         end
       end
     end
@@ -245,7 +245,7 @@ class TestSpritePieces < Minitest::Test
       hero = sprite :big, at: [40, 20]
       pip = sprite :dot, at: dot_at
       flag = sprite :flag, at: [8, 140], shown: false
-      game_loop { hero.overlaps?(pip).then { flag.show } }
+      game_loop { flag.show if hero.overlaps?(pip) }
     end
     b.finalize_program
     b.program

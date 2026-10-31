@@ -166,8 +166,8 @@ class TestFlickerOnTheInterpreter < Minitest::Test
       clear_screen :black
       n = var :n, 0
       game_loop do
-        n.add! 1
-        (n <= marks).then { draw_rect_at n * step, 40, 6, 6, :red }
+        n += 1
+        draw_rect_at n * step, 40, 6, 6, :red if n <= marks
         ((n >= 2) & (n <= marks + 1)).then { draw_rect_at (n - 1) * step, 40, 6, 6, :red } if kept
       end
     end

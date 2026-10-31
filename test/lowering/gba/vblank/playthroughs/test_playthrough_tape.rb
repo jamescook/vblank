@@ -23,9 +23,9 @@ class TestPlaythroughTape < Minitest::Test
       x = var :x, 0
       taps = var :taps, 0
       game_loop do
-        ticks.add! 1
-        held(:right).then { x.add! 2 }
-        pressed(:a).then { taps.add! 1 }
+        ticks += 1
+        x += 2 if held(:right)
+        taps += 1 if pressed(:a)
       end
     end
   end

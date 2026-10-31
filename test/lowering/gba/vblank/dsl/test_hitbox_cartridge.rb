@@ -19,7 +19,7 @@ class TestHitboxCartridge < Minitest::Test
       hit_me = sprite :dot, at: [103, 60] # its visible block meets a's, so they collide
       game_loop do
         wait_vblank
-        a.overlaps?(hit_me).then { hit_me.move_to 0, 0 } # on a real hit, snap it to the corner
+        hit_me.move_to 0, 0 if a.overlaps?(hit_me) # on a real hit, snap it to the corner
       end
     end
     b.finalize_program

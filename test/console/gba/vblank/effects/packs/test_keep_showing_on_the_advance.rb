@@ -17,8 +17,8 @@ class TestKeepShowingOnTheAdvance < Minitest::Test
       clear_screen :black
       n = var :n, 0
       game_loop do
-        n.add! 1
-        (n == 2).then { draw_rect_at 10, 10, 20, 20, :red }
+        n += 1
+        draw_rect_at 10, 10, 20, 20, :red if n == 2
       end
     end
     b.finalize_program

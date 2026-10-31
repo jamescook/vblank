@@ -29,10 +29,10 @@ class TestSNESSoundEffects < Minitest::Test
       sfx = sound_effects :sfx, { hit: hit }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass < (stop_on || 99)).then { music.play 0 }
-        (pass == (stop_on || 99)).then { stop_music }
-        (pass == 3).then { sfx.play :hit }
+        pass += 1
+        music.play 0 if pass < (stop_on || 99)
+        stop_music if pass == (stop_on || 99)
+        sfx.play :hit if pass == 3
       end
     end
     SNES::CheckedRun.new.run(game.program(console: :snes), frames: frames)
@@ -68,10 +68,10 @@ class TestSNESSoundEffects < Minitest::Test
       sfx = sound_effects :sfx, effects
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass < stop_on).then { music.play 0 }
-        (pass == stop_on).then { stop_music }
-        (pass == 3).then { sfx.play 0 }
+        pass += 1
+        music.play 0 if pass < stop_on
+        stop_music if pass == stop_on
+        sfx.play 0 if pass == 3
         instance_exec(pass, &body) if body
       end
     end
@@ -132,12 +132,12 @@ class TestSNESSoundEffects < Minitest::Test
       sfx = sound_effects :sfx, { hit: hit }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 1).then { music.play 0 }
-        (pass == 3).then { sfx.play :hit }
-        (pass == 5).then { music.play 1 }
-        (pass == 7).then { wave :sine, :A4 }
-        (pass == 9).then { stop_music }
+        pass += 1
+        music.play 0 if pass == 1
+        sfx.play :hit if pass == 3
+        music.play 1 if pass == 5
+        wave :sine, :A4 if pass == 7
+        stop_music if pass == 9
       end
     end
     dsp = SNES::CheckedRun.new.run(game.program(console: :snes), frames: 12).dsp_registers

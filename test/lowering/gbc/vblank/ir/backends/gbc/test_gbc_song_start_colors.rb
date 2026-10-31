@@ -34,7 +34,7 @@ class TestGBCSongStartColors < Minitest::Test
       music_volume 60
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         (count == 5).then do
           play_song :tune
           sfx.play :chime

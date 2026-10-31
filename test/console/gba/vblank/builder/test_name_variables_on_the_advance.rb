@@ -44,7 +44,7 @@ module NameVariablesOnTheAdvanceGames
         background :backdrop, tiles: :blue_set, map: map
         draw_text "HI", 8, 8, :white
         sprite :spot, at: [200, 120]
-        pressed(:a).then { mode.set! :walk }
+        mode = :walk if pressed(:a)
       end
       b.scene(:walk) { pressed(:b).then { mode.set! :title } }
       game_loop { b.call mode }

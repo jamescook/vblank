@@ -78,7 +78,7 @@ class TestSpotlightShapeOnTheAdvance < Minitest::Test
     counting = lit_room do |light|
       light.shape do |row|
         count = var :shape_count, 0
-        count.add! 1
+        count += 1
         (row - row) + (count * 20)
       end
     end

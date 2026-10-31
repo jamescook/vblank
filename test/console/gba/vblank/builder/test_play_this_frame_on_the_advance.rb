@@ -27,7 +27,7 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
       func(:ask, fast: false) { music.play 0, this_frame: true }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == ASKED_ON).then do
           sound.play if click
           call :ask if song
@@ -67,9 +67,9 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
       ]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 1).then { sfx.play 0 }
-        (pass == ASKED_ON).then { sfx.play 1, this_frame: true }
+        pass += 1
+        sfx.play 0 if pass == 1
+        sfx.play 1, this_frame: true if pass == ASKED_ON
       end
     end
     b.finalize_program
@@ -90,7 +90,7 @@ class TestPlayThisFrameOnTheAdvance < Minitest::Test
       sfx = sound_effects :sfx, [held.call(:a, 5, :G4), held.call(:a, 0, :A4), held.call(:b, 0, :C5), held.call(:b, 0, :D5)]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == 1).then do
           sfx.play 0
           sfx.play 2

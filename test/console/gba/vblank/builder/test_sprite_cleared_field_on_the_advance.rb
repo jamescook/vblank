@@ -28,7 +28,7 @@ class TestSpriteClearedFieldOnTheAdvance < Minitest::Test
       step = var :step, 0
       game_loop do
         instance_exec(hero, step, &body)
-        step.add! 1
+        step += 1
       end
     end
     b.finalize_program
@@ -52,7 +52,7 @@ class TestSpriteClearedFieldOnTheAdvance < Minitest::Test
         clear_screen :blue
         fill_rect START[0], START[1], SIDE, SIDE, :green
       end
-      (step > 4).then { hero.move :right, by: 16 }
+      hero.move :right, by: 16 if step > 4
     end
 
     seen = colors_after(prog, 8)

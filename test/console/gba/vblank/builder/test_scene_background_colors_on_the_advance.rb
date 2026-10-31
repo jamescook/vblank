@@ -58,8 +58,8 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       scene(:room) { background :ground, tiles: :stones, map: room_map }
       tint(*tint) if tint
       game_loop do
-        pass.add! 1
-        (pass == switch_at).then { set! :mode, 1 }
+        pass += 1
+        set! :mode, 1 if pass == switch_at
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :room
@@ -138,9 +138,9 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
         rays.draw_with [:shimmer], showing: (pass >> 2) & 1
       end
       game_loop do
-        pass.add! 1
-        (pass == 4).then { set! :mode, 1 }
-        (pass == 12).then { set! :mode, 0 }
+        pass += 1
+        set! :mode, 1 if pass == 4
+        set! :mode, 0 if pass == 12
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :room
@@ -203,9 +203,9 @@ class TestSceneBackgroundColorsOnTheAdvance < Minitest::Test
       scene(:plain) { nil }
       scene(:signed) { background :board, tiles: :signs, map: ["#" * 30] * 4 }
       game_loop do
-        pass.add! 1
-        (pass == 3).then { room.set! 1 }
-        (pass == 5).then { set! :mode, 1 }
+        pass += 1
+        room = 1 if pass == 3
+        set! :mode, 1 if pass == 5
         ground.show_map room
         case_var(:mode) do
           when_val 0, :plain

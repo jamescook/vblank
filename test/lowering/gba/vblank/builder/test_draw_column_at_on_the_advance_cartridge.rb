@@ -27,7 +27,7 @@ class TestDrawColumnAtOnTheAdvanceCartridge < Minitest::Test
     prog = program do
       tall = var :tall, 0
       game_loop do
-        tall.set! 40
+        tall = 40
         draw_column_at :bars, slice: 0, x: 10, top: 10, height: tall
         draw_column_at :bars, slice: 1, x: 12, top: 10, height: 2
         draw_column_at :bars, slice: 0, x: 14, top: 10, height: 0

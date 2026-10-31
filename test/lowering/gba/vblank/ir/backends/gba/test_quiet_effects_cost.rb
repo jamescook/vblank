@@ -24,7 +24,7 @@ class TestQuietEffectsCost < Minitest::Test
       music = songs :music, [song]
       game_loop do
         music.play 0
-        pressed(:a).then { sfx.play 0 }
+        sfx.play 0 if pressed(:a)
       end
     end
     VBlank::Diagnostics::Profiler.run(rom, frames: 30, picture: false).samples_per_frame

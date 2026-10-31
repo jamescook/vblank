@@ -36,8 +36,10 @@ class TestLatePages < Minitest::Test
         clear_screen :gray
         repeat(work) { done.add! 1 }
         if every.positive?
-          passes.add! 1
-          ((passes % every) == 0).then { repeat(extra) { done.add! 1 } }
+          passes += 1
+          if (passes % every) == 0
+            repeat(extra) { done.add! 1 }
+          end
         end
       end
     end

@@ -29,8 +29,8 @@ class TestSurveySaves < Minitest::Test
       var :where, 0
       scene(:title) { clear_screen :black }
       scene(:play) do
-        score.add! 1
-        pressed(:a).then { files[0].save }
+        score += 1
+        files[0].save if pressed(:a)
       end
       game_loop do
         case_var(:where) do

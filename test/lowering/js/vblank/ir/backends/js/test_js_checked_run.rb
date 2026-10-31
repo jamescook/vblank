@@ -69,7 +69,7 @@ class TestJSCheckedRun < Minitest::Test
   def test_a_step_budget_plays_the_frames_the_interpreter_fits_in_it
     program = program_of do
       x = var :x, 0
-      game_loop { held(:right).then { x.add! 1 } }
+      game_loop { x += 1 if held(:right) }
     end
     interpreter = Reference.new.hold(:right).run(program, max_steps: 60)
 
@@ -82,7 +82,7 @@ class TestJSCheckedRun < Minitest::Test
   def test_a_button_held_for_the_whole_run_is_down_before_the_first_frame
     program = program_of do
       early = var :early, 0
-      held(:a).then { early.set! 1 }
+      early = 1 if held(:a)
       game_loop {}
     end
 
@@ -94,7 +94,7 @@ class TestJSCheckedRun < Minitest::Test
   def test_save_memory_outlasts_a_run
     program = program_of do
       count = save_var :count, 0
-      count.add! 1
+      count += 1
       game_loop {}
     end
     store = SaveImage.new

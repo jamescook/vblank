@@ -22,9 +22,9 @@ class TestSNESCollision < Minitest::Test
       x = var :x, 60
       touches = var :touches, 0
       game_loop do
-        x.add! 1
+        x += 1
         dart.move_to x, 52
-        ring.overlaps?(dart).then { touches.add! 1 }
+        touches += 1 if ring.overlaps?(dart)
       end
     end
 

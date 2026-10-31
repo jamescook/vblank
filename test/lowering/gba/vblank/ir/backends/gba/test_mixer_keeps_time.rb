@@ -47,9 +47,9 @@ class TestMixerKeepsTime < Minitest::Test
       spin = var :spin, 0
       passes = var :passes, 0
       game_loop do
-        passes.add! 1
+        passes += 1
         (started == 0).then do
-          started.set! 1
+          started = 1
           clip.play
         end
         repeat(burn) { spin.add! 1 }

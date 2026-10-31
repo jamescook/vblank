@@ -19,7 +19,9 @@ class TestSplitHints < Minitest::Test
       x = var :x, 0
       y = var :y, 0
       game_loop do
-        (x == 99_999).then { 2400.times { x.add! 1 } }
+        if x == 99_999
+          2400.times { x.add! 1 }
+        end
         busy = __LINE__ + 1
         repeat(300) { y.add! 1 }
       end
@@ -58,7 +60,7 @@ class TestSplitHints < Minitest::Test
     builder = Builder.new
     builder.instance_eval do
       x = var :x, 0
-      game_loop { (x == 99_999).then { 2400.times { x.add! 1 } } }
+      game_loop { 2400.times { x.add! 1 } if x == 99_999 }
     end
     builder.finalize_program
     result = VBlank::Diagnostics::Profiler.run(assemble_rom(builder.program, name: "IDLE"), frames: 10, picture: false)

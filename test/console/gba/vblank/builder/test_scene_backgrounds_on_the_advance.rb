@@ -41,8 +41,8 @@ module SceneBackgroundsOnTheAdvanceGames
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :menu
           when_val 1, :walk
@@ -78,8 +78,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -124,8 +124,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -168,8 +168,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -206,8 +206,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -276,8 +276,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
@@ -329,8 +329,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       waiting = var :waiting, SWITCH_AT
 
       scene :first do
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 1 }
+        waiting -= 1
+        state = 1 if waiting == 0
       end
 
       scene :second do
@@ -380,8 +380,8 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
 
       # Nothing but the countdown: no background, no sprite, no word of text.
       scene :title do
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 1 }
+        waiting -= 1
+        state = 1 if waiting == 0
       end
 
       scene :play do
@@ -509,9 +509,9 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -550,12 +550,12 @@ class TestSceneBackgroundsOnTheAdvance < Minitest::Test
       end
       scene(:two) do
         ground = background :ground, tiles: :floor_tiles, map: grid
-        (tick > test.class::SWITCH_AT + 2).then { ground.draw_with :floor_dusk }
+        ground.draw_with :floor_dusk if tick > test.class::SWITCH_AT + 2
       end
       game_loop do
-        tick.add! 1
-        (tick == test.class::SWITCH_AT).then { state.set! 1 }
-        (tick == test.class::SWITCH_AT * 3).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == test.class::SWITCH_AT
+        state = 0 if tick == test.class::SWITCH_AT * 3
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

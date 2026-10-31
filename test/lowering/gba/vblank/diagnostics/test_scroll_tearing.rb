@@ -34,7 +34,7 @@ class TestScrollTearing < Minitest::Test
       x = var :x, 0
       game_loop do
         repeat(work) { add! :x, 0 } if work.positive?
-        x.add! 8
+        x += 8
         bg.scroll_to x, 0
       end
     end
@@ -80,7 +80,10 @@ class TestScrollTearing < Minitest::Test
       bg = background :world, tiles: :field, map: map
       x = var :x, 0
       game_loop do
-        held(:right).then { x.add! 4; bg.scroll_to x, 0 }
+        if held(:right)
+          x += 4
+          bg.scroll_to x, 0
+        end
       end
     end
     builder.finalize_program

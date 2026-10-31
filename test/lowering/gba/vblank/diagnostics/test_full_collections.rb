@@ -77,7 +77,7 @@ class TestFullCollections < Minitest::Test
       count = var :count, 0
       game_loop do
         walk.call
-        count.set! ys.length
+        count = ys.length
       end
     end
 

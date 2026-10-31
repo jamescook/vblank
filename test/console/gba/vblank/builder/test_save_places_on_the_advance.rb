@@ -181,12 +181,12 @@ class TestSavePlacesOnTheAdvance < Minitest::Test
       files = save_data(:file, copies: 2) { keep hearts }
       files[1].load
       game_loop do
-        pressed(:a).then do
-          (hearts == 0).then { hearts.set! 6 }
-          hearts.add! 1
+        if pressed(:a)
+          hearts = 6 if hearts == 0
+          hearts += 1
           files[1].save
         end
-        pressed(:b).then { files[1].erase }
+        files[1].erase if pressed(:b)
       end
     end
   end

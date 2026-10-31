@@ -31,8 +31,8 @@ class TestHardwareSpriteRotationCartridge < Minitest::Test
       f = var :f, 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= 2).then { halt }
+        f += 1
+        halt if f >= 2
       end
     end
     builder.finalize_program
@@ -101,8 +101,8 @@ class TestHardwareSpriteRotationCartridge < Minitest::Test
       f = var :f, 0
       game_loop do
         wait_vblank
-        f.add! 1
-        (f >= 2).then { halt }
+        f += 1
+        halt if f >= 2
       end
     end
     builder.finalize_program

@@ -26,7 +26,7 @@ class TestDrawColumnAtTearFreeOnTheAdvance < Minitest::Test
         clear_screen :gray
         draw_column_at :bars, slice: 0, x: 10, top: 0, height: 8  # an even column...
         draw_column_at :bars, slice: 0, x: 11, top: 0, height: 8  # ...and an odd one
-        at.set! 31 # a column whose evenness cannot be proved while building
+        at = 31 # a column whose evenness cannot be proved while building
         draw_column_at :bars, slice: 1, x: at, top: 10, height: 12
         repeat(4) { |c| draw_column_at :bars, slice: 0, x: (c * 2) + 60, top: 0, height: 6 }
         draw_column_at :ghost, slice: 0, x: 100, top: 0, height: 8
@@ -46,7 +46,7 @@ class TestDrawColumnAtTearFreeOnTheAdvance < Minitest::Test
         draw_column_at :ghost, slice: 0, x: 180, top: 20, height: 12, width: 3
         draw_column_at :bars, slice: 0, x: 237, top: 20, height: 12, width: 5
         draw_column_at :bars, slice: 0, x: -2, top: 20, height: 12, width: 5
-        at.set! 200
+        at = 200
         draw_column_at :bars, slice: 0, x: at, top: 100, height: 12, width: 3
       end
     end

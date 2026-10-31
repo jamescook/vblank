@@ -28,13 +28,13 @@ module SpotlightShowNowGames
       waited = var :waited, 0
       turns = var :turns, 0
       game_loop do
-        turns.add! 1
+        turns += 1
         repeat(3) do
-          light.radius.add! 5
-          waited.add! 1
+          light.radius += 5
+          waited += 1
           wait_vblank
         end
-        light.radius.set! 10
+        light.radius = 10
       end
     end
     waiting.finalize_program
@@ -66,10 +66,10 @@ class TestSpotlightShowNow < Minitest::Test
       light = spotlight at: [120, 80], radius: 0, dark: 100
       turn = var :turn, 0
       game_loop do
-        turn.add! 1
-        (turn > OPENS).then { light.radius.add! 4 }
+        turn += 1
+        light.radius += 4 if turn > OPENS
         (turn == OPENS).then do
-          light.radius.set! 4
+          light.radius = 4
           light.show_now if now
         end
       end
@@ -128,10 +128,10 @@ class TestSpotlightShowNow < Minitest::Test
       end
       passes = var :passes, 0
       game_loop do
-        passes.set! 0
+        passes = 0
         repeat(3) do
-          passes.add! 1
-          light.radius.set! passes * 10
+          passes += 1
+          light.radius = passes * 10
           light.show_now
         end
       end
@@ -171,8 +171,8 @@ class TestSpotlightShowNow < Minitest::Test
       end
       scene(:playing) { light.show_now }
       game_loop do
-        turn.add! 1
-        (turn == OPENS).then { mode.set! 1 }
+        turn += 1
+        mode = 1 if turn == OPENS
         case_var(:mode) { when_val 0, :title; when_val 1, :playing }
       end
     end

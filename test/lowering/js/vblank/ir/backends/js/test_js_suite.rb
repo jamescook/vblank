@@ -36,7 +36,7 @@ class TestJSSuite < Minitest::Test
       game_loop do
         clear_screen :black
         draw_rect_at x, 20, 2, 2, :green
-        held(:right).then { x.add! 1 }
+        x += 1 if held(:right)
       end
     end
     builder.finalize_program

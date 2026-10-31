@@ -143,7 +143,7 @@ class TestNamedSprites < Minitest::Test
         (fired == 0).then do
           shots.spawn(x: 20, y: 30)
           shots.spawn(x: 60, y: 30)
-          fired.set! 1
+          fired = 1
         end
       end
     end
@@ -229,7 +229,7 @@ class TestNamedSprites < Minitest::Test
         (fired == 0).then do
           shots.spawn(x: 20, y: 30)
           shots.spawn(x: 60, y: 30)
-          fired.set! 1
+          fired = 1
         end
       end
     end

@@ -15,7 +15,7 @@ class TestOverlapsCartridge < Minitest::Test
     b.instance_eval do
       screen :bitmap
       clear_screen :black
-      box(*a_dims).overlaps?(box(*b_dims)).then { fill_rect 100, 80, 4, 4, :green }
+      fill_rect 100, 80, 4, 4, :green if box(*a_dims).overlaps?(box(*b_dims))
       halt
     end
     b.finalize_program

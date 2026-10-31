@@ -49,8 +49,8 @@ class TestPlayThisFrameCartridge < Minitest::Test
         music = songs :music, [at_once]
         pass = var :pass, 0
         game_loop do
-          pass.add! 1
-          (pass == ASKED_ON).then { music.play 0, **options }
+          pass += 1
+          music.play 0, **options if pass == ASKED_ON
         end
       end
       b.finalize_program
@@ -77,8 +77,8 @@ class TestPlayThisFrameCartridge < Minitest::Test
       music = songs :music, [once]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass >= ASKED_ON).then { music.play 0, this_frame: true }
+        pass += 1
+        music.play 0, this_frame: true if pass >= ASKED_ON
       end
     end
     b.finalize_program

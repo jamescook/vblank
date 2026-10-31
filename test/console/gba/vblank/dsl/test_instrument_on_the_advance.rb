@@ -30,9 +30,9 @@ class TestInstrumentOnTheAdvance < Minitest::Test
       counter = var(:__f, 0)
       game_loop do
         wait_vblank
-        pressed(:a).then { piano.play(:C4) }
-        counter.add! 1
-        (counter >= 5).then { halt }
+        piano.play(:C4) if pressed(:a)
+        counter += 1
+        halt if counter >= 5
       end
     end
     # A pressed from frame 2 -> a note is triggered on the press edge, still sounding at frame 5

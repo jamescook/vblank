@@ -39,7 +39,7 @@ class TestBuildReport < Minitest::Test
       screen :bitmap
       hearts = var :hearts, 3
       files = save_data(:file, copies: 2) { keep hearts }
-      game_loop { pressed(:a).then { files[0].save } }
+      game_loop { files[0].save if pressed(:a) }
     end
     text = report_for(rom)
 
@@ -69,7 +69,7 @@ class TestBuildReport < Minitest::Test
       scene(:title) { call :title_work }
       scene(:play) { call :play_work }
       game_loop do
-        pressed(:a).then { set! :where, 1 }
+        set! :where, 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -99,7 +99,7 @@ class TestBuildReport < Minitest::Test
         call :play_more
       end
       game_loop do
-        pressed(:a).then { set! :where, 1 }
+        set! :where, 1 if pressed(:a)
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -231,8 +231,8 @@ class TestBuildReport < Minitest::Test
       layer(:world) { background :field, tiles: :set, map: Array.new(20) { "#" * 30 } }
       layer(:ui) { sprite :badge, at: [200, 8] }
       game_loop do
-        pressed(:a).then { fade_out frames: frames, under: under }
-        pressed(:b).then { fade_in frames: frames }
+        fade_out frames: frames, under: under if pressed(:a)
+        fade_in frames: frames if pressed(:b)
       end
     end
   end
@@ -267,7 +267,7 @@ class TestBuildReport < Minitest::Test
       save_var :best, 0 if best
       flags = list :flags, capacity: bytes, width: :byte, fast: false
       files = save_data(:file, copies: copies) { keep flags }
-      game_loop { pressed(:a).then { files[0].save } }
+      game_loop { files[0].save if pressed(:a) }
     end
   end
 

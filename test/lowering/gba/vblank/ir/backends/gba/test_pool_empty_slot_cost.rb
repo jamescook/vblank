@@ -49,10 +49,16 @@ class TestPoolEmptySlotCost < Minitest::Test
         rocks = pool :rocks, x: 0, y: 0, capacity: 12, image: :rock
         pass = var :pass, 0
         game_loop do
-          pass.add! 1
-          (pass == 2).then { 3.times { |n| rocks.spawn(x: 10 + (20 * n), y: 10) } }
-          (pass == 4).then { rocks.each { |r| (r.x == 30).then { r.remove } } }
-          (pass == 6).then { 2.times { |n| rocks.spawn(x: 100 + (20 * n), y: 40) } }
+          pass += 1
+          if pass == 2
+            3.times { |n| rocks.spawn(x: 10 + (20 * n), y: 10) }
+          end
+          if pass == 4
+            rocks.each { |r| (r.x == 30).then { r.remove } }
+          end
+          if pass == 6
+            2.times { |n| rocks.spawn(x: 100 + (20 * n), y: 40) }
+          end
         end
       end
       b.finalize_program

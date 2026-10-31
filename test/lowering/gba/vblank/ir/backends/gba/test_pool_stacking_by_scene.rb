@@ -24,13 +24,15 @@ class TestPoolStackingByScene < Minitest::Test
       scene(:title) { draw_text "TITLE", 10, 10, :white }
       scene :playing do
         sparks = pool :spark, x: 0, y: 0, capacity: 8, image: :dot
-        (sparks.count == 0).then { 3.times { |n| sparks.spawn(x: 20 + (n * 30), y: 40 + (n * 8)) } }
+        if sparks.count == 0
+          3.times { |n| sparks.spawn(x: 20 + (n * 30), y: 40 + (n * 8)) }
+        end
         sparks.each { |spark| spark.x.add! 1 }
       end
       game_loop do
-        t.add! 1
-        (t == 6).then { where.set! 1 }
-        (t == 12).then { where.set! 0 }
+        t += 1
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :playing

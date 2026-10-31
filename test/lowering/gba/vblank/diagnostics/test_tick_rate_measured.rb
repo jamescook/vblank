@@ -22,7 +22,7 @@ class TestTickRateMeasured < Minitest::Test
       spin = var :spin, 0
       t = timer :beat, per_second: rate
       t.on_tick do
-        beats.add! 1
+        beats += 1
         repeat(work) { spin.add! 1 } if work.positive?
       end
       game_loop do

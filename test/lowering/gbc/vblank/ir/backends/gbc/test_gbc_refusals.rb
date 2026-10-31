@@ -28,7 +28,7 @@ class TestGBCRefusals < Minitest::Test
     error = assert_raises(GBC::LoweringError) do
       GBC.new.build(color_program do
         count = var :count, 0
-        game_loop { pressed(:l).then { count.add! 1 } }
+        game_loop { count += 1 if pressed(:l) }
       end)
     end
 
@@ -131,7 +131,7 @@ class TestGBCRefusals < Minitest::Test
         wide = sprite :wide, at: [0, 0]
         dot = sprite :dot, at: [4, 4]
         hits = var :hits, 0
-        game_loop { wide.overlaps?(dot).then { hits.add! 1 } }
+        game_loop { hits += 1 if wide.overlaps?(dot) }
       end)
     end
 

@@ -73,7 +73,10 @@ class TestNoteEnvelopeCartridge < Minitest::Test
       tone = sample :tone, pcm: RECORDING, rate: RATE, note: :C4
       started = var :started, 0
       game_loop do
-        (started == 0).then { started.set! 1; tone.play(loop: true) }
+        if started == 0
+          started = 1
+          tone.play(loop: true)
+        end
         clear_screen :black
       end
     end

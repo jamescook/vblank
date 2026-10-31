@@ -24,9 +24,9 @@ class TestTearing < Minitest::Test
       screen :bitmap
       c = var :c, 0
       game_loop do
-        c.set!(1 - c)
-        (c == 0).then { fill_rect 0, 0, 240, height, :red }
-        (c == 1).then { fill_rect 0, 0, 240, height, :blue }
+        c = 1 - c
+        fill_rect 0, 0, 240, height, :red if c == 0
+        fill_rect 0, 0, 240, height, :blue if c == 1
       end
     end
   end
@@ -62,9 +62,9 @@ class TestTearing < Minitest::Test
       screen :bitmap, tear_free: true
       c = var :c, 0
       game_loop do
-        c.set!(1 - c)
-        (c == 0).then { fill_rect 0, 0, 240, 90, :red }
-        (c == 1).then { fill_rect 0, 0, 240, 90, :blue }
+        c = 1 - c
+        fill_rect 0, 0, 240, 90, :red if c == 0
+        fill_rect 0, 0, 240, 90, :blue if c == 1
       end
     end
 

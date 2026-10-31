@@ -83,9 +83,9 @@ class TestGBCTileRooms < Minitest::Test
       ground = background :ground, tiles: { shrine: :shrine, clearing: :clearing },
                                    map: { shrine: { hall: [rows[:shrine]] }, clearing: { glade: [rows[:clearing]] } }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { where.set! 1 }
-        (tick == 7).then { where.set! 0 }
+        tick += 1
+        where = 1 if tick == 3
+        where = 0 if tick == 7
         ground.show_map where
       end
     end
@@ -135,9 +135,9 @@ class TestGBCTileRooms < Minitest::Test
         end
       end
       game_loop do
-        tick.add! 1
-        (tick == 3).then { where.set! 1 }
-        (tick == 7).then { state.set! 1 }
+        tick += 1
+        where = 1 if tick == 3
+        state = 1 if tick == 7
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two

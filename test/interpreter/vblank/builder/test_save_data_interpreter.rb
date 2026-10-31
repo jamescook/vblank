@@ -57,8 +57,8 @@ class TestSaveDataInterpreter < Minitest::Test
       files = save_data(:file) { keep hearts, flags }
       files[0].load
       game_loop do
-        pressed(:a).then do
-          hearts.set! 99
+        if pressed(:a)
+          hearts = 99
           files[0].save
         end
       end

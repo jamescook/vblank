@@ -22,9 +22,9 @@ class TestScreenFadeCartridge < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :red
-        frame.add! 1
-        (frame == 2).then { fade_out :black, frames: 4 }
-        (frame == 20).then { fade_in frames: 4 }
+        frame += 1
+        fade_out :black, frames: 4 if frame == 2
+        fade_in frames: 4 if frame == 20
       end
     end
     rom = VBlank::Cartridge::ROM.assemble(GBA.new.lower(prog), title: "FADE", code: "BFAD", maker: "01")
@@ -55,8 +55,8 @@ class TestScreenFadeCartridge < Minitest::Test
       frame = var :frame, 0
       game_loop do
         clear_screen :green
-        frame.add! 1
-        (frame == 2).then { flash_screen :red, frames: 6 }
+        frame += 1
+        flash_screen :red, frames: 6 if frame == 2
       end
     end
     rom = VBlank::Cartridge::ROM.assemble(GBA.new.lower(prog), title: "FLASH", code: "BFLS", maker: "01")

@@ -23,8 +23,8 @@ class TestBigMapsCartridge < Minitest::Test
       pass = var :pass, 0
       x = var :view_x, 0
       game_loop do
-        pass.add! 1
-        x.set! ((pass & 1) * 760)
+        pass += 1
+        x = ((pass & 1) * 760)
         ground.scroll_to x, 0
       end
     end
@@ -58,9 +58,9 @@ class TestBigMapsCartridge < Minitest::Test
         instance_exec(ground, &body) if body
       end
       game_loop do
-        pass.add! 1
+        pass += 1
         set! :mode, 0
-        ((pass & 3) == 0).then { set! :mode, 1 }
+        set! :mode, 1 if (pass & 3) == 0
         case_var(:mode) do
           when_val 0, :waiting
           when_val 1, :playing

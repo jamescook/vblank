@@ -72,7 +72,7 @@ class TestTintCartridge < Minitest::Test
       game_loop do
         clear_screen :green
         tint :red, level
-        level.set! 0
+        level = 0
       end
     end
     b.finalize_program

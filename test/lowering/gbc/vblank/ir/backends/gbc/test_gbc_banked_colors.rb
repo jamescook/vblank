@@ -36,8 +36,8 @@ class TestGBCBankedColors < Minitest::Test
         end
       end
       game_loop do
-        step.set!((step + 1) % STEPS)
-        (step == 0).then { state.set!((state + 1) % PLACES) }
+        step = (step + 1) % STEPS
+        state = (state + 1) % PLACES if step == 0
         case_var(:state) { PLACES.times { |place| when_val place, :"screen#{place}" } }
       end
     end

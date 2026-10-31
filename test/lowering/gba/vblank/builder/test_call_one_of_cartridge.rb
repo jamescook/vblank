@@ -96,11 +96,11 @@ class TestCallOneOfCartridge < Minitest::Test
       b.func(:one) { hits.add! 1 }
       b.func(:two) { hits.add! 10 }
       game_loop do
-        passes.set! 0
-        hits.set! 0
+        passes = 0
+        hits = 0
         b.repeat(4) do |i|
           b.call %i[one two], number: i % 2
-          passes.add! 1
+          passes += 1
         end
         b.halt
       end
@@ -186,7 +186,7 @@ class TestCallOneOfCartridge < Minitest::Test
       b = self
       game_loop do
         b.repeat(DISPATCHES) do |i|
-          op.set! steps[i]
+          op = steps[i]
           names.each_with_index { |name, k| (op == k).then { b.call name } }
         end
       end

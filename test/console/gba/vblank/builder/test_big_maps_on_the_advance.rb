@@ -70,10 +70,18 @@ class TestBigMapsOnTheAdvance < Minitest::Test
                                      wilds: { glade_trees: test.scrambled(100, 80, seed: 13, holes: true) } })]
       end
       play = lambda do |ground, scenery|
-        (pass == 5).then { room.set! 1; x.set! 400; y.set! 300 }
-        (pass == 12).then { room.set! 0; x.set! 90; y.set! 50 }
-        x.add! 3
-        y.add! 1
+        if pass == 5
+          room = 1
+          x = 400
+          y = 300
+        end
+        if pass == 12
+          room = 0
+          x = 90
+          y = 50
+        end
+        x += 3
+        y += 1
         ground.show_map room
         scenery.show_map room
         ground.scroll_to x, y
@@ -81,10 +89,10 @@ class TestBigMapsOnTheAdvance < Minitest::Test
       end
       if scene
         state = var :state, 0
-        scene(:title) { (pass == 3).then { state.set! 1 } }
+        scene(:title) { state = 1 if pass == 3 }
         scene(:playing, **scene) { play.call(*declare.call) }
         game_loop do
-          pass.add! 1
+          pass += 1
           case_var(:state) do
             when_val 0, :title
             when_val 1, :playing
@@ -93,7 +101,7 @@ class TestBigMapsOnTheAdvance < Minitest::Test
       else
         layers = declare.call
         game_loop do
-          pass.add! 1
+          pass += 1
           play.call(*layers)
         end
       end

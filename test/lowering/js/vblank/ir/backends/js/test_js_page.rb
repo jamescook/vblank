@@ -290,7 +290,7 @@ class TestJSPage < Minitest::Test
         [now.minute, now.hour, now.day, now.month, now.year - 2000].each_with_index do |reading, row|
           draw_rect_at reading, row * 10, 1, 1, :white
         end
-        (now.present? & now.set?).then { draw_rect_at 1, 50, 1, 1, :white }
+        draw_rect_at 1, 50, 1, 1, :white if now.present? && now.set?
       end
     end
   end

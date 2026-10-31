@@ -46,9 +46,9 @@ class TestSceneSpriteWrites < Minitest::Test
         markers.times { |i| sprite(:marker, at: [(i * 24) + 8, 8]).move(:down, by: 1) }
       end
       game_loop do
-        t.add! 1
-        (t == 6).then { where.set! 1 }
-        (t == 12).then { where.set! 0 }
+        t += 1
+        where = 1 if t == 6
+        where = 0 if t == 12
         case_var(:where) do
           when_val 0, :playing
           when_val 1, :files
@@ -106,15 +106,15 @@ class TestSceneSpriteWrites < Minitest::Test
       var :where, 0
       scene :playing do
         crowd = pool :thing, x: 0, y: 0, picture: 0, wears: 0, capacity: things, facing: { tall: :tall, short: :short }
-        (made < spawned).then do
+        if made < spawned
           crowd.spawn(x: (made * 20) + 4, y: (made * 12) + 4, picture: made % 2, wears: made / 2 % 2)
-          made.add! 1
+          made += 1
         end
         crowd.each do |thing|
-          thing.x.add! 1
+          thing.x += 1
           thing.face %i[tall short], showing: thing.picture
           thing.draw_with %i[worn faded], showing: thing.wears
-          ((made == spawned) & (thing.index == 2)).then { thing.remove }
+          thing.remove if made == spawned && thing.index == 2
         end
       end
       game_loop { case_var(:where) { when_val 0, :playing } }
@@ -159,9 +159,9 @@ class TestSceneSpriteWrites < Minitest::Test
       stack = dimmed ? layer(:ui, &declare) : declare.call
       fade :black, 100, under: :ui if dimmed # all the way: the emulator rounds a part fade its own way (see EmulatorBlend)
       game_loop do
-        (made < 4).then do
+        if made < 4
           stack.spawn(x: (made * 30) + 4, y: (made * 20) + 8)
-          made.add! 1
+          made += 1
         end
         stack.each { |plank| plank.x.add! 1 }
       end

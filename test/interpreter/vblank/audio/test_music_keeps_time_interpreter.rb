@@ -33,7 +33,7 @@ class TestMusicKeepsTimeInterpreter < Minitest::Test
       started = var :started, 0
       game_loop do
         (started == 0).then do
-          started.set! 1
+          started = 1
           clip.play
         end
       end

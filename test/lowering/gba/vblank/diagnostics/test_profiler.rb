@@ -94,7 +94,7 @@ class TestProfiler < Minitest::Test
       clear_screen :black
       var :x, 0
       func(:only_while_held) { repeat(2000) { add! :x, 1 } }
-      game_loop { held(:left).then { call :only_while_held } }
+      game_loop { call :only_while_held if held(:left) }
     end
 
     still = game.profile(out: StringIO.new, frames: 10)
@@ -446,7 +446,7 @@ class TestProfiler < Minitest::Test
       armed = var :armed, 0
       var :x, 0
       func(:the_work) { repeat(2000) { add! :x, bump } }
-      game_loop { (armed == 1).then { call :the_work } }
+      game_loop { call :the_work if armed == 1 }
     end
   end
 

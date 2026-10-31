@@ -49,7 +49,7 @@ class TestJSOutputs < Minitest::Test
       places = table :places, (0...300).map { |i| (i * 7) % 200 }, width: :half
       n = var :n, 0
       game_loop do
-        n.add! 1
+        n += 1
         clear_screen :black
         draw_rect_at places[n], 20, 4, 4, :green
       end

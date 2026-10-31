@@ -61,9 +61,9 @@ class TestQuickMemoryNumbers < Minitest::Test
       pad.push 1
       trail.push 77
       func(:work, fast: fast) do
-        big.set! PLAIN
-        kept.set! trail[0]
-        found.set! steps[5]
+        big = PLAIN
+        kept = trail[0]
+        found = steps[5]
       end
       game_loop { call :work }
     end
@@ -111,9 +111,9 @@ class TestQuickMemoryNumbers < Minitest::Test
       last = var :last, 0
       filler = var :filler, 0
       func(:work, fast: true) do
-        first.set! PLAIN
+        first = PLAIN
         600.times { filler.add! 1 }
-        last.set! PLAIN
+        last = PLAIN
       end
       game_loop { call :work }
     end
@@ -147,7 +147,7 @@ class TestQuickMemoryNumbers < Minitest::Test
       first = var :first, 0
       rest = var :rest, 0
       func(:work, fast: fast) do
-        first.set! PLAIN
+        first = PLAIN
         SHRINKING.times { |n| rest.set! PLAIN + 1 + n }
       end
       game_loop { call :work }
@@ -208,7 +208,7 @@ class TestQuickMemoryNumbers < Minitest::Test
       func(:work, fast: true) do
         3.times { a.set! PLAIN }
         call :cold
-        a.set! PLAIN + 1
+        a = PLAIN + 1
       end
       game_loop { call :work }
     end

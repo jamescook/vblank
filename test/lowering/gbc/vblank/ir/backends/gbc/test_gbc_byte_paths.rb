@@ -23,14 +23,18 @@ class TestGBCBytePaths < Minitest::Test
   private def answer(answers, n)
     { below: n < 5, at_most: n <= 200, above: n > 255, at_least: n >= 250, under_nought: n < 0,
       at_most_last_byte: n <= 255 }.each do |name, holds|
-      holds.then { answers[name].set! 1 }.else { answers[name].set! 0 }
+      if holds
+        answers[name] = 1
+      else
+        answers[name] = 0
+      end
     end
-    answers[:held].set! n.clamp(3, 250)
-    answers[:held_to_byte].set! n.clamp(0, 255)
-    answers[:held_to_one].set! n.clamp(7, 7)
-    answers[:times_seven].set! n * 7
-    answers[:times_byte].set! n * 255
-    answers[:times_three].set! n * 3
+    answers[:held] = n.clamp(3, 250)
+    answers[:held_to_byte] = n.clamp(0, 255)
+    answers[:held_to_one] = n.clamp(7, 7)
+    answers[:times_seven] = n * 7
+    answers[:times_byte] = n * 255
+    answers[:times_three] = n * 3
   end
 
   # A number walking from far below nought to past a byte.
@@ -44,9 +48,13 @@ class TestGBCBytePaths < Minitest::Test
       steps = table :steps, [3, 1, 4, 1, 5]
       picked = var :picked, 0
       game_loop do
-        (n.abs < 400).then { n.add! TestGBCBytePaths::STEP }.else { n.add! 9_001 }
+        if n.abs < 400
+          n += TestGBCBytePaths::STEP
+        else
+          n += 9_001
+        end
         test.send(:answer, answers, n)
-        picked.set! steps[n]
+        picked = steps[n]
       end
     end
     b.finalize_program
@@ -63,9 +71,9 @@ class TestGBCBytePaths < Minitest::Test
       n = var :n, 0
       answers = ANSWERS.to_h { |name| [name, var(name, 0)] }
       game_loop do
-        n.set! edges[at]
+        n = edges[at]
         test.send(:answer, answers, n)
-        at.add! 1
+        at += 1
       end
     end
     b.finalize_program

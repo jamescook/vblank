@@ -30,7 +30,7 @@ class TestGBCBentRows < Minitest::Test
       spare = var :spare, 0
       water.scroll_each_row { |row| ripple[(row - phase) % 64] }
       game_loop do
-        phase.add! 1
+        phase += 1
         extra.times { spare.add! 1 }
       end
     end

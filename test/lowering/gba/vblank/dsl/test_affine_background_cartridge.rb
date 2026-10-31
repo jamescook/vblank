@@ -217,15 +217,15 @@ class TestAffineBackgroundCartridge < Minitest::Test
 
       scene :zoomed do
         background(:board, tiles: :t, map: map).scale(2.0)
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 1 }
-        (state == 1).then { waiting.set! VISIT }
+        waiting -= 1
+        state = 1 if waiting == 0
+        waiting = VISIT if state == 1
       end
 
       scene :away do
         background :blank, tiles: :t, map: blank
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 0 }
+        waiting -= 1
+        state = 0 if waiting == 0
       end
 
       game_loop { case_var(:state) { when_val 0, :zoomed; when_val 1, :away } }

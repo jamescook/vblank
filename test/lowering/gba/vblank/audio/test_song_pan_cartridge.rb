@@ -45,7 +45,7 @@ class TestSongPanCartridge < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         (count == 40).then do
           beep 880, decay: :none
           noise :kick, decay: :none

@@ -20,7 +20,7 @@ class TestSaveVarRecordCartridge < Minitest::Test
       screen :bitmap
       best = save_var :best, 3
       game_loop do
-        every_frame ? best.add!(1) : pressed(:a).then { best.set! 7 }
+        best = 7 if every_frame ? best.add!(1) : pressed(:a)
       end
     end
   end

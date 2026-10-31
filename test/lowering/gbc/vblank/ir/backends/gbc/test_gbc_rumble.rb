@@ -18,9 +18,9 @@ class TestGBCRumble < Minitest::Test
       hits = saving ? save_var(:hits, 0) : var(:hits, 0)
       clock.present?.then { hits.add! 0 } if with_clock
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           rumble frames: 10, pattern: "##..#.#."
-          hits.add! 1
+          hits += 1
         end
       end
     end

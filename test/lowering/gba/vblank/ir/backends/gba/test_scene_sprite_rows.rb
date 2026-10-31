@@ -38,12 +38,12 @@ class TestSceneSpriteRows < Minitest::Test
       scene :play do
         WALKERS.times { |i| sprite(:walker, at: [(i % 20) * 11, 60 + ((i / 20) * 11)]).move(:right, by: 1) }
         sparks = pool :spark, x: 0, y: 0, capacity: SPARKS, image: :spark
-        (sparks.count < SPARKS).then { sparks.spawn(x: sparks.count * 7, y: 130) }
+        sparks.spawn(x: sparks.count * 7, y: 130) if sparks.count < SPARKS
       end
       game_loop do
-        t.add! 1
-        (t == 6).then { set! :where, 1 }
-        (t == 12).then { set! :where, 0 }
+        t += 1
+        set! :where, 1 if t == 6
+        set! :where, 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play
@@ -91,9 +91,9 @@ class TestSceneSpriteRows < Minitest::Test
         draw_in_order(*walkers.last(ORDERED)) # the frontmost, so they stand between no two scenes
       end
       game_loop do
-        t.add! 1
-        (t == 6).then { set! :where, 1 }
-        (t == 12).then { set! :where, 0 }
+        t += 1
+        set! :where, 1 if t == 6
+        set! :where, 0 if t == 12
         case_var(:where) do
           when_val 0, :title
           when_val 1, :play

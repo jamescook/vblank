@@ -61,9 +61,9 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       end
       show.call
       game_loop do
-        passes.add! 1
-        here.set!((passes / 4).clamp(0, 3))
-        beside.set!(((passes + 2) / 4).clamp(0, 3))
+        passes += 1
+        here = (passes / 4).clamp(0, 3)
+        beside = ((passes + 2) / 4).clamp(0, 3)
         show.call
       end
     end
@@ -104,10 +104,10 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       end
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { state.set! 0 }
-        (tick == 8).then { state.set! 1 }
-        (tick == 10).then { state.set! 0 }
+        tick += 1
+        state = 0 if tick == 3
+        state = 1 if tick == 8
+        state = 0 if tick == 10
         case_var(:state) { when_val 0, :maze; when_val 1, :away }
       end
     end
@@ -136,13 +136,13 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       up.show here
       game_loop do
-        tick.add! 1
-        here.set!((tick / 6) % 2)
-        look.set! here * 2
-        (here == 0).then { look.set! tick % 2 }
+        tick += 1
+        here = (tick / 6) % 2
+        look = here * 2
+        look = tick % 2 if here == 0
         up.show here
-        (tick == 3).then { state.set! 1 }
-        (tick == 5).then { state.set! 0 }
+        state = 1 if tick == 3
+        state = 0 if tick == 5
         case_var(:state) { when_val 0, :walking; when_val 1, :away }
       end
     end
@@ -173,9 +173,9 @@ class TestPictureGroupsOnTheConsole < Minitest::Test
       end
       scene(:away) { sprite :banner, at: [8, 8], frames: banners, rate: 60 }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { state.set! 1 }
-        (tick == 6).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == 3
+        state = 0 if tick == 6
         case_var(:state) { when_val 0, :harbor; when_val 1, :away }
       end
     end

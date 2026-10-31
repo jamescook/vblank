@@ -46,8 +46,8 @@ class TestVerifierOnEachConsole < Minitest::Test
       now = clock
       hour = var :hour, -1
       game_loop do
-        pressed(:a).then { now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) }
-        hour.set! now.hour
+        now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) if pressed(:a)
+        hour = now.hour
       end
     end
     reader = VBlank::Diagnostics::Verifier.new(rom, frames: 6, keys: ->(frame) { frame == 3 ? VBlank::IR::Buttons.mask([:a]) : 0 })

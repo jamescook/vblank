@@ -150,8 +150,8 @@ class TestGBCPowerOn < Minitest::Test
       first = var :first, -1
       repeat(setting_up) { count.add! 1 }
       game_loop do
-        (passes == 0).then { first.set! frames_since_power_on }
-        passes.add! 1
+        first = frames_since_power_on if passes == 0
+        passes += 1
       end
     end
     b.finalize_program

@@ -118,9 +118,9 @@ class TestFadeHeldToAreaOnTheAdvance < Minitest::Test
       fill_rect 0, 128, 240, 32, :blue
       step = var :step, 0
       game_loop do
-        step.add! 1
-        (step == 2).then { fade_out frames: 6, inside: [0, 0, 240, 128] }
-        (step == 12).then { fade_in }
+        step += 1
+        fade_out frames: 6, inside: [0, 0, 240, 128] if step == 2
+        fade_in if step == 12
       end
     end
   end
@@ -216,18 +216,18 @@ class TestFadeHeldToAreaOnTheAdvance < Minitest::Test
         screen :bitmap
         clear_screen :white
         fill_rect 0, 128, 240, 32, :blue
-        (step < 3).then { fade :black, 50, inside: [0, 0, 240, 128] }
+        fade :black, 50, inside: [0, 0, 240, 128] if step < 3
       end
       scene(:play) do
         screen :tiled
         background :room, tiles: :set, map: ["#" * 32] * 32
-        (step < 7).then { fade :black, 75, outside: [60, 40, 120, 80] }
-        (step == 7).then { tint :red, 40 }
+        fade :black, 75, outside: [60, 40, 120, 80] if step < 7
+        tint :red, 40 if step == 7
       end
       game_loop do
-        step.add! 1
-        (step == 4).then { mode.set! 1 }
-        (step == 10).then { mode.set! 0 }
+        step += 1
+        mode = 1 if step == 4
+        mode = 0 if step == 10
         case_var(:mode) do
           when_val 0, :title
           when_val 1, :play
@@ -247,10 +247,10 @@ class TestFadeHeldToAreaOnTheAdvance < Minitest::Test
       background :room, tiles: :set, map: ["#" * 32] * 32
       step = var :step, 0
       game_loop do
-        step.add! 1
-        (step < 3).then { fade :black, step * 30, inside: [0, 0, 120, 160] }
-        (step == 3).then { fade :black, 40 }
-        (step > 3).then { fade :black, 80, outside: [0, 0, 120, 160] }
+        step += 1
+        fade :black, step * 30, inside: [0, 0, 120, 160] if step < 3
+        fade :black, 40 if step == 3
+        fade :black, 80, outside: [0, 0, 120, 160] if step > 3
       end
     end
     [2, 4, 6].each { |frames| assert_backends_agree(game, frames: frames) }

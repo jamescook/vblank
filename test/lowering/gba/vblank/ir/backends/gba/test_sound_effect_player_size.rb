@@ -40,7 +40,7 @@ class TestSoundEffectPlayerSize < Minitest::Test
       sfx = sound_effects :sfx, effects
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
+        pass += 1
         effects.each_index { |n| (pass == 3 + (20 * n)).then { sfx.play n } }
       end
     end
@@ -72,9 +72,9 @@ class TestSoundEffectPlayerSize < Minitest::Test
       ticks = var :ticks, 0
       timer(:beat, per_second: 120).on_tick { ticks.add! 1 }
       game_loop do
-        pass.add! 1
+        pass += 1
         music.play 0
-        (pass == 10).then { sfx.play 0 }
+        sfx.play 0 if pass == 10
       end
     end
     rom = game.build_rom(out: StringIO.new, err: StringIO.new, profile: false)

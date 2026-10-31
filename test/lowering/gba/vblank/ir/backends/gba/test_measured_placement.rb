@@ -194,10 +194,10 @@ class TestMeasuredPlacement < Minitest::Test
         keep score
       end
       var :state, 0
-      scene(:files) { pressed(:a).then { files[0].save } }
+      scene(:files) { files[0].save if pressed(:a) }
       scene(:playing) do
-        score.add! 1
-        pressed(:start).then { files[1].save }
+        score += 1
+        files[1].save if pressed(:start)
       end
       game_loop do
         case_var(:state) do

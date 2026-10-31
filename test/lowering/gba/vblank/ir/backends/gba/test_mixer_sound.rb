@@ -32,10 +32,12 @@ class TestMixerSound < Minitest::Test
                                  envelope: { release: 0.3 }
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
-        (frame == 2).then { loops.each { |clip| clip.play(loop: true) } }
-        (frame % 9 == 0).then { shot.play(pitch: :E4) }
-        (frame % 20 == 3).then { piano.play(:C4, :E4, :G4) }
+        frame += 1
+        if frame == 2
+          loops.each { |clip| clip.play(loop: true) }
+        end
+        shot.play(pitch: :E4) if frame % 9 == 0
+        piano.play(:C4, :E4, :G4) if frame % 20 == 3
       end
     end
   end

@@ -89,7 +89,7 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       sprite :enemy, at: [120, 60], frames: %i[enemy_0 enemy_1], rate: 2
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
+        tick += 1
         10.times { |n| (tick == 3 + n).then { link.face t.link_pose(:down, "walk", n) } }
         10.times { |n| (tick == 13 + n).then { link.face t.link_pose(:left, "run", n) } }
       end
@@ -148,9 +148,9 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       sprite :enemy, at: [120, 60], frames: %i[enemy_0 enemy_1], rate: 2
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick == 2).then { hero.face :right }
-        (tick == 4).then { hero.face :left }
+        tick += 1
+        hero.face :right if tick == 2
+        hero.face :left if tick == 4
       end
     end
   end
@@ -202,10 +202,10 @@ class TestSpriteOneFrameAtATime < Minitest::Test
       scene(:playing) { frames.each_with_index { |(name, poses), n| sprite name, at: [40 + (n * 80), 40], frames: poses, rate: 60 } }
       scene(:paused) { sprite :banner, at: [40, 40] }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { set! :state, 1 }
-        (tick == 5).then { set! :state, 0 }
-        (tick == 8).then { set! :state, 1 }
+        tick += 1
+        set! :state, 1 if tick == 3
+        set! :state, 0 if tick == 5
+        set! :state, 1 if tick == 8
         case_var(:state) { when_val 0, :playing; when_val 1, :paused }
       end
     end

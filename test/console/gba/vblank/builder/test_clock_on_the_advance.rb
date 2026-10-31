@@ -85,9 +85,9 @@ class TestClockOnTheAdvance < Minitest::Test
       set = var :set, 0
       hour = var :hour, -1
       game_loop do
-        now.present?.then { present.set! 1 }
-        now.set?.then { set.set! 1 }
-        hour.set! now.hour
+        present = 1 if now.present?
+        set = 1 if now.set?
+        hour = now.hour
       end
     end
     b.finalize_program

@@ -75,8 +75,8 @@ class TestSoundEffectsOnTheAdvanceCartridge < Minitest::Test
     over = game([recorded_hit(68)], tune: chord(16)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
     under = game([recorded_hit(68)], tune: chord(16, priority: 80)) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
     game_first = game([recorded_hit(68)], tune: chord(15)) do |sfx, pass|
-      (pass == 1).then { @piano.play(:G4) }
-      (pass == 10).then { sfx.play 0 }
+      @piano.play(:G4) if pass == 1
+      sfx.play 0 if pass == 10
     end
 
     [over, under, game_first].each do |program|
@@ -98,7 +98,7 @@ class TestSoundEffectsOnTheAdvanceCartridge < Minitest::Test
   # and a silent note taking none, on both backends.
   def test_the_console_takes_fading_notes_gives_voices_back_and_passes_over_silent_notes
     fading = game([recorded_hit(68)], tune: chord(16, length: 8, envelope: { release: 1.0 })) do |sfx, pass|
-      (pass == 12).then { sfx.play 0 }
+      sfx.play 0 if pass == 12
     end
     again = game([recorded_hit(68)], tune: chord(16, at: [0, 60])) { |sfx, pass| (pass == 10).then { sfx.play 0 } }
     quiet = Score.new(tempo: 150, priority: 68, length: 60, parts: [Part.new(plays: :piano, notes: [
@@ -132,8 +132,8 @@ class TestSoundEffectsOnTheAdvanceCartridge < Minitest::Test
   def test_the_console_plays_an_effects_recording_at_its_own_volume_and_pitch
     high = Score.new(tempo: 150, length: 200, parts: [Part.new(plays: :piano, notes: [Note.new(at: 0, key: :C5)])])
     program = game([high], tune: chord(1)) do |sfx, pass|
-      (pass == 3).then { sfx.play 0 }
-      (pass == 6).then { music_volume 50 }
+      sfx.play 0 if pass == 3
+      music_volume 50 if pass == 6
     end
     voices = console_voices(program, frames: 12).to_h { |voice| [voice.owner, voice] }
     written = VBlank::IR::Tunes.mix_loudness(12) # a part's volume when it says none

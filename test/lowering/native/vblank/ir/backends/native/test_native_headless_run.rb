@@ -27,8 +27,8 @@ class TestNativeHeadlessRun < Minitest::Test
       frame = var :frame, 0
       picture = var :picture, 7
       game_loop do
-        frame.add! 1
-        picture.add! 2
+        frame += 1
+        picture += 2
       end
     end
     run = HeadlessRun.new.run(program, frames: 5)
@@ -43,7 +43,7 @@ class TestNativeHeadlessRun < Minitest::Test
   def test_buttons_for_each_frame_can_depend_on_the_game_so_far
     program = program_of do
       x = var :x, 0
-      game_loop { held(:right).then { x.add! 1 } }
+      game_loop { x += 1 if held(:right) }
     end
     run = HeadlessRun.new
     run.input_each_frame { |_frame| run[:x] < 3 ? [:right] : [] }
@@ -54,7 +54,7 @@ class TestNativeHeadlessRun < Minitest::Test
   def test_buttons_held_for_the_whole_run
     program = program_of do
       x = var :x, 0
-      game_loop { held(:left).then { x.add! 1 } }
+      game_loop { x += 1 if held(:left) }
     end
 
     assert_equal 4, HeadlessRun.new.hold(:left).run(program, frames: 4)[:x]
@@ -126,7 +126,7 @@ class TestNativeHeadlessRun < Minitest::Test
       game_loop do
         clear_screen :black
         draw_rect_at x, 20, 1, 1, :green
-        x.add! 3
+        x += 3
       end
     end
   end
@@ -161,7 +161,7 @@ class TestNativeHeadlessRun < Minitest::Test
         draw_rect_at 100, 60, 40, 40, :yellow
         camera 30, 10
         fade :black, level
-        level.add! 10
+        level += 10
       end
     end
     interpreter = Reference.new
@@ -189,7 +189,7 @@ class TestNativeHeadlessRun < Minitest::Test
       game_loop do
         clear_screen :black
         draw_rect_at x, 20, 1, 1, :green
-        held(:right).then { x.add! 3 }
+        x += 3 if held(:right)
       end
     end
     run = HeadlessRun.new
@@ -217,7 +217,7 @@ class TestNativeHeadlessRun < Minitest::Test
       game_loop do
         hero.move :right, by: 2
         hero.draw_with :hurt
-        pressed(:a).then { shots.spawn(x: hero.x, y: 60) }
+        shots.spawn(x: hero.x, y: 60) if pressed(:a)
       end
     end
   end

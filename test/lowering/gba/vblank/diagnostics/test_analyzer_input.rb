@@ -37,7 +37,9 @@ class TestAnalyzerInput < Minitest::Test
       screen :bitmap
       var :x, 0
       game_loop do
-        held(button).then { repeat(passes) { add! :x, 1 } }
+        if held(button)
+          repeat(passes) { add! :x, 1 }
+        end
       end
     end
   end
@@ -79,7 +81,7 @@ class TestAnalyzerInput < Minitest::Test
       x = var :x, 0
       game_loop do
         repeat(A_VISIBLE_SLICE) { x.add! 1 }
-        held(:left).then { x.add! 1 }
+        x += 1 if held(:left)
       end
     end
     result = Analyzer.measure_program(program)
@@ -97,8 +99,8 @@ class TestAnalyzerInput < Minitest::Test
       screen :bitmap
       var :x, 0
       game_loop do
-        held(:left).then { add! :x, 1 }
-        pressed(:start).then { add! :x, 1 }
+        add! :x, 1 if held(:left)
+        add! :x, 1 if pressed(:start)
       end
     end
     assert_equal [%i[], [:left], [:start], %i[left start]], Analyzer.key_combinations(program)
@@ -110,7 +112,7 @@ class TestAnalyzerInput < Minitest::Test
     program = build do
       screen :bitmap
       var :x, 0
-      game_loop { held(:left).then { add! :x, 1 } }
+      game_loop { add! :x, 1 if held(:left) }
     end
     assert_equal [[], [:left]], Analyzer.key_combinations(program)
   end
@@ -146,8 +148,12 @@ class TestAnalyzerInput < Minitest::Test
       screen :bitmap
       x = var :x, 0
       game_loop do
-        held(:left).then { repeat(A_VISIBLE_SLICE) { x.add! 1 } }
-        held(:up).then { repeat(A_VISIBLE_SLICE) { x.add! 1 } }
+        if held(:left)
+          repeat(A_VISIBLE_SLICE) { x.add! 1 }
+        end
+        if held(:up)
+          repeat(A_VISIBLE_SLICE) { x.add! 1 }
+        end
       end
     end
     one = Analyzer.measure_program(program, keys: [:left])
@@ -166,7 +172,7 @@ class TestAnalyzerInput < Minitest::Test
     program = build do
       screen :bitmap
       x = var :x, 0
-      game_loop { held(:left).then { repeat(20) { x.add! 1 } } }
+      game_loop { repeat(20) { x.add! 1 } if held(:left) }
     end
     at_rest = Analyzer.measure_program(program, keys: [])
     found = Analyzer.measure_program(program)
@@ -226,7 +232,7 @@ class TestAnalyzerInput < Minitest::Test
       var :state, 0
       var :x, 0
       scene(:over) do
-        pressed(:start).then { set! :state, 1 }
+        set! :state, 1 if pressed(:start)
       end
       scene(:playing) { repeat(OVER_A_FRAME) { add! :x, 1 } }
       game_loop do
@@ -250,7 +256,9 @@ class TestAnalyzerInput < Minitest::Test
       var :state, 0
       var :x, 0
       scene(:playing) do
-        held(:left).then { repeat(A_VISIBLE_SLICE) { add! :x, 1 } }
+        if held(:left)
+          repeat(A_VISIBLE_SLICE) { add! :x, 1 }
+        end
       end
       game_loop do
         case_var(:state) do

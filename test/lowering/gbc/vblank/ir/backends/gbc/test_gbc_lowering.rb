@@ -33,11 +33,11 @@ class TestGBCLowering < Minitest::Test
       hits = var :hits, 0
       fading = var :fading, 100
       game_loop do
-        held(:right).then { hero.x.add! 3 }
-        held(:right).then { hero.draw_with :warm }
-        hero.overlaps?(rock).then { hits.add! 1 }
+        hero.x += 3 if held(:right)
+        hero.draw_with :warm if held(:right)
+        hits += 1 if hero.overlaps?(rock)
         fade :black, fading
-        fading.set! fading.approach(0, 10)
+        fading = fading.approach(0, 10)
       end
     end
 
@@ -65,9 +65,9 @@ class TestGBCLowering < Minitest::Test
       pass = var :pass, 0
       floor = var :floor, -1
       game_loop do
-        pass.add! 1
-        (pass == 4).then { floor.set! 0 }
-        (pass == 8).then { floor.set! 5 }
+        pass += 1
+        floor = 0 if pass == 4
+        floor = 5 if pass == 8
         hero.put_in_layer [:front], showing: floor
       end
     end
@@ -101,7 +101,11 @@ class TestGBCLowering < Minitest::Test
           when_val 1, :play
         end
         every(3) { add! :beats, 1 }
-        held(:a).then { sub! :total, 7 }.else { clamp! :total, -5, 5000 }
+        if held(:a)
+          sub! :total, 7
+        else
+          clamp! :total, -5, 5000
+        end
       end
     end
 
@@ -124,16 +128,16 @@ class TestGBCLowering < Minitest::Test
       sum = var :sum, 0
       game_loop do
         trail.push steps[i]
-        (trail.length > 5).then { trail.shift }
+        trail.shift if trail.length > 5
         bytes.copy_from(odd, at: i % 2, count: 2)
         words.push bytes[1]
         words.push odd[i + 10]
         words.push i
         words.fill 9, from: 2, count: 1
         words[0] = trail.last
-        sum.set! sum + words[0] + words[1] + words[2] + trail.first
+        sum = sum + words[0] + words[1] + words[2] + trail.first
         3.times { words.pop }
-        i.add! 1
+        i += 1
       end
     end
 
@@ -150,13 +154,13 @@ class TestGBCLowering < Minitest::Test
       loaded = var :loaded, 0
       files = save_data(:files) { keep score }
       game_loop do
-        best.add! 2
-        score.add! 3
-        (score == 9).then { files[0].save }
+        best += 2
+        score += 3
+        files[0].save if score == 9
         (score == 15).then do
-          score.set! 0
+          score = 0
           files[0].load
-          loaded.set! score
+          loaded = score
         end
       end
     end
@@ -176,7 +180,7 @@ class TestGBCLowering < Minitest::Test
       fast = timer :fast, per_second: 90
       fast.on_tick do
         call :count_tick
-        (fast_count >= 20).then { fast.stop }
+        fast.stop if fast_count >= 20
       end
       var :seen, 0
       game_loop { set! :seen, slow.ticks }
@@ -196,14 +200,14 @@ class TestGBCLowering < Minitest::Test
       song(:tune) { note :C4, :quarter }
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 1).then { play_song :tune }
-        (pass == 2).then { beep :ping }
-        (pass == 3).then { noise :explosion }
-        (pass == 4).then { wave :triangle, :C4 }
-        (pass == 6).then { stop_wave }
-        (pass == 7).then { fade_music_out }
-        (pass == 9).then { stop_music }
+        pass += 1
+        play_song :tune if pass == 1
+        beep :ping if pass == 2
+        noise :explosion if pass == 3
+        wave :triangle, :C4 if pass == 4
+        stop_wave if pass == 6
+        fade_music_out if pass == 7
+        stop_music if pass == 9
       end
     end
 
@@ -235,7 +239,7 @@ class TestGBCLowering < Minitest::Test
       total = var :total, 0
       game_loop do
         3000.times { |n| total.add! n % 7 }
-        (total > 1_000_000).then { total.set! 0 }
+        total = 0 if total > 1_000_000
       end
     end
 

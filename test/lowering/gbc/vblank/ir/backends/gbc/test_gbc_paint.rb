@@ -30,8 +30,12 @@ class TestGBCPaint < Minitest::Test
       screen :bitmap
       n = var :n, 0
       game_loop do
-        n.add! 1
-        (n % 2 == 0).then { clear_screen :blue }.else { clear_screen :red }
+        n += 1
+        if n % 2 == 0
+          clear_screen :blue
+        else
+          clear_screen :red
+        end
       end
     end
 

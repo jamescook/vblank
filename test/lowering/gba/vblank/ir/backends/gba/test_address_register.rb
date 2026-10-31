@@ -155,7 +155,7 @@ class TestAddressRegister < Minitest::Test
       screen :bitmap
       a = var :a, 1
       b = var :b, 2
-      func(:body) { (a > 0).then { b.set! 1 }.else { b.set! 2 } }
+      func(:body) { if a > 0 then b = 1 else b = 2 end }
       game_loop { call :body }
     end
     assert_equal 3, loads,
@@ -312,7 +312,7 @@ class TestAddressRegister < Minitest::Test
       screen :bitmap
       xs = list :xs, capacity: 8
       a = var :a, 1
-      func(:body) { xs[0] = 1; (a > 0).then { xs[1] = 2 }.else { xs[2] = 3 } }
+      func(:body) { xs[0] = 1; if a > 0 then xs[1] = 2 else xs[2] = 3 end }
       game_loop { call :body }
     end
     assert_equal 3, runs.length,

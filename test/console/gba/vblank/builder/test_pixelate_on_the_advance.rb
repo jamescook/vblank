@@ -533,8 +533,8 @@ class TestPixelateOnTheAdvance < Minitest::Test
       end
       pixelate 5
       game_loop do
-        ticks.add! 1
-        (ticks == 6).then { state.set! 1 }
+        ticks += 1
+        state = 1 if ticks == 6
         case_var(:state) do
           when_val 0, :title
           when_val 1, :world

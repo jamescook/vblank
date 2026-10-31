@@ -33,7 +33,7 @@ class TestColumnWalkCost < Minitest::Test
       game_loop do
         clear_screen :gray
         heights.each_with_index do |height, x|
-          tall.set! height
+          tall = height
           draw_column_at :bars, slice: 0, x: x * 2, top: 10, height: tall
         end
       end
@@ -157,13 +157,13 @@ class TestColumnWalkCost < Minitest::Test
       game_loop do
         clear_screen :gray if tear_free
         SWEEP_HEIGHTS.each_with_index do |height, n|
-          tall.set! height
+          tall = height
           3.times do |slice|
             draw_column_at :marks, slice: slice, x: (n * 3) + slice, top: SWEEP_TOPS[n % 3], height: tall
           end
         end
         [[237, 13, 20], [-2, 777, -300], [236, 161, 90]].each do |x, height, top|
-          tall.set! height
+          tall = height
           draw_column_at :marks, slice: 0, x: x, top: top, height: tall, width: 5
         end
       end
@@ -188,7 +188,7 @@ class TestColumnWalkCost < Minitest::Test
       tall = var :tall, 0
       game_loop do
         clear_screen :gray
-        tall.set! 24
+        tall = 24
         20.times do |x|
           draw_column_at x.even? ? :short : :tall, slice: 0, x: x * 2, top: 10, height: tall
         end
@@ -212,7 +212,7 @@ class TestColumnWalkCost < Minitest::Test
       clock.on_tick { draw_column_at :bars, slice: 0, x: 200, top: 0, height: 20 }
       game_loop do
         clear_screen :gray
-        tall.set! 40
+        tall = 40
         STRIPS.times { |x| draw_column_at :bars, slice: 0, x: x * 2, top: 10, height: tall }
       end
     end

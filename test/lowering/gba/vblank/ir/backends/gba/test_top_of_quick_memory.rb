@@ -81,7 +81,7 @@ class TestTopOfQuickMemory < Minitest::Test
       func(:"level#{DEEP}") { total.add! DEEP }
       (1...DEEP).reverse_each do |level|
         func(:"level#{level}") do
-          total.add! level
+          total += level
           call :"level#{level + 1}"
         end
       end
@@ -131,7 +131,7 @@ class TestTopOfQuickMemory < Minitest::Test
       func(:outer) { call :inner }
       game_loop do
         call :outer
-        passes.add! 1
+        passes += 1
       end
     end
     v = assert_emulator_loads_rom(rom, frames: 30, vars: rom.var_addresses)

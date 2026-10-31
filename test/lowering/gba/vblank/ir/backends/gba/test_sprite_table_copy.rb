@@ -38,7 +38,7 @@ class TestSpriteTableCopy < Minitest::Test
           pools.each_with_index do |things, k|
             live.times { |n| things.spawn(x: 20 + (k * 4) + ((n % 20) * 10), y: 20 + ((n / 20) * 10)) }
           end
-          started.set! 1
+          started = 1
         end
       end
     end
@@ -100,9 +100,9 @@ class TestSpriteTableCopy < Minitest::Test
       end
       scene(:rest) { screen :bitmap }
       game_loop do
-        t.add! 1
-        (t == 10).then { where.set! 1 }
-        (t == 13).then { where.set! 0 }
+        t += 1
+        where = 1 if t == 10
+        where = 0 if t == 13
         case_var(:where) do
           when_val 0, :play
           when_val 1, :rest

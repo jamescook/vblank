@@ -39,14 +39,14 @@ class TestSaveDataFast < Minitest::Test
       files = save_data(:file, copies: 2, **said) { keep hearts, bag }
       game_loop do
         pressed(:a).then { files[0].save } if saves
-        pressed(:b).then { files[0].load }
+        files[0].load if pressed(:b)
         pressed(:l).then { files[1].erase } if asks.include?(:erase)
         pressed(:r).then { files.copy 0, to: 1 } if asks.include?(:copy)
         pressed(:select).then { files.reset } if asks.include?(:reset)
-        files.finished?.then { written.add! 1 }
+        written += 1 if files.finished?
         best.each { |one| pressed(:start).then { one.add! 1 } }
         repeat(work) { spin.add! 1 } if work.positive?
-        hearts.add! 1
+        hearts += 1
       end
     end
   end
@@ -105,8 +105,8 @@ class TestSaveDataFast < Minitest::Test
       files = save_data(:file, fast: true) { keep hearts }
       settings = save_data(:settings) { keep volume }
       game_loop do
-        pressed(:a).then { files[0].save }
-        pressed(:b).then { settings[0].save }
+        files[0].save if pressed(:a)
+        settings[0].save if pressed(:b)
       end
     end
     kept = kept_in_quick_memory(game, profile: true)
@@ -247,7 +247,7 @@ class TestSaveDataFast < Minitest::Test
       end
       play_song :tune
       game_loop do
-        pressed(:a).then { files[0].save }
+        files[0].save if pressed(:a)
         pile.push 1
         300.times { spin.add! 1 }
       end

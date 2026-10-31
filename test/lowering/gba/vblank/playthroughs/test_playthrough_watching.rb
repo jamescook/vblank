@@ -21,9 +21,13 @@ class TestPlaythroughWatching < Minitest::Test
       ticks = var :ticks, 0
       x = var :x, 0
       game_loop do
-        ticks.add! 1
-        held(:right).then { x.add! 2 }
-        (ticks >= 10).then { clear_screen :red }.else { clear_screen :blue }
+        ticks += 1
+        x += 2 if held(:right)
+        if ticks >= 10
+          clear_screen :red
+        else
+          clear_screen :blue
+        end
       end
     end
   end

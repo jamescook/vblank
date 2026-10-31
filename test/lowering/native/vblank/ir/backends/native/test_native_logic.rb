@@ -24,9 +24,9 @@ class TestNativeLogic < Minitest::Test
     program = program_of do
       x = var :x, 4
       game_loop do
-        x.add! 3
+        x += 3
         copy! :x, :x
-        x.set! x
+        x = x
       end
     end
 
@@ -61,9 +61,9 @@ class TestNativeLogic < Minitest::Test
         once.stop
       end
       game_loop do
-        n.add! 1
-        (n == 5).then { restarted.stop }
-        (n == 8).then { timer :restarted, per_second: 60 }
+        n += 1
+        restarted.stop if n == 5
+        timer :restarted, per_second: 60 if n == 8
         set! :reads, uneven.ticks + (fast.ticks * 100) + (restarted.ticks * 10_000) +
                      VBlank::DSL::Timer.new(self, :never_started).ticks
       end
@@ -93,10 +93,10 @@ class TestNativeLogic < Minitest::Test
       left = var :left, 0
       shifted = var :shifted, 0
       game_loop do
-        big.add! 20
-        quotient.set! neg / 2
-        left.set! neg % 64
-        shifted.set! neg >> 1
+        big += 20
+        quotient = neg / 2
+        left = neg % 64
+        shifted = neg >> 1
       end
     end
 
@@ -108,9 +108,9 @@ class TestNativeLogic < Minitest::Test
       x = var :x, 0
       presses = var :presses, 0
       game_loop do
-        held(:right).then { x.add! 1 }
-        pressed(:a).then { presses.add! 1 }
-        pressed(:any).then { x.add! 100 }
+        x += 1 if held(:right)
+        presses += 1 if pressed(:a)
+        x += 100 if pressed(:any)
       end
     end
 
@@ -123,9 +123,13 @@ class TestNativeLogic < Minitest::Test
       n = var :n, 0
       kind = var :kind, 0
       game_loop do
-        n.add! 1
-        ((n > 2) & (n < 5)).then { kind.set! 1 }.else { kind.set! 2 }
-        ((n == 1) | (n == 6)).then { kind.add! 10 }
+        n += 1
+        if n > 2 && n < 5
+          kind = 1
+        else
+          kind = 2
+        end
+        kind += 10 if n == 1 || n == 6
       end
     end
 
@@ -137,7 +141,7 @@ class TestNativeLogic < Minitest::Test
       total = var :total, 0
       found = var :found, 0
       game_loop do
-        total.set! 0
+        total = 0
         repeat(5) { |i| total.add! i }
         repeat(10, stop_when: found >= 3) { found.add! 1 }
       end
@@ -166,8 +170,8 @@ class TestNativeLogic < Minitest::Test
       in_play = var :in_play, 0
       func(:bump) { in_play.add! 1 }
       scene(:title) do
-        in_title.add! 1
-        (in_title >= 2).then { state.set! 1 }
+        in_title += 1
+        state = 1 if in_title >= 2
       end
       scene(:playing) { call :bump }
       game_loop do
@@ -189,7 +193,7 @@ class TestNativeLogic < Minitest::Test
       func(:ten) { hits.add! 10 }
       game_loop do
         call %i[one ten], number: which
-        which.add! 1
+        which += 1
       end
     end
 
@@ -202,9 +206,9 @@ class TestNativeLogic < Minitest::Test
       pos = var :pos, 0.0
       ratio = var :ratio, 0.0
       game_loop do
-        pos.add! speed
-        speed.set! speed * 1.25
-        ratio.set! pos / speed
+        pos += speed
+        speed = speed * 1.25
+        ratio = pos / speed
       end
     end
 
@@ -219,9 +223,9 @@ class TestNativeLogic < Minitest::Test
       a = var :a, 0
       b = var :b, 0
       game_loop do
-        a.set! sine[i]
-        b.set! odd[i]
-        i.add! 1
+        a = sine[i]
+        b = odd[i]
+        i += 1
       end
     end
 
@@ -237,13 +241,13 @@ class TestNativeLogic < Minitest::Test
       size = var :size, 0
       squeezed = var :squeezed, 0
       game_loop do
-        n.add! 1
-        (trail.length >= 4).then { trail.shift }
+        n += 1
+        trail.shift if trail.length >= 4
         trail.push n * 10
-        first.set! trail[0]
-        size.set! trail.length
-        (small.length == 0).then { small.push 200 }
-        squeezed.set! small[0]
+        first = trail[0]
+        size = trail.length
+        small.push 200 if small.length == 0
+        squeezed = small[0]
       end
     end
 
@@ -259,14 +263,14 @@ class TestNativeLogic < Minitest::Test
       alive = var :alive, 0
       game_loop do
         sparks.spawn(x: 5, life: 3)
-        total.set! 0
+        total = 0
         sparks.each do |s|
-          s.x.add! 1
-          s.life.sub! 1
-          total.add! s.x
-          (s.life <= 0).then { s.remove }
+          s.x += 1
+          s.life -= 1
+          total += s.x
+          s.remove if s.life <= 0
         end
-        alive.set! sparks.count
+        alive = sparks.count
       end
     end
 
@@ -292,8 +296,8 @@ class TestNativeLogic < Minitest::Test
       mode = var :mode, :idle
       score = var :score, 0
       func(:idle) do
-        score.add! 1
-        mode.set! :chase
+        score += 1
+        mode = :chase
       end
       func(:chase) { score.add! 10 }
       game_loop { call mode }
@@ -322,7 +326,7 @@ class TestNativeLogic < Minitest::Test
       hits = var :hits, 0
       game_loop do
         roll :r, 1..6
-        chance(30).then { hits.add! 1 }
+        hits += 1 if chance(30)
       end
     end
 

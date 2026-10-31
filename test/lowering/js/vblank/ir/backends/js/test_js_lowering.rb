@@ -28,7 +28,7 @@ class TestJSLowering < Minitest::Test
       func(:draw) { fill_rect 0, 0, 8, 8, :red }
       func(:pause) { wait_vblank }
       func(:walk) do
-        steps.add! 1
+        steps += 1
         call :pause
       end
       game_loop do
@@ -52,9 +52,9 @@ class TestJSLowering < Minitest::Test
       before = var :before, 0
       after = var :after, 0
       func(:pause) do
-        before.add! 1
+        before += 1
         wait_vblank
-        after.add! 1
+        after += 1
       end
       game_loop { call :pause }
     end
@@ -73,12 +73,12 @@ class TestJSLowering < Minitest::Test
       count = var :count, 0
       func(:quick) { count.add! 1 }
       func(:slow) do
-        count.add! 10
+        count += 10
         wait_vblank
       end
       game_loop do
         call %i[quick slow], number: which
-        which.set! 1
+        which = 1
       end
     end
     source = JS.new.lower(program)
@@ -105,8 +105,8 @@ class TestJSLowering < Minitest::Test
       screen :bitmap
       ticks = var :ticks, 0
       game_loop do
-        ticks.add! 1
-        (ticks >= 3).then { halt }
+        ticks += 1
+        halt if ticks >= 3
       end
     end
     run = HeadlessRun.new.run(program, frames: 10)
@@ -128,10 +128,10 @@ class TestJSLowering < Minitest::Test
       got_word = var :got_word, 0
       got_byte = var :got_byte, 0
       game_loop do
-        at.set! 299
-        got_half.set! halves[at]
-        got_word.set! words[at]
-        got_byte.set! bytes[at]
+        at = 299
+        got_half = halves[at]
+        got_word = words[at]
+        got_byte = bytes[at]
       end
     end
 

@@ -148,9 +148,12 @@ class TestFadeUnderLayer < Minitest::Test
       layer(:ui) { draw_text "SCORE", 8, 8, :white }
       whole = var :whole, 0
       game_loop do
-        (whole == 1).then { fade :black, 100 }
-                    .else { fade :black, 100, under: :ui }
-        whole.set! 1
+        if whole == 1
+          fade :black, 100
+        else
+          fade :black, 100, under: :ui
+        end
+        whole = 1
       end
     end
     b.finalize_program
@@ -248,8 +251,8 @@ class TestFadeUnderLayer < Minitest::Test
       layer(:ui) { draw_text "SCORE", 8, 8, :white }
       started = var :started, 0
       game_loop do
-        (started == 0).then { fade_out under: under, frames: 4 }
-        started.set! 1
+        fade_out under: under, frames: 4 if started == 0
+        started = 1
       end
     end
     b.finalize_program

@@ -54,7 +54,7 @@ class TestFractionTypeOnTheAdvance < Minitest::Test
       clear_screen :blue
       speed = var :speed, 1.5
       pos = var :pos, 20.25
-      pos.add!(speed * speed)     # 20.25 + 2.25 = 22.5 — the multiply that would overflow
+      pos += speed * speed     # 20.25 + 2.25 = 22.5 — the multiply that would overflow
       draw_rect_at pos.to_i, 40, 2, 2, Color.resolve(:red)
       draw_rect_at (pos * 4).to_i, 60, 2, 2, Color.resolve(:green) # 90
       draw_rect_at (pos / 3).to_i, 80, 2, 2, Color.resolve(:white) # 7.5 -> 7

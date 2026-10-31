@@ -41,7 +41,9 @@ class TestGBCSpriteLists < Minitest::Test
         scene :"fading#{s}" do
           if s.zero? && filler.positive?
             never = var :never, 0
-            (never == 1).then { filler.times { |i| never.set! never + i } }
+            if never == 1
+              filler.times { |i| never.set! never + i }
+            end
           end
           ships = (0...sprites).map do |n|
             lists = (0...steps).map do |step|
@@ -54,8 +56,8 @@ class TestGBCSpriteLists < Minitest::Test
           step = var :"step#{s}", 0
           ships.each { |ship, lists| ship.draw_with lists, showing: step }
           (step == steps - 1).then do
-            step.set! 0
-            showing.set!((s + 1) % scenes)
+            step = 0
+            showing = (s + 1) % scenes
           end.else { step.add! 1 }
         end
       end

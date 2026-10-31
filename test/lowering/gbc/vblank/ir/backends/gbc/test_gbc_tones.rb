@@ -39,8 +39,8 @@ class TestGBCTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 20).then { beep 880, duty: :half, decay: :none, volume: 12 }
+        count += 1
+        beep 880, duty: :half, decay: :none, volume: 12 if count == 20
       end
     end
 
@@ -77,8 +77,8 @@ class TestGBCTones < Minitest::Test
       sfx = sound_effects :sfx, { siren: siren }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 4).then { sfx.play :siren }
+        count += 1
+        sfx.play :siren if count == 4
       end
     end
 
@@ -132,7 +132,7 @@ class TestGBCTones < Minitest::Test
       play_song :tune
       count = var :count, 0
       game_loop do
-        count.add! 1
+        count += 1
         (count == 50).then do
           beep 880, duty: :half, decay: :none, volume: 12
           noise :kick, decay: :none

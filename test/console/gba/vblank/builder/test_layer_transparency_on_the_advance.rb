@@ -289,8 +289,8 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
         end
       end
       game_loop do
-        pass.add! 1
-        (pass == room_at).then { where.set!(rooms == :hall ? 2 : 1) }
+        pass += 1
+        where = rooms == :hall ? 2 : 1 if pass == room_at
         case_var(:where) do
           when_val 0, :title
           when_val 1, :room
@@ -330,9 +330,9 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       layer(:ground) { background :floor, tiles: :floors, map: Array.new(20) { "d" * 30 } }
       layer(:mist, transparency: 50) { background :pane, tiles: :panes, map: Array.new(20) { "d" * 30 } }
       game_loop do
-        pass.add! 1
-        (pass == 3).then { fade :black, 50, under: :top }
-        (pass == 6).then { tint :red, 0 }
+        pass += 1
+        fade :black, 50, under: :top if pass == 3
+        tint :red, 0 if pass == 6
       end
     end
   end
@@ -438,8 +438,8 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
       end
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick == FLASH_AT).then { flash_screen :black, frames: 6 }
+        tick += 1
+        flash_screen :black, frames: 6 if tick == FLASH_AT
       end
     end
   end
@@ -482,8 +482,8 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
 
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { set! :state, 1 }
+        tick += 1
+        set! :state, 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
@@ -521,8 +521,8 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
         instance_exec(pass, &room) if room
       end
       game_loop do
-        pass.add! 1
-        (pass == swap_at).then { where.set!(first == :title ? 1 : 0) }
+        pass += 1
+        where = first == :title ? 1 : 0 if pass == swap_at
         case_var(:where) do
           when_val 0, :title
           when_val 1, :room
@@ -567,10 +567,10 @@ class TestLayerTransparencyOnTheAdvance < Minitest::Test
         layer(:fog, transparency: 25) { background :fog_pane, tiles: :frontset, map: full }
       end
       game_loop do
-        pass.add! 1
+        pass += 1
         (pass == 3).then { where.set! 0 } if title
-        (pass == (title ? 6 : 4)).then { where.set! 1 }
-        (pass == (title ? 9 : 8)).then { where.set! 0 }
+        where = 1 if pass == (title ? 6 : 4)
+        where = 0 if pass == (title ? 9 : 8)
         case_var(:where) do
           when_val 0, :misty
           when_val 1, :foggy

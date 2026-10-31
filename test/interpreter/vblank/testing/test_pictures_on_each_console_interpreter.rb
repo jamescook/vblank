@@ -42,7 +42,7 @@ class TestPicturesOnEachConsoleInterpreter < Minitest::Test
         clear_screen :white
         draw_rect_at x, 8, 8, 8, :red
         draw_rect_at 144, 128, 16, 16, :blue
-        x.add! 4
+        x += 4
       end
     end.program
   end

@@ -30,7 +30,7 @@ class TestSceneLoadsFirst < Minitest::Test
       state = var :state, 0
       step = var :step, 0
       sum = var :sum, 0
-      scene(:title) { (step == 4).then { state.set! 1 } }
+      scene(:title) { state = 1 if step == 4 }
       scene(:play, loads_first: loads_first) do
         pictures.times { |n| sprite :"art#{n}", at: [(n % 4) * 60, (n / 4) * 40] }
         repeat(WORK) { |i| sum.set! sum + (i * 3) }
@@ -40,7 +40,7 @@ class TestSceneLoadsFirst < Minitest::Test
           when_val 0, :title
           when_val 1, :play
         end
-        step.add! 1
+        step += 1
       end
     end
     builder.finalize_program

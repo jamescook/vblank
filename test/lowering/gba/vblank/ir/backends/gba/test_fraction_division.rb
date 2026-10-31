@@ -215,8 +215,8 @@ class TestFractionDivision < Minitest::Test
       tiny = var :tiny, 0.0
       rounded = var :rounded, 0
       game_loop do
-        tiny.set! 0.001
-        rounded.set!((227.9 / tiny + 0.5).to_i)
+        tiny = 0.001
+        rounded = (227.9 / tiny + 0.5).to_i
         halt
       end
     end

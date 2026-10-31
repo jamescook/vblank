@@ -25,9 +25,9 @@ class TestGBCPressToPicture < Minitest::Test
       ball = sprite :ball, at: [40, 100]
       across = var :across, 0
       game_loop do
-        pressed(:down).then do
-          ball.x.add! 16
-          across.add! 16
+        if pressed(:down)
+          ball.x += 16
+          across += 16
         end
         field.scroll_to across, 0
       end
@@ -52,7 +52,7 @@ class TestGBCPressToPicture < Minitest::Test
         cursor = sprite :ball, at: [40, 100]
         mark = sprite :mark, at: [100, 20]
         draw_in_order cursor, mark
-        pressed(:down).then { cursor.x.add! 16 }
+        cursor.x += 16 if pressed(:down)
       end
       game_loop { case_var(:state) { when_val 0, :title } }
     end

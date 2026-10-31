@@ -154,27 +154,27 @@ class TestNativeSaves < Minitest::Test
       named = Array.new(3) { |n| var :"named#{n}", 0 }
       states = Array.new(3) { |n| var :"state#{n}", 0 }
       game_loop do
-        pressed(:up).then { slot.add! 1 }
-        pressed(:a).then do
-          hearts.set! slot + 10
+        slot += 1 if pressed(:up)
+        if pressed(:a)
+          hearts = slot + 10
           name.push slot
           files[slot].save
         end
-        pressed(:b).then { files[slot].erase }
-        pressed(:l).then { files[slot].load }
-        pressed(:r).then { files.copy 0, to: slot }
-        pressed(:select).then { files.reset }
-        pressed(:right).then do
-          hearts.set! 99
+        files[slot].erase if pressed(:b)
+        files[slot].load if pressed(:l)
+        files.copy 0, to: slot if pressed(:r)
+        files.reset if pressed(:select)
+        if pressed(:right)
+          hearts = 99
           files[slot].save
         end
         3.times do |n|
-          shown[n].set! files[n].peek(hearts)
-          named[n].set! files[n].peek(name).length
-          files[n].empty?.then { states[n].set! 0 }
-          files[n].erased?.then { states[n].set! 1 }
-          files[n].good?.then { states[n].set! 2 }
-          files[n].damaged?.then { states[n].set! 3 }
+          shown[n] = files[n].peek(hearts)
+          named[n] = files[n].peek(name).length
+          states[n] = 0 if files[n].empty?
+          states[n] = 1 if files[n].erased?
+          states[n] = 2 if files[n].good?
+          states[n] = 3 if files[n].damaged?
         end
       end
     end
@@ -273,14 +273,14 @@ class TestNativeSaves < Minitest::Test
       file = save_data(:file) { keep hearts, trail }
       file[0].load
       game_loop do
-        pressed(:a).then do
-          hearts.set! 7
+        if pressed(:a)
+          hearts = 7
           repeat(60) { |i| trail.push i * 3 }
           file[0].save
         end
-        file.saving?.then { busy.add! 1 }
-        file.finished?.then { done.add! 1 }
-        file.failed?.then { failed.add! 1 }
+        busy += 1 if file.saving?
+        done += 1 if file.finished?
+        failed += 1 if file.failed?
       end
     end
   end
@@ -328,8 +328,8 @@ class TestNativeSaves < Minitest::Test
       file[0].load
       game_loop do
         { a: 7, b: 9, l: 11 }.each do |button, amount|
-          pressed(button).then do
-            hearts.set! amount
+          if pressed(button)
+            hearts = amount
             file[0].save
           end
         end
@@ -357,7 +357,7 @@ class TestNativeSaves < Minitest::Test
   def test_save_vars_on_flash_come_back_after_the_power_goes_off
     program = program_with(64) do
       best = save_var :best, 5
-      game_loop { pressed(:a).then { best.add! 2 } }
+      game_loop { best += 2 if pressed(:a) }
     end
     store = SaveImage.new(kilobytes: 64)
     CheckedPlayer.new(save: store).input_each_frame { |frame| frame == 2 ? [:a] : [] }.run(program, frames: 400)

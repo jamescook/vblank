@@ -60,9 +60,9 @@ class TestMirroredTiles < Minitest::Test
       room = background :room, tiles: :corners, map: { first: ["aaaa"], second: ["dcba"] }
       frames = var :frames, 0
       game_loop do
-        frames.add! 1
-        (frames == 1).then { room.show_map :second }
-        (frames == 2).then { room.set_tile 0, 0, "b" }
+        frames += 1
+        room.show_map :second if frames == 1
+        room.set_tile 0, 0, "b" if frames == 2
       end
     end
     b.finalize_program

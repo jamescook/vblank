@@ -22,10 +22,10 @@ class TestSNESTint < Minitest::Test
       sprite :ship, at: [40, 3]
       t = var :t, -10
       game_loop do
-        t.add! 7
-        (t < 60).then { fade :black, t }
-        (t >= 60).then { fade :white, t - 60 }
-        (t >= 120).then { tint :red, t - 120 }
+        t += 7
+        fade :black, t if t < 60
+        fade :white, t - 60 if t >= 60
+        tint :red, t - 120 if t >= 120
       end
     end
 
@@ -39,7 +39,7 @@ class TestSNESTint < Minitest::Test
       fill_rect 10, 10, 30, 20, :yellow
       level = var :level, 0.0
       game_loop do
-        level.add! 3.3
+        level += 3.3
         fade :white, level
       end
     end

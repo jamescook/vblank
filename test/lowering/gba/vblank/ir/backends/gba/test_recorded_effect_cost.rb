@@ -35,7 +35,7 @@ class TestRecordedEffectCost < Minitest::Test
       sfx = sound_effects :sfx, list
       game_loop do
         music.play 0
-        pressed(:a).then { sfx.play 0 }
+        sfx.play 0 if pressed(:a)
       end
     end
     game.build_rom(out: StringIO.new, err: StringIO.new, profile: false).built.placement.sizes.fetch(:__interrupt)

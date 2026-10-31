@@ -26,13 +26,13 @@ class TestSNESPicture < Minitest::Test
       y = var :y, -10
       laps = var :laps, 0
       game_loop do
-        x.add! 7
-        y.add! 6
-        (x > 270).then do
-          x.set! -30
-          laps.add! 1
+        x += 7
+        y += 6
+        if x > 270
+          x = -30
+          laps += 1
         end
-        (y > 236).then { y.set! -12 }
+        y = -12 if y > 236
         ship.move_to x, y
       end
     end
@@ -57,12 +57,12 @@ class TestSNESPicture < Minitest::Test
          front = background :front, tiles: :front, map: "#{'o' * 32}\n" * 32
          changed = var :changed, 0
          game_loop do
-           pressed(:a).then do
+           if pressed(:a)
              back.set_tile 40, 40, "g"
              back.set_tile 33, 2, "g"
              back.set_tile 2, 35, "g"
              front.set_tile 3, 3, "g"
-             changed.set! 1
+             changed = 1
            end
            back.scroll_to 200, 200
          end
@@ -80,7 +80,7 @@ class TestSNESPicture < Minitest::Test
       b = sprite :bar, at: [16, 22]
       t = var :t, 0
       game_loop do
-        t.add! 1
+        t += 1
         a.move_to 20 + t, 20
         b.move_to 16 + t, 22
       end
@@ -108,10 +108,10 @@ class TestSNESPicture < Minitest::Test
          }
          x = var :x, 0
          game_loop do
-           x.add! 3
+           x += 3
            room.scroll_to x, x / 2
-           pressed(:a).then { room.set_tile 2, 1, "#" }
-           pressed(:b).then { room.show_map 1 }
+           room.set_tile 2, 1, "#" if pressed(:a)
+           room.show_map 1 if pressed(:b)
          end
        end, frames: 14)
 
@@ -132,7 +132,7 @@ class TestSNESPicture < Minitest::Test
       room = background :room, tiles: :set, map: { walls: "#{'#' * 64}\n" * 64, gems: "#{'g#' * 32}\n" * 64 }
       game_loop do
         room.scroll_to 260, 280
-        pressed(:a).then { room.show_map 1 }
+        room.show_map 1 if pressed(:a)
       end
     end
     press = ->(frame) { frame == 3 ? [:a] : [] }
@@ -153,11 +153,11 @@ class TestSNESPicture < Minitest::Test
       room = background :room, tiles: :set, map: "#{'#' * 32}\n" * 32
       i = var :i, 0
       game_loop do
-        pressed(:a).then do
-          i.set! 0
+        if pressed(:a)
+          i = 0
           repeat(200) do
             room.set_tile i % 25, i / 25, "g"
-            i.add! 1
+            i += 1
           end
         end
       end
@@ -193,8 +193,8 @@ class TestSNESPicture < Minitest::Test
         field.scroll_by 1, -1
         ball.move_to 20 + (t * 3), 190
         bar.move_to tops[t % 11]
-        (t == 4).then { bar.set_tile 2, 0, "[" }
-        t.add! 1
+        bar.set_tile 2, 0, "[" if t == 4
+        t += 1
       end
     end
 
@@ -211,7 +211,7 @@ class TestSNESPicture < Minitest::Test
         state = var :state, 0
         scene(:play) { status_bar :score, tiles: :bar_tiles, map: ["[["], top: 200 }
         game_loop { case_var(:state) { when_val 0, :play } }
-        state.set! 0
+        state = 0
       end)
     end
 
@@ -245,7 +245,7 @@ class TestSNESPicture < Minitest::Test
         far.scroll_by 1, 0
         near.scroll_by 2, 0
         ball.move_to 40 + t, 155
-        t.add! 1
+        t += 1
       end
     end
 
@@ -277,7 +277,7 @@ class TestSNESPicture < Minitest::Test
         walker.move_to 10 + (t * 3), 40
         bird.move_to 60 - (t * 3), 42
         mole.move_to 36 + t, 38 + t
-        t.add! 1
+        t += 1
       end
     end
 
@@ -320,11 +320,11 @@ class TestSNESPicture < Minitest::Test
       phase = var :phase, 0
       rows = var :rows, 0
       water.scroll_each_row do |row|
-        rows.add! 1
+        rows += 1
         ripple[(row - phase) % 16]
       end
       game_loop do
-        phase.add! 1
+        phase += 1
         water.scroll_by 3, 0
         sky.scroll_by 1, 0
       end
@@ -391,16 +391,16 @@ class TestSNESPicture < Minitest::Test
       t = var :t, 0
       i = var :i, 0
       game_loop do
-        i.set! 0
+        i = 0
         repeat(64) do
           pixels[i] = (i * 17) + (t * 33)
-          i.add! 1
+          i += 1
         end
         painted.changed
-        (t < 20).then { short.push ((t % 2) + 1) + 32 } # places 1 or 2, then 2: never see-through
-        (t % 3 == 2).then { short.pop }
+        short.push ((t % 2) + 1) + 32 if t < 20 # places 1 or 2, then 2: never see-through
+        short.pop if t % 3 == 2
         partial.changed
-        t.add! 1
+        t += 1
       end
     end
 
@@ -422,7 +422,7 @@ class TestSNESPicture < Minitest::Test
         board.fill_rect t * 3, 2, 3, 3, :yellow
         board.changed now: true
         mark.move_to 40 + t, 40
-        t.add! 1
+        t += 1
       end
     end
 
@@ -443,7 +443,7 @@ class TestSNESPicture < Minitest::Test
       game_loop do
         tag.pixel t, t, :green
         ball.move_to 10 + t, 10
-        t.add! 1
+        t += 1
       end
     end
 
@@ -459,9 +459,9 @@ class TestSNESPicture < Minitest::Test
       sprite :box, at: [24, 144]
       t = var :t, 0
       game_loop do
-        (t == 0).then { box.clear :blue }
+        box.clear :blue if t == 0
         box.fill_rect 4 + (t * 30), 4, 20, 8, :white
-        t.add! 1
+        t += 1
       end
     end
 
@@ -497,9 +497,13 @@ class TestSNESPicture < Minitest::Test
       sprite :face, at: [60, 20]
       t = var :t, 0
       game_loop do
-        (t < 8).then { face.draw_with %i[flash dim], showing: (t >> 1) & 1 }.else { face.draw_with :own }
+        if t < 8
+          face.draw_with %i[flash dim], showing: (t >> 1) & 1
+        else
+          face.draw_with :own
+        end
         face.move_to 20 + t, 20
-        t.add! 1
+        t += 1
       end
     end
 
@@ -532,7 +536,7 @@ class TestSNESPicture < Minitest::Test
       game_loop do
         air.scroll_by 1, 1
         ball.move_to 30 + t, 30
-        t.add! 1
+        t += 1
       end
     end
 
@@ -558,7 +562,7 @@ class TestSNESPicture < Minitest::Test
       game_loop do
         floor.scroll_by 1, 0
         ghost.move_to 20 + (t * 3), 36
-        t.add! 1
+        t += 1
       end
     end
 

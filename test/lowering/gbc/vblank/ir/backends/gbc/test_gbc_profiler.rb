@@ -57,7 +57,7 @@ class TestGBCProfiler < Minitest::Test
       balls = (0...8).map { |n| sprite :"ball#{worn.call(n)}", at: [8 + (n * 16), 120] }
       step = var :step, 0
       game_loop do
-        step.set!((step + 1) % 16)
+        step = (step + 1) % 16
         board.draw_with((0...7).to_h { |n| [:"bg#{n}", steps.map { |s| :"bg#{n}_#{s}" }] }, showing: step)
         balls.each_with_index { |ball, n| ball.draw_with steps.map { |s| :"sp#{worn.call(n)}_#{s}" }, showing: step }
       end

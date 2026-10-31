@@ -16,9 +16,9 @@ class TestSNESCheckedRun < Minitest::Test
       b = var :b, -3
       c = var :c, 0
       game_loop do
-        a.set! (a * 1103) + 12_345
-        b.set! (b - a) / 7
-        c.set! ((a % 97) ^ (b >> 3)) | ((a << 5) & 0xFF00)
+        a = (a * 1103) + 12_345
+        b = (b - a) / 7
+        c = ((a % 97) ^ (b >> 3)) | ((a << 5) & 0xFF00)
       end
     end
 
@@ -31,17 +31,17 @@ class TestSNESCheckedRun < Minitest::Test
       b = var :b, 0
       flags = var :flags, 0
       game_loop do
-        a.add! 3
-        b.set! a.clamp(-20, 20)
-        flags.set! 0
-        (a < 0).then { flags.add! 1 }
-        (a <= b).then { flags.add! 2 }
-        (a > -5).then { flags.add! 4 }
-        (a >= b).then { flags.add! 8 }
-        (a == b).then { flags.add! 16 }
-        (a != 7).then { flags.add! 32 }
-        ((a > 0) & (b > 10)).then { flags.add! 64 }
-        b.set! b.abs - a.flip
+        a += 3
+        b = a.clamp(-20, 20)
+        flags = 0
+        flags += 1 if a < 0
+        flags += 2 if a <= b
+        flags += 4 if a > -5
+        flags += 8 if a >= b
+        flags += 16 if a == b
+        flags += 32 if a != 7
+        flags += 64 if a > 0 && b > 10
+        b = b.abs - a.flip
       end
     end
 
@@ -53,8 +53,8 @@ class TestSNESCheckedRun < Minitest::Test
       speed = var :speed, 1.25
       at = var :at, -3.5
       game_loop do
-        at.set! (at * speed) / 1.75
-        speed.add! 0.125
+        at = (at * speed) / 1.75
+        speed += 0.125
       end
     end
 
@@ -67,10 +67,10 @@ class TestSNESCheckedRun < Minitest::Test
       n = var :n, 120
       sum = var :sum, 0
       game_loop do
-        n.add! 3
+        n += 3
         trail.push n
-        (trail.length > 4).then { trail.shift }
-        sum.set! trail[0] + trail[trail.length - 1]
+        trail.shift if trail.length > 4
+        sum = trail[0] + trail[trail.length - 1]
       end
     end
 
@@ -89,8 +89,8 @@ class TestSNESCheckedRun < Minitest::Test
       first.push 5
       game_loop do
         narrow.copy_from lut, at: at, count: 3
-        got.set! narrow[2] + lut[at]
-        at.set! (at + 1) % 4
+        got = narrow[2] + lut[at]
+        at = (at + 1) % 4
       end
     end
 
@@ -117,9 +117,9 @@ class TestSNESCheckedRun < Minitest::Test
       presses = var :presses, 0
       shoulders = var :shoulders, 0
       game_loop do
-        held(:a).then { held_a.add! 1 }
-        pressed(:right).then { presses.add! 1 }
-        held(:l).then { shoulders.add! 1 }
+        held_a += 1 if held(:a)
+        presses += 1 if pressed(:right)
+        shoulders += 1 if held(:l)
       end
     end, frames: 12)
 
@@ -151,8 +151,8 @@ class TestSNESCheckedRun < Minitest::Test
     run.run(program_of do
       started = var :started, 0
       game_loop do
-        pressed(:start).then { started.add! 1 }
-        held(:b).then { started.add! 10 }
+        started += 1 if pressed(:start)
+        started += 10 if held(:b)
       end
     end, frames: 5)
 
@@ -169,7 +169,7 @@ class TestSNESCheckedRun < Minitest::Test
       presses = var :presses, 0
       game_loop do
         clear_screen :black
-        pressed(:a).then { presses.add! 1 }
+        presses += 1 if pressed(:a)
         draw_text "HI", 40, 30, :white
       end
     end, frames: 3)
@@ -184,8 +184,8 @@ class TestSNESCheckedRun < Minitest::Test
       a = var :a, 2_000_037
       left = var :left, 0
       game_loop do
-        left.set! (a % 1) + ((a % 2) * 10) + ((a % 16) * 100) + ((a % 1024) * 10_000) + (a % 1_073_741_824)
-        a.sub! 777_781
+        left = (a % 1) + ((a % 2) * 10) + ((a % 16) * 100) + ((a % 1024) * 10_000) + (a % 1_073_741_824)
+        a -= 777_781
       end
     end
 
@@ -213,8 +213,8 @@ class TestSNESCheckedRun < Minitest::Test
     run = checked(frames: 20) do
       state = var :state, 0
       ticks = var :ticks, 0
-      scene(:title) { ticks.add! 1; (ticks > 3).then { state.set! 1 } }
-      scene(:play) { ticks.add! 10; (ticks > 50).then { state.set! 0; ticks.set! 0 } }
+      scene(:title) { ticks += 1; state = 1 if ticks > 3 }
+      scene(:play) { ticks += 10; if ticks > 50 then state = 0; ticks = 0 end }
       game_loop do
         case_var :state do
           when_val 0, :title
@@ -235,7 +235,7 @@ class TestSNESCheckedRun < Minitest::Test
       func(:three) { total.add! 300 }
       game_loop do
         call %i[one two three], number: pick
-        pick.set! (pick + 1) % 4
+        pick = (pick + 1) % 4
         repeat(3) { |i| total.add! i }
       end
     end
@@ -247,8 +247,8 @@ class TestSNESCheckedRun < Minitest::Test
     run = checked(frames: 60) do
       x = var :x, 0
       game_loop do
-        x.add! 1
-        (x >= 9).then { halt }
+        x += 1
+        halt if x >= 9
       end
     end
 
@@ -258,7 +258,7 @@ class TestSNESCheckedRun < Minitest::Test
   def test_a_game_that_never_waits_runs_to_its_end
     run = checked do
       x = var :x, 5
-      x.set! x * x
+      x = x * x
     end
 
     assert_equal 25, run[:x]
@@ -273,8 +273,8 @@ class TestSNESCheckedRun < Minitest::Test
       beat = timer :beat, per_second: 13
       beat.on_tick { rings.add! 1 }
       game_loop do
-        chance(50).then { hits.add! 1 }
-        ticks.set! beat.ticks
+        hits += 1 if chance(50)
+        ticks = beat.ticks
       end
     end
 
@@ -290,7 +290,7 @@ class TestSNESCheckedRun < Minitest::Test
       passes = var :passes, 0
       once_a_frame { frames.add! 1 }
       game_loop do
-        passes.add! 1
+        passes += 1
         repeat(60) { x.set! (x * 1103) + 12_345 }
       end
     end

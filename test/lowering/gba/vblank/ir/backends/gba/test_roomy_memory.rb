@@ -263,7 +263,7 @@ class TestRoomyMemory < Minitest::Test
       scene(:right) { call :right_work }
       game_loop do
         trickle[3] = spin
-        pressed(:start).then { set! :where, 1 }
+        set! :where, 1 if pressed(:start)
         case_var(:where) do
           when_val 0, :left
           when_val 1, :right
@@ -335,7 +335,7 @@ class TestRoomyMemory < Minitest::Test
       image(:dot, "#" => :white) { "########\n" * 8 }
       stood = pool :stood, x: 0, y: 0, hp: 0, capacity: 8, image: :dot, fast: false
       game_loop do
-        pressed(:a).then { stood.spawn(x: 10, y: 10) }
+        stood.spawn(x: 10, y: 10) if pressed(:a)
         stood.each { |one| one.x.add! 1 }
       end
     end
@@ -351,7 +351,7 @@ class TestRoomyMemory < Minitest::Test
       queue = list :queue, capacity: 16, width: :byte, fast: false
       game_loop do
         queue.push 3
-        (queue.length > 8).then { queue.shift }
+        queue.shift if queue.length > 8
       end
     end
     counters = counters_of(rom, "list :queue")
@@ -390,14 +390,14 @@ class TestRoomyMemory < Minitest::Test
       bar = sprite :bar, at: [0, 140]
       ticks = var :ticks, 0
       game_loop do
-        ticks.add! 1
-        ((ticks % 6) == 1).then { stood.spawn(x: 0, y: ticks) }
+        ticks += 1
+        stood.spawn(x: 0, y: ticks) if (ticks % 6) == 1
         stood.each do |one|
-          one.x.add! 4
-          (one.x > 40).then { one.remove }
+          one.x += 4
+          one.remove if one.x > 40
         end
         queue.push 1
-        (queue.length > 5).then { queue.shift }
+        queue.shift if queue.length > 5
         bar.move_to queue.length * 8, 140
       end
     end

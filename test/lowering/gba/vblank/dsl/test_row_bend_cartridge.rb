@@ -61,7 +61,7 @@ class TestRowBendCartridge < Minitest::Test
     program = bars_program do |water|
       shift = var :shift, 0
       water.scroll_each_row do |row|
-        shift.set! row % 4
+        shift = row % 4
         shift
       end
     end

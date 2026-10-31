@@ -55,7 +55,7 @@ class TestVideoCopies < Minitest::Test
       rooms = background :rooms, tiles: :set, map: { hall: ["#."], cave: [".#"] }
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         rooms.show_map frame & 1
       end
     end
@@ -78,7 +78,7 @@ class TestVideoCopies < Minitest::Test
                                  map: { shrine: { hall: ["##"] }, clearing: { glade: ["##"] } }
       frame = var :frame, 0
       game_loop do
-        frame.add! 1
+        frame += 1
         rooms.show_map frame & 1
       end
     end
@@ -99,7 +99,7 @@ class TestVideoCopies < Minitest::Test
       field = background :field, tiles: :set, map: ["#" * 120] * 30
       x = var :x, 0
       game_loop do
-        x.add! 8
+        x += 8
         field.scroll_to x, 0
       end
     end

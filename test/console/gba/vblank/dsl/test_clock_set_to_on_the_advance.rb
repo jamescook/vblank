@@ -19,15 +19,15 @@ class TestClockSetToOnTheAdvance < Minitest::Test
       now = clock
       var :hour_at_power_on, now.hour
       before_the_loop = var :hour_before_the_loop, -1
-      before_the_loop.set! now.hour
+      before_the_loop = now.hour
       passes = var :passes, 0
       hour = var :hour, -1
       second = var :second, -1
       game_loop do
-        (passes == set_on_pass).then { now.set_to(year: 2031, month: 5, day: 17, hour: 8, minute: 9, second: 10) }
-        hour.set! now.hour
-        second.set! now.second
-        passes.add! 1
+        now.set_to(year: 2031, month: 5, day: 17, hour: 8, minute: 9, second: 10) if passes == set_on_pass
+        hour = now.hour
+        second = now.second
+        passes += 1
       end
     end
     b.finalize_program

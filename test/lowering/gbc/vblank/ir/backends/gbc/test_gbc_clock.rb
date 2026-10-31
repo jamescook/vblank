@@ -24,12 +24,12 @@ class TestGBCClock < Minitest::Test
       present = var :present, -1
       set = var :set, -1
       game_loop do
-        pressed(:a).then { now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) }
+        now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) if pressed(:a)
         readings.each { |name, reading| reading.set! now.public_send(name) }
-        present.set! 0
-        now.present?.then { present.set! 1 }
-        set.set! 0
-        now.set?.then { set.set! 1 }
+        present = 0
+        present = 1 if now.present?
+        set = 0
+        set = 1 if now.set?
       end
     end
     b.finalize_program

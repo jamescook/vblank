@@ -24,8 +24,8 @@ module MixerGames
       counter = var(:__f, 0)
       game_loop do
         wait_vblank
-        counter.add! 1
-        (counter >= frames).then { halt }
+        counter += 1
+        halt if counter >= frames
       end
     end
     b.program
@@ -111,9 +111,9 @@ class TestMixerOnTheAdvance < Minitest::Test
       counter = var(:__f, 0)
       game_loop do
         wait_vblank
-        counter.add! 1
-        (counter == 5).then { blip.stop } # silence just the blip; music keeps going
-        (counter >= 20).then { halt }
+        counter += 1
+        blip.stop if counter == 5 # silence just the blip; music keeps going
+        halt if counter >= 20
       end
     end
     i = game_player.run(b.program, max_steps: 200_000)
@@ -205,7 +205,7 @@ class TestMixerOnTheAdvance < Minitest::Test
       end
       passes = var :passes, 0
       game_loop do
-        passes.add! 1
+        passes += 1
         play_song :tune
         (passes == volume_from).then { music_volume 40 } if volume_from
       end
@@ -353,9 +353,9 @@ class TestMixerOnTheAdvance < Minitest::Test
       clip = sample :clip, pcm: SAWTOOTH.reverse, rate: 8000, envelope: { attack: 0.1 }
       passes = var :passes, 0
       game_loop do
-        passes.add! 1
-        (passes == 3).then { clip.play }
-        (passes == 12).then { clip.stop }
+        passes += 1
+        clip.play if passes == 3
+        clip.stop if passes == 12
       end
     end
     b.finalize_program
@@ -441,10 +441,10 @@ class TestMixerOnTheAdvance < Minitest::Test
         end
         passes = var :passes, 0
         game_loop do
-          passes.add! 1
+          passes += 1
           play_song :tune
-          (passes == 6).then { clip.play }
-          (passes == 14).then { clip.stop }
+          clip.play if passes == 6
+          clip.stop if passes == 14
         end
       end
       b.finalize_program

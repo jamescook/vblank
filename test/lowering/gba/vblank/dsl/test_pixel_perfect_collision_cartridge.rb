@@ -22,7 +22,7 @@ class TestPixelPerfectCollisionCartridge < Minitest::Test
       bb = sprite :corners, at: [103, 23], hitbox: hitbox
       game_loop do
         wait_vblank
-        a.overlaps?(bb).then { fill_rect 4, 100, 4, 4, :red } # a hit marker away from the shapes
+        fill_rect 4, 100, 4, 4, :red if a.overlaps?(bb) # a hit marker away from the shapes
         halt
       end
     end

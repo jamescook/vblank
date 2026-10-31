@@ -49,8 +49,8 @@ class TestTileSetSwap < Minitest::Test
       func(:busywork) { 16.times { busy.add! 1 } } if busywork
       tint :blue, 20 if tinted
       game_loop do
-        held(:a).then { where.set! 1 }
-        held(:b).then { where.set! 0 }
+        where = 1 if held(:a)
+        where = 0 if held(:b)
         call :busywork if busywork
         ground.show_map where
         scenery.show_map where

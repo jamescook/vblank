@@ -66,7 +66,7 @@ class TestDrawColumnAtOnTheAdvance < Minitest::Test
     run = game_player.run(program do
       tall = var :tall, 0
       game_loop do
-        tall.set! 8
+        tall = 8
         draw_column_at :bars, slice: 0, x: 10, top: 0, height: tall
       end
     end, frames: 2)
@@ -126,14 +126,14 @@ class TestDrawColumnAtOnTheAdvance < Minitest::Test
       game_loop do
         repeat(8) do |c|
           far = var :_far, 0
-          far.set! 10
-          (c >= 4).then { far.set! 2 } # the right half is nearer than the thing
+          far = 10
+          far = 2 if c >= 4 # the right half is nearer than the thing
           depth[c] = far
           draw_column_at :bars, slice: 0, x: c, top: 0, height: 8
         end
         repeat(8) do |c|
-          col.set! c
-          (depth[col] > 5).then { draw_column_at :thing, slice: 0, x: col, top: 2, height: 4 }
+          col = c
+          draw_column_at :thing, slice: 0, x: col, top: 2, height: 4 if depth[col] > 5
         end
       end
     end

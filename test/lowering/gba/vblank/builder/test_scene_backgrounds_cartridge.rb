@@ -60,8 +60,8 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -99,8 +99,8 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -222,8 +222,8 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :title
           when_val 1, :play
@@ -316,8 +316,8 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       waiting = var :waiting, SWITCH_AT
 
       scene :first do
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 1 }
+        waiting -= 1
+        state = 1 if waiting == 0
       end
 
       scene :second do
@@ -379,8 +379,8 @@ class TestSceneBackgroundsCartridge < Minitest::Test
 
       # Nothing but the countdown: no background, no sprite, no word of text.
       scene :title do
-        waiting.sub! 1
-        (waiting == 0).then { state.set! 1 }
+        waiting -= 1
+        state = 1 if waiting == 0
       end
 
       scene :play do
@@ -605,9 +605,9 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       state = var :state, 0
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SECOND_SCENE_AT).then { state.set! 1 }
-        (tick > FIRST_SCENE_AGAIN_AT).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick > SECOND_SCENE_AT
+        state = 0 if tick > FIRST_SCENE_AGAIN_AT
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
@@ -635,13 +635,13 @@ class TestSceneBackgroundsCartridge < Minitest::Test
       scene(:small) { background :little, tiles: :red_set, map: ["#"] }
       scene(:big) do
         4.times { |i| background :"big_#{i}", tiles: :blue_set, map: big }
-        runs.add! 1
+        runs += 1
       end
       state = var :state, first
       tick = var :tick, 0
       game_loop do
-        tick.add! 1
-        (tick > SWITCH_AT).then { state.set! 1 }
+        tick += 1
+        state = 1 if tick > SWITCH_AT
         case_var(:state) do
           when_val 0, :small
           when_val 1, :big

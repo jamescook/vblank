@@ -26,9 +26,9 @@ class TestNativeSound < Minitest::Test
       define_sound :ping, frequency: 880, duty: :quarter, decay: :fast
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 3).then { beep :ping }
-        (count == 5).then { beep 440, volume: 9 }
+        count += 1
+        beep :ping if count == 3
+        beep 440, volume: 9 if count == 5
       end
     end
 
@@ -74,10 +74,10 @@ class TestNativeSound < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 5).then { music_volume 50 }
-        (count == 12).then { fade_music_out frames: 8 }
-        (count == 30).then { fade_music_in frames: 6 }
+        count += 1
+        music_volume 50 if count == 5
+        fade_music_out frames: 8 if count == 12
+        fade_music_in frames: 6 if count == 30
       end
     end
 
@@ -93,11 +93,14 @@ class TestNativeSound < Minitest::Test
       song(:two) { tempo 300; note :A4, :eighth; note :B4, :eighth }
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count < 8).then { play_song :one }
-        (count == 8).then { stop_music; play_song :one }
-        (count > 12).then { play_song :two }
-        (count == 20).then { stop_music }
+        count += 1
+        play_song :one if count < 8
+        if count == 8
+          stop_music
+          play_song :one
+        end
+        play_song :two if count > 12
+        stop_music if count == 20
       end
     end
 
@@ -115,14 +118,14 @@ class TestNativeSound < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 2).then { wave :triangle, :C4 }
-        (count == 3).then { wave PULSE, 440, volume: :half }
-        (count == 4).then { stop_wave }
-        (count == 5).then { noise :explosion }
-        (count == 6).then { noise pitch: :high, decay: :slow, volume: 9, metallic: true }
-        (count == 7).then { noise }
-        (count == 8).then { wave :triangle, :C4 }
+        count += 1
+        wave :triangle, :C4 if count == 2
+        wave PULSE, 440, volume: :half if count == 3
+        stop_wave if count == 4
+        noise :explosion if count == 5
+        noise pitch: :high, decay: :slow, volume: 9, metallic: true if count == 6
+        noise if count == 7
+        wave :triangle, :C4 if count == 8
       end
     end
 
@@ -175,10 +178,10 @@ class TestNativeSound < Minitest::Test
       count = var :count, 0
       play_song :tune
       game_loop do
-        count.add! 1
-        (count == 5).then { music_volume 50 }
-        (count == 12).then { fade_music_out frames: 8 }
-        (count == 30).then { fade_music_in frames: 6 }
+        count += 1
+        music_volume 50 if count == 5
+        fade_music_out frames: 8 if count == 12
+        fade_music_in frames: 6 if count == 30
       end
     end
 
@@ -197,12 +200,12 @@ class TestNativeSound < Minitest::Test
       end
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count < 20).then { play_song :tune }
-        (count == 4).then { wave :sawtooth, :A4, volume: :quarter }
-        (count == 6).then { noise :zap }
-        (count == 9).then { stop_wave }
-        (count == 20).then { stop_music }
+        count += 1
+        play_song :tune if count < 20
+        wave :sawtooth, :A4, volume: :quarter if count == 4
+        noise :zap if count == 6
+        stop_wave if count == 9
+        stop_music if count == 20
       end
     end
 

@@ -44,7 +44,7 @@ class TestRubyColorGames < Minitest::Test
       water = background :water, tiles: :water, map: ["~ ~~ ~~~ ~~~~"] * 20
       rows_worked_out = var :rows_worked_out, 0
       water.scroll_each_row do |row|
-        rows_worked_out.add! 1
+        rows_worked_out += 1
         row % 8
       end
       game_loop { wait_vblank }
@@ -74,8 +74,8 @@ class TestRubyColorGames < Minitest::Test
       enable_sound
       count = var :count, 0
       game_loop do
-        count.add! 1
-        (count == 1).then { noise pitch: :high, volume: 15 }
+        count += 1
+        noise pitch: :high, volume: 15 if count == 1
       end
     end
   end
@@ -92,7 +92,7 @@ class TestRubyColorGames < Minitest::Test
     program = program_of do
       now = clock
       set = var :set, -1
-      game_loop { now.set?.then { set.set! 1 }.else { set.set! 0 } }
+      game_loop { if now.set? then set = 1 else set = 0 end }
     end
 
     assert_equal 0, CheckedRun.new.clock_at(HALF_PAST).run(program, frames: 3)[:set]
@@ -116,11 +116,11 @@ class TestRubyColorGames < Minitest::Test
       second = var :second, -1
       set = var :set, -1
       game_loop do
-        (passes == 0).then { now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) }
-        second.set! now.second
-        set.set! 0
-        now.set?.then { set.set! 1 }
-        passes.add! 1
+        now.set_to(year: 2030, month: 6, day: 15, hour: 12, minute: 0, second: 0) if passes == 0
+        second = now.second
+        set = 0
+        set = 1 if now.set?
+        passes += 1
       end
     end
   end

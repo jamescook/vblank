@@ -44,9 +44,18 @@ module SaveDataOnTheAdvanceGames
       file = save_data(:file) { keep hearts }
       file[0].load
       game_loop do
-        pressed(:a).then { hearts.set! 7; file[0].save }
-        pressed(:b).then { hearts.set! 9; file[0].save }
-        pressed(:l).then { hearts.set! 11; file[0].save }
+        if pressed(:a)
+          hearts = 7
+          file[0].save
+        end
+        if pressed(:b)
+          hearts = 9
+          file[0].save
+        end
+        if pressed(:l)
+          hearts = 11
+          file[0].save
+        end
       end
     end
     builder.finalize_program
@@ -76,18 +85,18 @@ module SaveDataOnTheAdvanceGames
       shown = Array.new(4) { |n| var :"shown#{n}", -1 }
       kept_speed = var :kept_speed, -1
       game_loop do
-        pressed(:a).then do
-          state[:hearts].set! 42
+        if pressed(:a)
+          state[:hearts] = 42
           files[0].save
-          state[:hearts].set! 43
+          state[:hearts] = 43
           files[1].save if copies > 1
-          state[:hearts].set! 44
+          state[:hearts] = 44
           files[2].save if copies > 2
-          state[:speed].set! 7
+          state[:speed] = 7
           settings_record[0].save
         end
         copies.times { |n| shown[n].set! files[n].peek(state[:hearts]) }
-        kept_speed.set! settings_record[0].peek(state[:speed])
+        kept_speed = settings_record[0].peek(state[:speed])
       end
     end
   end
@@ -105,12 +114,12 @@ module SaveDataOnTheAdvanceGames
       was_empty = var :was_empty, 0
       first_page = var :first_page, 0
       game_loop do
-        pressed(:a).then do
+        if pressed(:a)
           journal.push 9
           pages[0].save
         end
-        pages[0].empty?.then { was_empty.set! 1 }
-        first_page.set! pages[0].peek(journal)[0]
+        was_empty = 1 if pages[0].empty?
+        first_page = pages[0].peek(journal)[0]
       end
     end
   end

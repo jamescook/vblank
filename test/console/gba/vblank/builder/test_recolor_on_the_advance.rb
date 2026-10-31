@@ -66,7 +66,7 @@ class TestRecolorOnTheAdvance < Minitest::Test
   # number is 2 by the third frame.
   private def counting_through_the_sets
     program do |ship|
-      ship.x.add! 1
+      ship.x += 1
       recolor :slot, [:slot, :warm, :cold], showing: ship.x - 40
     end
   end
@@ -84,7 +84,7 @@ class TestRecolorOnTheAdvance < Minitest::Test
       ship = sprite :ship, at: [40, 40]
       ship.draw_with :slot if through_one_list
       game_loop do
-        ship.x.add! 1
+        ship.x += 1
         if through_one_list
           recolor :slot, names, showing: ship.x - 41
         else
@@ -134,8 +134,8 @@ class TestRecolorOnTheAdvance < Minitest::Test
       room = var :room, 0
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 3).then { room.set! 1 }
+        pass += 1
+        room = 1 if pass == 3
         things.each { |thing| thing.draw_with slots, showing: thing.slot }
         slots.each_with_index { |slot, n| recolor slot, sets, showing: (room * 4) + n }
       end

@@ -153,7 +153,7 @@ class TestPictureStorage < Minitest::Test
           when_val 0, :one
           when_val 1, :two
         end
-        state.set! 0
+        state = 0
       end
     end
     builder.finalize_program
@@ -200,8 +200,8 @@ class TestPictureStorage < Minitest::Test
       scene(:first) { sprite :red_thing, at: [40, 40] }
       scene(:second) { sprite :blue_thing, at: [40, 40] }
       game_loop do
-        frames.add! 1
-        (frames >= switch_at).then { state.set! 1 }
+        frames += 1
+        state = 1 if frames >= switch_at
         case_var(:state) do
           when_val 0, :first
           when_val 1, :second

@@ -24,9 +24,9 @@ class TestNativeDataWidths < Minitest::Test
       sum = var :sum, 0
       i = var :i, 0
       game_loop do
-        sum.set! bytes[i] + unsigned_bytes[i] + halves[i] + unsigned_halves[i] + words[i]
+        sum = bytes[i] + unsigned_bytes[i] + halves[i] + unsigned_halves[i] + words[i]
         copied.copy_from unsigned_halves, at: i, count: 2
-        i.add! 1
+        i += 1
       end
     end
   end

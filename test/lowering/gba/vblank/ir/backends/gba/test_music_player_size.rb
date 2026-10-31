@@ -32,9 +32,9 @@ class TestMusicPlayerSize < Minitest::Test
       sfx = sound_effects :sfx, [Score.new(tempo: 150, parts: [Part.new(notes: notes)])]
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 3).then { music.play 0, this_frame: this_frame }
-        (pass == 5).then { sfx.play 0 }
+        pass += 1
+        music.play 0, this_frame: this_frame if pass == 3
+        sfx.play 0 if pass == 5
       end
     end
     b.finalize_program

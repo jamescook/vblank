@@ -32,7 +32,7 @@ class TestMusicKeepsTimeCartridge < Minitest::Test
       spin = var :spin, 0
       passes = var :passes, 0
       game_loop do
-        passes.add! 1
+        passes += 1
         play_song :beat
         repeat(burn) { spin.add! 1 }
       end
@@ -84,8 +84,12 @@ class TestMusicKeepsTimeCartridge < Minitest::Test
       end
       passes = var :passes, 0
       game_loop do
-        passes.add! 1
-        (passes < 20).then { play_song :drone }.else { stop_music }
+        passes += 1
+        if passes < 20
+          play_song :drone
+        else
+          stop_music
+        end
       end
     end
     b.finalize_program
@@ -113,7 +117,7 @@ class TestMusicKeepsTimeCartridge < Minitest::Test
       game_loop do
         stop_music
         (started == 0).then do
-          started.set! 1
+          started = 1
           beep 440, decay: :slow
         end
       end

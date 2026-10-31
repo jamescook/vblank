@@ -57,7 +57,7 @@ class TestNativeDesktop < Minitest::Test
       game_loop do
         clear_screen :black
         fill_rect screen_width - 8, 0, 8, 8, :green
-        x.add! 1
+        x += 1
       end
     end
     Dir.mktmpdir do |dir|
@@ -87,7 +87,7 @@ class TestNativeDesktop < Minitest::Test
       best = save_var :best, 5
       game_loop do
         clear_screen :black
-        pressed(:a).then { best.add! 2 }
+        best += 2 if pressed(:a)
       end
     end
   end
@@ -138,8 +138,8 @@ class TestNativeDesktop < Minitest::Test
       readings = %i[year month day hour minute].to_h { |name| [name, var(name, -1)] }
       game_loop do
         clear_screen :black
-        now.present?.then { present.set! 1 }
-        now.set?.then { set.set! 1 }
+        present = 1 if now.present?
+        set = 1 if now.set?
         readings.each { |name, reading| reading.set! now.public_send(name) }
       end
     end
@@ -203,7 +203,7 @@ class TestNativeDesktop < Minitest::Test
       counters = TestNativeDesktop::BUTTONS.to_h { |name| [name, var(:"held_#{name}", 0)] }
       game_loop do
         clear_screen :black
-        frames.add! 1
+        frames += 1
         counters.each { |name, counter| held(name).then { counter.add! 1 } }
       end
     end

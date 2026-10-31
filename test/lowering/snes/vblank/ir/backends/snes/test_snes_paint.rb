@@ -22,7 +22,7 @@ class TestSNESPaint < Minitest::Test
       game_loop do
         draw_rect_at x, 40, 1, 1, :magenta
         draw_rect_at x, 60, x / 4, 3, rgb(10, 20, 30)
-        x.add! 5
+        x += 5
       end
     end
 
@@ -65,7 +65,7 @@ class TestSNESPaint < Minitest::Test
         blit :gem, x, 7 + x
         blit :gem, 250 - x, 220 - x
         blit :gem, x * 3, -2
-        x.add! 1
+        x += 1
       end
     end
 
@@ -81,7 +81,7 @@ class TestSNESPaint < Minitest::Test
         draw_text "SCORE", 3, 4, :white
         draw_number n, 45, 4, :yellow, digits: 3
         draw_text "GO", 5, 30, %i[red green], showing: n % 2 == 1
-        n.add! 7
+        n += 7
       end
     end
 
@@ -99,7 +99,7 @@ class TestSNESPaint < Minitest::Test
       ball = sprite :ball, at: [30, 30]
       x = var :x, 30
       game_loop do
-        x.add! 3
+        x += 3
         ball.move_to x, 30 + (x / 8)
       end
     end
@@ -144,9 +144,9 @@ class TestSNESPaint < Minitest::Test
       game_loop do
         clear_screen :black
         fade :black, (n % 4) * 20
-        (n % 2 == 0).then { fill_rect 0, 0, 128, 224, :red }
-        (n % 2 == 1).then { fill_rect 128, 0, 128, 224, :green }
-        n.add! 1
+        fill_rect 0, 0, 128, 224, :red if n % 2 == 0
+        fill_rect 128, 0, 128, 224, :green if n % 2 == 1
+        n += 1
       end
     end
     SNES::CheckedRun.new.run(program, frames: 5)
@@ -176,7 +176,7 @@ class TestSNESPaint < Minitest::Test
           draw_text "SNAKE", 8, 8, :white
           fill_rect 0, 168, 256, 56, :blue
         end
-        n.add! 1
+        n += 1
       end
     end
     SNES::CheckedRun.new.run(program, frames: 6)
@@ -203,7 +203,7 @@ class TestSNESPaint < Minitest::Test
             draw_text "SNAKE", 8, 8, :white
             fill_rect 0, 168, 256, 56, :blue
           end
-          n.add! 1
+          n += 1
         end
       end
     end
@@ -222,9 +222,9 @@ class TestSNESPaint < Minitest::Test
       n = var :n, 0
       game_loop do
         clear_screen :blue
-        (n == 0).then { fill_rect 0, 0, 8, 8, :red }
-        (n == 256).then { fill_rect 0, 0, 2, 2, :green }
-        n.add! 1
+        fill_rect 0, 0, 8, 8, :red if n == 0
+        fill_rect 0, 0, 2, 2, :green if n == 256
+        n += 1
       end
     end
 
@@ -250,9 +250,9 @@ class TestSNESPaint < Minitest::Test
       t = var :t, 0
       game_loop do
         camera (((t * 7) % 17) * 41) - 330, (t * 40) - 330
-        (t == 16).then { camera 65_546, 3 }
+        camera 65_546, 3 if t == 16
         fade :white, (t % 3) * 25
-        t.add! 1
+        t += 1
       end
     end
 
@@ -267,8 +267,8 @@ class TestSNESPaint < Minitest::Test
       fill_rect 100, 100, 20, 20, :red
       n = var :n, 0
       game_loop do
-        (n == 2).then { shake_screen intensity: 3, frames: 6 }
-        n.add! 1
+        shake_screen intensity: 3, frames: 6 if n == 2
+        n += 1
       end
     end
 
@@ -322,7 +322,7 @@ class TestSNESPaint < Minitest::Test
       x = var :x, 0
       game_loop do
         inside(0, 0, 12, 12) { blit :dot, 0, 0 }
-        x.add! 2
+        x += 2
         ball.move_to x, 2
       end
     end
@@ -337,7 +337,7 @@ class TestSNESPaint < Minitest::Test
       game_loop do
         clear_screen :blue
         draw_rect_at x, 21, 30, 30, :yellow
-        x.add! 7
+        x += 7
       end
     end
   end

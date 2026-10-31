@@ -36,7 +36,7 @@ class TestVerifierPasses < Minitest::Test
       passes = var :passes, 0
       game_loop do
         repeat(40) { clear_screen :blue }
-        passes.add! 1
+        passes += 1
       end
     end
   end
@@ -89,7 +89,7 @@ class TestVerifierPasses < Minitest::Test
       passes = var :passes, 0
       game_loop do
         repeat(40) { clear_screen :blue }
-        passes.add! 1
+        passes += 1
       end
     end
     v = assert_emulator_loads_rom(rom, frames: 20, vars: rom.var_addresses, count_passes: true)
@@ -106,7 +106,7 @@ class TestVerifierPasses < Minitest::Test
       passes = var :passes, 0
       game_loop do
         wait_vblank
-        passes.add! 1
+        passes += 1
       end
     end
     v = assert_emulator_loads_rom(rom, frames: 12, vars: rom.var_addresses, count_passes: true)

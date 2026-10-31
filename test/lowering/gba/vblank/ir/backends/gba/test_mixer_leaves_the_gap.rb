@@ -34,10 +34,10 @@ class TestMixerLeavesTheGap < Minitest::Test
       game_loop do
         (started == 0).then do
           clips.each { |clip| clip.play(loop: true) }
-          started.set! 1
+          started = 1
         end
-        x.add! 2
-        (x > 200).then { x.set! 0 }
+        x += 2
+        x = 0 if x > 200
         top.move_to x, 0
         low.move_to x, 140
       end

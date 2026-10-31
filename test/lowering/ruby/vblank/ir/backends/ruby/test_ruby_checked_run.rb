@@ -32,8 +32,12 @@ class TestRubyCheckedRun < Minitest::Test
       x = var :x, 0
       taken = var :taken, 0
       game_loop do
-        x.add! 1
-        (x > 100).then { taken.add! 1 }.else { taken.add! 10 }
+        x += 1
+        if x > 100
+          taken += 1
+        else
+          taken += 10
+        end
       end
     end
 
@@ -46,8 +50,8 @@ class TestRubyCheckedRun < Minitest::Test
       count = var :count, 0
       var :state, 0
       scene(:counting) do
-        count.add! 1
-        (count == 3).then { set! :state, 1 }
+        count += 1
+        set! :state, 1 if count == 3
       end
       scene(:done) { halt }
       game_loop { case_var(:state) { when_val 0, :counting; when_val 1, :done } }
@@ -66,7 +70,7 @@ class TestRubyCheckedRun < Minitest::Test
         fill_rect 10, 10, 20, 8, :blue
         draw_rect_at x, 40, 4, 4, :red
         draw_text "HI", 100, 100, :white
-        x.add! 2
+        x += 2
       end
     end
 
@@ -94,7 +98,7 @@ class TestRubyCheckedRun < Minitest::Test
       func(:add_ten) { x.add! 10 }
       game_loop do
         call %i[add_one add_ten], number: which
-        held(:a).then { which.set! 1 }
+        which = 1 if held(:a)
       end
     end
 
@@ -107,7 +111,7 @@ class TestRubyCheckedRun < Minitest::Test
   def test_save_memory_outlasts_a_run
     program = program_of do
       count = save_var :count, 0
-      count.add! 1
+      count += 1
       game_loop {}
     end
     store = SaveImage.new

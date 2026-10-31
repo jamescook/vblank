@@ -30,9 +30,9 @@ class TestStatusBarOnTheAdvance < Minitest::Test
         bar.move_to 0
       end
       game_loop do
-        tick.add! 1
-        (tick == 6).then { state.set! 1 }
-        (tick == 12).then { state.set! 0 }
+        tick += 1
+        state = 1 if tick == 6
+        state = 0 if tick == 12
         case_var(:state) do
           when_val 0, :paint
           when_val 1, :play

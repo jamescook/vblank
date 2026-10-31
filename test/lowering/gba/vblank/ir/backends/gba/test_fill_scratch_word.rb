@@ -22,7 +22,7 @@ class TestFillScratchWord < Minitest::Test
       game_loop do
         clear_screen :blue
         fill_rect 10, 10, 20, 20, :red
-        counters.first.add! 1
+        counters.first += 1
       end
     end
     builder.finalize_program

@@ -23,10 +23,10 @@ class TestPlaythrough < Minitest::Test
       x = var :x, 0
       both = var :both, 0
       game_loop do
-        ticks.add! 1
-        pressed(:a).then { taps.add! 1 }
-        held(:right).then { x.add! 2 }
-        (held(:b) & held(:left)).then { both.add! 1 }
+        ticks += 1
+        taps += 1 if pressed(:a)
+        x += 2 if held(:right)
+        both += 1 if held(:b) && held(:left)
       end
     end
   end

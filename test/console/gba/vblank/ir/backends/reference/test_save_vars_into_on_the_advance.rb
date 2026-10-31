@@ -16,7 +16,7 @@ class TestSaveVarsIntoOnTheAdvance < Minitest::Test
       screen :bitmap
       best = save_var :best, 10
       save_var :played, 0
-      game_loop { pressed(:a).then { best.set! 50 } }
+      game_loop { best = 50 if pressed(:a) }
     end
     save_memory ? VBlank.game("SAVEVARS", consoles: %i[gba], save_memory: save_memory, &block) : VBlank.game("SAVEVARS", consoles: %i[gba], &block)
   end
