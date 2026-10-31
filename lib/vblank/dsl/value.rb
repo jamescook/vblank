@@ -102,12 +102,12 @@ module VBlank
       # reports one nobody kept. nil for a handle, which is never reported.
       attr_reader :source
 
-      # A hidden variable for a name nothing had set yet (see PlainRubySteps.promote).
+      # A hidden variable for a name nothing had set yet (see PlainRuby::Steps.promote).
       attr_accessor :unwritten
 
       def note_made_with_no_var_line = @builder.note_variable_with_no_var_line(@name)
 
-      # Was this variable made for the instance variable holding it (see PlainRubySteps.reassign)?
+      # Was this variable made for the instance variable holding it (see PlainRuby::Steps.reassign)?
       attr_accessor :own_to_its_name
 
       # A game has no nil, and a number variable has no false. A name that can hold those as well
@@ -160,7 +160,7 @@ module VBlank
       end
 
       # This variable's number kept as it is now, for `old = hp` in normal Ruby (see
-      # PlainRubySteps.copy). In setting up there is nothing to keep yet, so a second name will do.
+      # PlainRuby::Steps.copy). In setting up there is nothing to keep yet, so a second name will do.
       def kept_copy
         @builder.recording_game_code? ? hidden_copy : self
       end
@@ -175,8 +175,8 @@ module VBlank
         kept
       end
 
-      # This number is used for nothing: Ruby took it as truthy (see PlainRubySteps.test).
-      def discard = @builder.forget_expression(self)
+      # This number is used for nothing: Ruby took it as truthy (see PlainRuby::Steps.test).
+      def discard! = @builder.forget_expression(self)
 
       # Is this a variable the game keeps as a yes or no? See Builder#var.
       def boolean? = handle? && @builder.boolean_variable?(@name)

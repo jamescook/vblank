@@ -273,7 +273,7 @@ module VBlank
         end
 
         def plain_writes_in(node)
-          return [] if [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].any? { |kind| node.is_a?(kind) }
+          return [] if OWN_SCOPES.any? { |kind| node.is_a?(kind) }
 
           own = plain_name_write?(node) && CHANGES.any? { |kind| node.is_a?(kind) } ? [node] : []
           own + node.compact_child_nodes.flat_map { |child| plain_writes_in(child) }

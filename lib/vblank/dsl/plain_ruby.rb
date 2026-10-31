@@ -13,7 +13,7 @@ module VBlank
     # above all, is left as it was written.
     #
     # NOTHING HERE GUESSES A TYPE. Whether `if hp > 0` is a test for the game or for the build
-    # cannot be read off the source, so each construct becomes a small step (PlainRubySteps)
+    # cannot be read off the source, so each construct becomes a small step (PlainRuby::Steps)
     # that looks at the value as the block runs: `if console == :gbc` stays plain Ruby.
     #
     # A BRANCH'S CODE STAYS WHERE IT WAS WRITTEN, inside parentheses in a real Ruby `if`, and is
@@ -22,6 +22,9 @@ module VBlank
     module PlainRuby
       # Something a game block cannot do, said in plain words before the game is built.
       class Refused < BuildError; end
+
+      # What opens a scope of its own, whose jumps and locals stay in it.
+      OWN_SCOPES = [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].freeze
 
       module_function
 
@@ -135,7 +138,7 @@ module VBlank
       # be taken for a block beside it on the line.
       def code_by_line(node, found)
         case node
-        when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then found[node.location.start_line] << node
+        when *OWN_SCOPES then found[node.location.start_line] << node
         end
         node.compact_child_nodes.each { |child| code_by_line(child, found) }
         found
@@ -154,7 +157,7 @@ module VBlank
       # The block's source with its constructs written out as calls. It builds new text rather
       # than editing in place, since a trailing `if` is evaluated before what stands to its left.
       class Rewriter
-        STEPS = "::VBlank::DSL::PlainRubySteps"
+        STEPS = "::VBlank::DSL::PlainRuby::Steps"
         JUMPS = [Prism::ReturnNode, Prism::BreakNode, Prism::NextNode].freeze
 
         attr_reader :block_node
@@ -209,7 +212,7 @@ module VBlank
           when Prism::IndexOperatorWriteNode then place_change_text(node, index_text(node))
           when Prism::CallOperatorWriteNode then place_change_text(node, "#{rewritten_text(node.receiver)}.#{node.read_name}")
           when Prism::ReturnNode, Prism::BreakNode, Prism::NextNode then jump_text(node)
-          when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then own_scope_text(node)
+          when *OWN_SCOPES then own_scope_text(node)
           when Prism::StatementsNode then statements_text(node)
           else copied_text(node)
           end
@@ -278,7 +281,7 @@ module VBlank
           return index_write_text(node) if node.name == :[]= && node.receiver
           return attribute_write_text(node) if node.attribute_write? && node.receiver
           return "#{STEPS}.nil_test(#{argument(node.receiver)})" if node.name == :nil? && node.receiver
-          return bits_text(node) if PlainRubySteps::BIT_JOINS.include?(node.name) && node.receiver && node.arguments
+          return bits_text(node) if Steps::BIT_JOINS.include?(node.name) && node.receiver && node.arguments
           return "self.#{copied_text(node)}" if node.receiver.nil? && @outer_locals.include?(node.name)
 
           copied_text(node)
@@ -546,7 +549,7 @@ module VBlank
         # The jump this node would make from where it stands. A block of its own keeps its jumps.
         def jump_in(node)
           return node if JUMPS.any? { |kind| node.is_a?(kind) }
-          return if [Prism::BlockNode, Prism::LambdaNode, Prism::DefNode].any? { |kind| node.is_a?(kind) }
+          return if OWN_SCOPES.any? { |kind| node.is_a?(kind) }
 
           node.compact_child_nodes.filter_map { |child| jump_in(child) }.first
         end
@@ -561,19 +564,11 @@ module VBlank
         # recording itself into a loop the game makes.
         def loop_text(node, step)
           test = "__plain_ruby_#{@answers += 1}"
-          statements = node.statements
-          trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
-          opened = node.predicate.location.end_offset
           shut_at = node.closing_loc&.start_offset || node.location.end_offset
-          promotions = promotions_text(node, [statements], test)
-          names = @names.names_to_promote(node, [statements])
+          promotions = promotions_text(node, [node.statements], test)
+          names = @names.names_to_promote(node, [node.statements])
           promotions = "#{STEPS}.refuse_begin_while!(:#{names.first})" if node.begin_modifier? && !names.empty?
-          body = under_open_test(test) do
-            if trailing then rewritten_text(statements)
-            elsif statements then side_text(opened, statements, shut_at)
-            else line_ends_between(opened, shut_at)
-            end
-          end
+          body = under_open_test(test) { side_body_text(node, shut_at) }
           first = node.begin_modifier? ? "#{body}; " : ""
           "(#{test} = #{STEPS}.#{step} { #{rewritten_text(node.predicate)} }; #{first}" \
             "while #{test}.go_round#{" { #{promotions} }" unless promotions.empty?}; #{body}; end)"

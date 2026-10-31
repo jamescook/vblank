@@ -950,7 +950,7 @@ module VBlank
     def inside_game_while? = @game_whiles.positive?
 
     # A variable of its own for a number the author never named: a value picked between two,
-    # or a number kept (see PlainRubySteps). Nothing reads it before something has set it. +why+
+    # or a number kept (see PlainRuby::Steps). Nothing reads it before something has set it. +why+
     # is which line of Diagnostics::HiddenVariables tells the author about it.
     def hidden_variable(why, like: nil)
       @hidden_variables += 1

@@ -94,8 +94,8 @@ module VBlank
       end
 
       # This test is not needed after all: a plain value beside it decided the answer
-      # (see PlainRubySteps.both). Marks it used, and answers false.
-      def discard
+      # (see PlainRuby::Steps.both). Marks it used, and answers false.
+      def discard!
         @builder.consume_condition(self)
         false
       end
