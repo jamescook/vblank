@@ -145,11 +145,11 @@ module VBlank
 
         radius = light.radius.clamp(0, LARGEST)
         apart = (row - light.y).abs.clamp(0, LARGEST + 1)
-        (radius > MIDPOINT_LARGEST).then do
+        if radius > MIDPOINT_LARGEST
           share = ((apart * shares[radius]) >> SHARE_SHIFT).clamp(0, LARGEST)
-          half.set! (radius * widths[share]) >> 8
-        end.else do
-          half.set! midpoint[(radius * MIDPOINT_STRIDE) + apart.clamp(0, MIDPOINT_STRIDE - 1)]
+          half = (radius * widths[share]) >> 8
+        else
+          half = midpoint[(radius * MIDPOINT_STRIDE) + apart.clamp(0, MIDPOINT_STRIDE - 1)]
         end
         half
       end

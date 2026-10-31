@@ -61,7 +61,7 @@ module VBlank
         start = register_lists_in_use(sets, picked: !showing.nil?)
         choice = DSL::Value.new(self, Build.var_ref(LISTS_IN_USE), name: LISTS_IN_USE)
         if showing.nil?
-          choice.set!(start)
+          choice = start
         else
           write_picked_choice(choice, count: sets.length, start: start, showing: showing,
                                       outside: IR::Build::NO_RECOLOR, subject: "`colors_in_use`",

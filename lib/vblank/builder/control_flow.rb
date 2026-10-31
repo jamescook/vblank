@@ -164,13 +164,13 @@ module VBlank
         ensure_var(count)
         i = DSL::Value.new(self, Build.var_ref(index), name: index)
         # A Condition carries its own node; anything else is an ordinary value, where not-zero
-        # means stop. Handing one here USES it, the same as branching on it with `.then` — the
+        # means stop. Handing one here USES it, the same as branching on it with `if` — the
         # guardrail that catches a comparison nobody acted on must not call this one an orphan.
         leave =
           if stop_when.is_a?(DSL::Condition)
             consume_condition(stop_when)
             stop_when.node
-          elsif stop_when
+          elsif !stop_when.nil?
             DSL::Value.node_for(stop_when)
           end
         push_container(Build.repeat(DSL::Value.node_for(count), index, stop_when: leave)) do
@@ -191,8 +191,8 @@ module VBlank
       # The interval is +n+ frames, or +n+ seconds when you'd rather think in time —
       # the framework converts seconds to frames for you:
       #
-      #   every(30) { blink.set! 1 }              # every 30 frames
-      #   every(0.5, :seconds) { blink.set! 1 }   # the same, said in seconds
+      #   every(30) { blink = 1 }              # every 30 frames
+      #   every(0.5, :seconds) { blink = 1 }   # the same, said in seconds
       #
       # @param n [Integer, Numeric] the interval (frames must be whole; seconds may be fractional)
       # @param unit [Symbol] :frames (default) or :seconds
@@ -213,8 +213,8 @@ module VBlank
       # block fires exactly once. Call it inside your game loop, where each pass is
       # one frame.
       #
-      #   after(600) { state.set! 1 }             # 600 frames in
-      #   after(10, :seconds) { state.set! 1 }    # the same, said in seconds
+      #   after(600) { state = 1 }             # 600 frames in
+      #   after(10, :seconds) { state = 1 }    # the same, said in seconds
       #
       # @param n [Integer, Numeric] the delay (frames must be whole; seconds may be fractional)
       # @param unit [Symbol] :frames (default) or :seconds
@@ -244,7 +244,7 @@ module VBlank
       # built on exactly this.
       #
       #   fade = var :fade, 0
-      #   once_a_frame { (fade > 0).then { fade.sub! 1 } }
+      #   once_a_frame { fade -= 1 if fade > 0 }
       #
       # AND IT KEEPS REAL TIME, which a game loop body does not. A pass of the loop is
       # one frame on a game that fits and two on a game that does not, so a body run
@@ -299,7 +299,7 @@ module VBlank
       # this reaches a number, it ends on that frame every time:
       #
       #   game_loop do
-      #     (frames_since_power_on >= 49).then { show_title }
+      #     show_title if frames_since_power_on >= 49
       #   end
       #
       # A game with no game loop shows no frames, so it reads nought.
@@ -315,7 +315,7 @@ module VBlank
       # arrives. `each_pass :name` with no block gives back the job made under that name, so the
       # verbs of an effect can start and stop one job between them.
       #
-      #   each_pass(:closing) { |job| light.radius.sub! 4; (light.radius <= 0).then { job.stop } }
+      #   each_pass(:closing) { |job| light.radius -= 4; job.stop if light.radius <= 0 }
       #   each_pass(:closing).start
       #
       # The steps after the first are taken straight after each gap between frames, once for the
@@ -337,18 +337,18 @@ module VBlank
         stepping = var(:"#{routine}_stepping", 0)
         job = DSL::PassJob.new(self, routine: routine, running: running, stepping: stepping)
         declare_func(routine, wrote: name ? "each_pass :#{name}" : "each_pass") do
-          stepping.set! 1
+          stepping = 1
           job.with_step_being_built { yield(job) }
-          stepping.set! 0
+          stepping = 0
         end
-        declare_func(:"#{routine}_tick") { (running == 1).then { call routine } }
+        declare_func(:"#{routine}_tick") { call routine if running == 1 }
         @per_pass_routines << :"#{routine}_tick"
         @pass_jobs[name || routine] = job
       end
 
       # --- Low-level comparison verbs ---
       # Compare a variable against an immediate or another variable; the block runs
-      # only when the condition is true. The expression DSL's `(a > b).then { }` is
+      # only when the condition is true. A plain `if a > b` is
       # the friendlier form — these are the asm-tier escape hatch.
 
       # Maps DSL condition → the IR comparison operator, for building the `if`

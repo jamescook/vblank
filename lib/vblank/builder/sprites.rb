@@ -16,7 +16,7 @@ module VBlank
       #   hero = sprite :heart, at: [100, 60]
       #   game_loop do
       #     wait_vblank
-      #     held(:right).then { hero.x.add! 2 }
+      #     hero.x += 2 if held(:right)
       #   end
       #
       # Pass +shown: false+ for a sprite that starts hidden and appears later — a
@@ -39,7 +39,7 @@ module VBlank
       #
       #   pac = sprite :pac, at: [100, 60],
       #                facing: { right: :pac_right, left: :pac_left, up: :pac_up, down: :pac_down }
-      #   held(:left).then { pac.move :left, by: 2 } # moves AND faces left
+      #   pac.move :left, by: 2 if held(:left) # moves AND faces left
       #
       # The first entry is the pose it starts in. (This is pose-swapping, not pixel
       # rotation — turning to an arbitrary angle is the affine/hardware-sprite track.)
@@ -179,7 +179,7 @@ module VBlank
       # frame after a room loads behind a fade, or a map screen opening — so that none shows
       # half moved. On a tiled screen the text is sprites too, and it goes with them.
       #
-      #   room_loaded.then { hide_sprites }
+      #   hide_sprites if room_loaded
       #
       # The console draws its sprites as a layer of its own, and this switches that layer off
       # between frames and on again a frame later. A bitmap screen has no such layer, since it
@@ -257,7 +257,7 @@ module VBlank
                 "#{subject} was told to put_in_layer #{names.length} layers and nothing to pick between " \
                 "them. Say which one with showing:, like put_in_layer [:#{names.first}, ...], showing: floor."
         end
-        if showing && !which.is_a?(Array)
+        if !showing.nil? && !which.is_a?(Array)
           raise ArgumentError,
                 "#{subject} was told put_in_layer :#{which} and showing:, but that names one layer. " \
                 "showing: picks between several, so give it a list: put_in_layer [:#{which}, :other], showing: ..."
@@ -266,10 +266,12 @@ module VBlank
         nodes.each { |node| make_object_layer_choosable(node, layer_var) }
         start = layer_choice_offset(nodes, names)
         choice = DSL::Value.new(self, Build.var_ref(layer_var), name: layer_var)
-        return choice.set!(start) if showing.nil?
-
-        write_picked_choice(choice, count: names.length, start: start, showing: showing,
-                                    outside: Build::DECLARED_LAYER, subject: subject, verb: "put_in_layer a layer")
+        if showing.nil?
+          choice = start
+        else
+          write_picked_choice(choice, count: names.length, start: start, showing: showing,
+                                      outside: Build::DECLARED_LAYER, subject: subject, verb: "put_in_layer a layer")
+        end
       end
 
       # Refuse a layer a sprite was told to go in that the stack does not have, naming it.
@@ -319,22 +321,30 @@ module VBlank
               end
         return yield row.node if always
 
-        ((step >= 0) & (step < rows.length)).then { yield row.node }
+        yield row.node if step >= 0 && step < rows.length
       end
 
-      # ONE OF A RUN OF +count+ CHOICES, PICKED BY A NUMBER THE GAME WORKS OUT: +choice+ (anything
-      # with a +set!+) is set to +start+ plus +showing+, or to +outside+ when the number names
-      # none of them. What a sprite's colours and its layer are both picked by. +subject+ and
-      # +verb+ say what was told what, for the friendly errors.
+      # ONE OF A RUN OF +count+ CHOICES, PICKED BY A NUMBER THE GAME WORKS OUT: +choice+ (a
+      # variable, or a pool's field) is set to +start+ plus +showing+, or to +outside+ when the
+      # number names none of them. What a sprite's colours and its layer are both picked by.
+      # +subject+ and +verb+ say what was told what, for the friendly errors.
       def write_picked_choice(choice, count:, start:, showing:, outside:, subject:, verb:)
         fixed = DSL::Value.fixed_number(showing)
-        return choice.set!(fixed.between?(0, count - 1) ? start + fixed : outside) if fixed
-
-        step = picked_step!(showing, subject, verb)
-        return choice.set!(step + start) if always_within?(step, count)
-
-        step = kept_step(step)
-        ((step >= 0) & (step < count)).then { choice.set!(step + start) }.else { choice.set!(outside) }
+        if fixed
+          choice = fixed.between?(0, count - 1) ? start + fixed : outside
+        else
+          step = picked_step!(showing, subject, verb)
+          if always_within?(step, count)
+            choice = step + start
+          else
+            step = kept_step(step)
+            if step >= 0 && step < count
+              choice = step + start
+            else
+              choice = outside
+            end
+          end
+        end
       end
 
       private
@@ -421,7 +431,7 @@ module VBlank
         return step if step.node.kind == :var_ref
 
         kept = var(PICKED_POSE_STEP, 0)
-        kept.set!(step)
+        kept = step
         kept
       end
 

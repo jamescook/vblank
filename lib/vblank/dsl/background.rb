@@ -8,7 +8,7 @@ module VBlank
     #   world = background :world, tiles: :terrain, map: BIG_MAP
     #   game_loop do
     #     wait_vblank
-    #     held(:right).then { world.scroll_by 2, 0 }   # slide the view right
+    #     world.scroll_by 2, 0 if held(:right)   # slide the view right
     #   end
     #
     # The map is a torus: scroll past an edge and it wraps around, so a map only needs
@@ -302,7 +302,7 @@ module VBlank
       #   phase  = var :phase, 0
       #
       #   water.scroll_each_row { |row| ripple[(row + phase) % ripple.length] }
-      #   game_loop { phase.add! 1 }         # the wave travels down the water
+      #   game_loop { phase += 1 }           # the wave travels down the water
       #
       # That is wavy water, a heat haze over a desert, a reflection in a lake, a screen
       # melting into a transition. The offset is ON TOP of the background's own scroll, so a
@@ -556,7 +556,7 @@ module VBlank
           raise ArgumentError,
                 "#{error_subject} was told to draw_with #{which.inspect}, but its tiles are drawn from " \
                 "#{drawn_lists.length} lists of colors. Say what each of them is drawn with, by the name it " \
-                "was given: draw_with({ #{drawn_list_names.join(': ..., ')}: ... }#{showing ? ', showing: ...' : ''})."
+                "was given: draw_with({ #{drawn_list_names.join(': ..., ')}: ... }#{showing.nil? ? '' : ', showing: ...'})."
         end
         names.map { |name| [name] }
       end

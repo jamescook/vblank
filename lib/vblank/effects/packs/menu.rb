@@ -369,9 +369,9 @@ module VBlank
             next if item.enabled.equal?(false)
 
             here = (pick == i)
-            menu_enabled_at_runtime?(item) ? here & menu_can_pick(item) : here
+            menu_enabled_at_runtime?(item) ? here && menu_can_pick(item) : here
           end
-          tests.reduce { |either, test| either | test }
+          tests.reduce { |either, test| either || test }
         end
 
         # The next row that can be picked, walking from +from+ in +direction+ and

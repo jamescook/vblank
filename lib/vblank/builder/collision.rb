@@ -15,7 +15,7 @@ module VBlank
       #
       #   ball   = box(ball_x, ball_y, 4, 4)   # follows the ball's variables
       #   paddle = box(8, paddle_y, 4, 24)
-      #   ball.overlaps?(paddle).then { ball_dx.abs! }   # bounce on contact
+      #   ball_dx.abs! if ball.overlaps?(paddle)   # bounce on contact
       #
       # A sprite already knows its bounds, so `hero.overlaps?(coin)` needs no box.
       def box(x, y, w, h)
@@ -96,17 +96,18 @@ module VBlank
         set!(WALL_ROW, DSL::Value.node_for(row))
         record_walls_brought_up(kept)
         at = ->(var) { DSL::Value.new(self, Build.var_ref(var), name: var) }
-        inside = (at.call(WALL_COL) >= 0) & (at.call(WALL_COL) < cells.cols) &
-                 (at.call(WALL_ROW) >= 0) & (at.call(WALL_ROW) < cells.rows)
-        inside.then { kept.list[(at.call(WALL_ROW) * cells.cols) + at.call(WALL_COL)] = wall ? 1 : 0 }
+        inside = at.call(WALL_COL) >= 0 && at.call(WALL_COL) < cells.cols &&
+                 at.call(WALL_ROW) >= 0 && at.call(WALL_ROW) < cells.rows
+        kept.list[(at.call(WALL_ROW) * cells.cols) + at.call(WALL_COL)] = wall ? 1 : 0 if inside
       end
 
       # Copy the walls of the map showing into +kept+, if they are not there yet.
       def record_walls_brought_up(kept)
         fresh = DSL::Value.new(self, Build.var_ref(kept.fresh), name: kept.fresh)
-        (fresh == 0).then do
-          kept.list.copy_from(kept.cells.table, at: map_base_for(kept.cells) || 0, count: kept.cells.cells_per_map)
-          fresh.set! 1
+        if fresh == 0
+          base = map_base_for(kept.cells)
+          kept.list.copy_from(kept.cells.table, at: base.nil? ? 0 : base, count: kept.cells.cells_per_map)
+          fresh = 1
         end
       end
 
@@ -148,7 +149,7 @@ module VBlank
           # to that map's grid is the same for all nine. That is what keeps a background
           # with two hundred rooms the same nine reads as a background with one.
           base = kept ? nil : map_base_for(cells)
-          clear.set! 1
+          clear = 1
           down.each do |dy|
             py = top + dy
             across.each do |dx|
@@ -157,10 +158,10 @@ module VBlank
               # could when the scenery's solid cells were rectangles. Held on the PIXEL
               # rather than the cell, because dividing truncates toward zero and would fold
               # a pixel just left of the map onto column 0.
-              inside = (px >= 0) & (px < width) & (py >= 0) & (py < height)
+              inside = px >= 0 && px < width && py >= 0 && py < height
               cell = ((py / cells.tile_h) * cells.cols) + (px / cells.tile_w)
-              solid = kept ? kept.list[cell] : cells.table[base ? base + cell : cell]
-              (inside & (solid == 1)).then { clear.set! 0 }
+              solid = kept ? kept.list[cell] : cells.table[base.nil? ? cell : base + cell]
+              clear = 0 if inside && solid == 1
             end
           end
         end

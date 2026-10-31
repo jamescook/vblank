@@ -3,22 +3,26 @@
 # DSL verbs grouped into concern modules, each mixed into Builder below. They keep
 # the flat DSL surface (every verb a top-level method) while letting each area live
 # in its own file. New concerns get required here and included in the class body.
+#
+# A concern with game code of its own comes in the way a part of a game does, since it is written
+# in normal Ruby: a name that holds a variable is changed by assigning to it, and `if` on a test
+# the game makes records that test.
 require_relative "builder/randomness"
 require_relative "builder/sound"
-require_relative "builder/music"
+VBlank.require_game_file "builder/music"
 require_relative "builder/text"
 require_relative "builder/images"
-require_relative "builder/color_lists"
+VBlank.require_game_file "builder/color_lists"
 require_relative "builder/picture_groups"
-require_relative "builder/sprites"
+VBlank.require_game_file "builder/sprites"
 require_relative "builder/sprite_import"
 require_relative "builder/input"
 require_relative "builder/drawing"
-require_relative "builder/spotlights" # the circle a spotlight lights, a row at a time
+VBlank.require_game_file "builder/spotlights" # the circle a spotlight lights, a row at a time
 require_relative "builder/variables"
-require_relative "builder/control_flow"
+VBlank.require_game_file "builder/control_flow"
 require_relative "builder/scenes"
-require_relative "builder/collision"
+VBlank.require_game_file "builder/collision"
 require_relative "builder/tiled"
 require_relative "builder/tile_runs"
 require_relative "builder/canvases"
@@ -275,7 +279,7 @@ module VBlank
     #
     # A NARROW SLOT ALWAYS GOES BELOW NOTHING, and there is nothing to say about that — it is
     # not a choice you are given, because there is no way to make it correctly. The case that
-    # decides it is a countdown: `wait.sub! 7` followed by `(wait <= 0)` really does hold -4
+    # decides it is a countdown: `wait -= 7` followed by `wait <= 0` really does hold -4
     # while that test runs, and a slot that could not go below nothing would read -4 back as
     # 252 and the test would never fire — a game that quietly stops working. Nothing at build
     # time can see that coming, since the value is worked out as the game runs. So a `:byte`
@@ -367,7 +371,7 @@ module VBlank
     # then just looked up:
     #
     #   sin = table :sin, (0...256).map { |a| (Math.sin(a * Math::PI / 128) * 256).round }, width: :half
-    #   y.set! sin[angle]   # y = sin[angle], a plain lookup
+    #   y = sin[angle]   # a plain lookup
     #
     # `width` is the element size: :byte (8-bit), :half (16-bit), or :word (32-bit).
     # `signed` is inferred from the values (any negative makes it signed) unless you
@@ -1043,11 +1047,11 @@ module VBlank
     # Gate a declaration's visibility on the conditions it was WRITTEN under, so a
     # blinking prompt is the plain thing an author would write:
     #
-    #   (blink == 1).then { draw_text "PRESS START", 76, 100, :gray }
+    #   draw_text "PRESS START", 76, 100, :gray if blink == 1
     #
     # Text on a tiled screen is not painted where the call sits — it becomes little glyph
     # sprites the console composites every frame, from a list settled once at build time.
-    # So the `.then` around the call would otherwise decide nothing at all: the glyphs are
+    # So the `if` around the call would otherwise decide nothing at all: the glyphs are
     # declared inside it, and then shown on every frame regardless, which reads as a
     # prompt that never blinks. Carrying the condition onto the glyph itself is what makes
     # the two agree — it is shown exactly while the test holds, which is what the line says.
@@ -1669,7 +1673,7 @@ module VBlank
       @container_stack.pop
     end
 
-    # Run a DSL block (a game loop body, a `.then`, a func body…) at the current build
+    # Run a DSL block (a game loop body, a func body…) at the current build
     # point. It runs in the block's OWN context, not instance_eval'd onto the builder,
     # so its `self` stays wherever the block was written: this builder at the top level
     # (where these blocks live inside VBlank.build's instance_eval, so `self` already
