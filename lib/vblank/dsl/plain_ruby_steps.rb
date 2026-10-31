@@ -139,9 +139,11 @@ module VBlank
 
       # `collection[key] = value`. A game variable kept in a Hash or an Array is changed where
       # it stands: putting a new number in its slot would leave the game's variable as it was.
-      # A game's own list answers `[]=` itself.
+      # A game's own list answers `[]=` itself. A Hash is asked with `fetch`, since `[]` runs its
+      # default block for a key it does not hold, and that block may be this very write.
       def assign_index(collection, *keys, value)
-        current = collection[*keys] if collection.is_a?(Hash) || collection.is_a?(Array)
+        current = collection.fetch(keys.first, nil) if collection.is_a?(Hash)
+        current = collection[*keys] if collection.is_a?(Array)
         return collection[*keys] = value unless variable?(current)
 
         store(current, value)
