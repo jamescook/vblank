@@ -254,13 +254,20 @@ module VBlank
           own + node.compact_child_nodes.flat_map { |child| parameter_names(child) }
         end
 
+        # A Ruby loop in game code runs while building, and its body is recorded each time round.
+        # A name it adds up from a start of its own in the same pass stays a Ruby number. A name
+        # started outside game code carries over from pass to pass, so only the game can keep it.
+        def looped_from_outside?(local)
+          @iterating_in_game_code && !local.first_write.nil? && !local.first_write.in_game_code
+        end
+
         def record_write(node, scopes, in_game_code)
           scope = scopes[-1 - node.depth]
           @outside_writes << node if scope.nil? && in_game_code
           return unless scope
 
           local = (scope[node.name] ||= Local.new(node.name, parameter: false))
-          local.writes << Write.new(node, in_game_code)
+          local.writes << Write.new(node, in_game_code || looped_from_outside?(local))
           local.reads << node unless WHOLE_WRITES.any? { |kind| node.is_a?(kind) }
           @ruby_iteration_writes[node] = true if @iterating_in_game_code && !in_game_code
           @locals_by_node[node] = local

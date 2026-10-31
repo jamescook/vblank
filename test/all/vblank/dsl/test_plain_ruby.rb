@@ -780,6 +780,30 @@ class TestPlainRuby < Minitest::Test
     assert_equal [1, 1], [player[:both], player[:either]]
   end
 
+  def test_a_name_started_outside_game_code_and_changed_by_a_ruby_loop_in_it_is_a_variable
+    player = played do
+      x = 0
+      game_loop do
+        3.times { x += 1 }
+      end
+    end
+
+    assert_equal 9, player[:x]
+  end
+
+  def test_a_name_started_in_game_code_and_changed_by_a_ruby_loop_adds_up_while_building
+    player = played do
+      seen = 0
+      game_loop do
+        total = 0
+        [1, 2, 3].each { |n| total += n }
+        seen = total
+      end
+    end
+
+    assert_equal 6, player[:seen]
+  end
+
   def test_an_ivar_made_by_var_copies_another_variable
     player = played do
       @a = var :a, 5
