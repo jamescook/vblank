@@ -137,6 +137,7 @@ module VBlank
       @hidden_variables = 0    # counts the variables a picked value keeps its answer in
       @hidden_variable_notes = []
       @variables_with_no_var_line = []
+      Ractor.current[:vblank_builder_in_use] = self
       @boolean_variables = {}   # the variables started with `true` or `false`
       @timer_seq = 0           # counts every/after timers, to name each one's hidden counter var
       @rng_seq = 0             # counts anonymous random draws, to name each one's hidden var
@@ -959,6 +960,17 @@ module VBlank
       @fraction_vars[name] = like.fraction_bits if like&.fraction?
       @hidden_variable_notes << HiddenVariableNote.new(name:, source: Messages::AuthorSource.author_source, why:)
       value_handle_for(name)
+    end
+
+    # The builder of the game being built here, for a part of a game that makes a variable with
+    # no `var` of its own to call.
+    def self.in_use = Ractor.current[:vblank_builder_in_use]
+
+    # +name+, or the first of name_2, name_3... that no variable has.
+    def free_variable_name(name)
+      return name unless @variables.include?(name)
+
+      (2..).lazy.map { |number| :"#{name}_#{number}" }.find { |each_name| !@variables.include?(each_name) }
     end
 
     # What the build added for the author that the author never wrote, for `rom.profile`.

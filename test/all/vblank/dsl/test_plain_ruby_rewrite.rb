@@ -14,7 +14,7 @@ class TestPlainRubyRewrite < Minitest::Test
       game_loop { hp -= 1 }
     end
 
-    assert_includes source, "var(:hp, 5)"
+    assert_includes source, ":hp, 5)"
   end
 
   def test_a_number_never_changed_stays_a_plain_number
@@ -44,8 +44,8 @@ class TestPlainRubyRewrite < Minitest::Test
       func(:two) { x = 2; x += 1 }
     end
 
-    assert_includes source, "var(:x, 1)"
-    assert_includes source, "var(:x_2, 2)"
+    assert_includes source, ":x, 1)"
+    assert_includes source, ":x_2, 2)"
   end
 
   def test_two_blocks_on_one_line_are_told_apart
@@ -77,7 +77,7 @@ class TestPlainRubyRewrite < Minitest::Test
       game_loop { menu(:main, at: [40, 40]) { |rows| rows.item("GO") { picked = 1 } } }
     end
 
-    assert_includes source, "var(:picked, 0)"
+    assert_includes source, ":picked, 0)"
   end
 
   def test_every_line_keeps_its_number

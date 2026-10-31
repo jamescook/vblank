@@ -478,7 +478,7 @@ module VBlank
           end
         end
 
-        def made_variable_text(name, start) = "#{STEPS}.made_with_no_var_line(var(:#{name}, #{start}))"
+        def made_variable_text(name, start) = "#{STEPS}.variable_with_no_var_line(self, :#{name}, #{start})"
 
         # A name that turns out to hold an object cannot follow a test the game makes, so under an
         # open test the step looks.

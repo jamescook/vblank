@@ -364,9 +364,22 @@ module VBlank
         end
 
         # A variable the author never wrote `var` for, which the out-of-memory error names.
-        def made_with_no_var_line(variable)
+        #
+        # A game block runs on the builder, which has `var`. A part of a game is a plain class
+        # that holds one, so the variable comes from the builder in use, under a name nothing has
+        # taken: two parts, or two of one part, each have a local of their own, as in Ruby.
+        def variable_with_no_var_line(owner, name, start)
+          variable = owner.respond_to?(:var, true) ? owner.__send__(:var, name, start) : variable_for_part(name, start)
           variable.note_made_with_no_var_line
           variable
+        end
+
+        def variable_for_part(name, start)
+          builder = Builder.in_use
+          refuse_game_code!("`#{name}` is changed by game code, but no game is being built. To fix this, " \
+                            "make this part while a game is being built.") if builder.nil?
+
+          builder.var(builder.free_variable_name(name), start)
         end
 
         def number_kept?(value) = value.nil? || game_value?(value) || value.is_a?(Value) || value.is_a?(Condition)

@@ -54,7 +54,11 @@ module VBlank
           def first_write = @writes.first
           def first_write_of?(node) = first_write.node.equal?(node)
 
-          def made_by_var? = !first_write.nil? && LocalNames.var_call?(first_write.node)
+          # On any line: `glint = nil` can be filled in later by code that runs later.
+          def made_by_var? = unpacked_from_var || @writes.any? { |write| LocalNames.var_call?(write.node) }
+
+          # `first, second = build.var(:a, 0), build.var(:b, 0)`
+          attr_accessor :unpacked_from_var
 
           def auto_variable?
             return false if parameter? || !starts_variable?
@@ -95,8 +99,7 @@ module VBlank
         def self.var_call?(write)
           return false unless write.respond_to?(:value)
 
-          value = write.value
-          value.is_a?(Prism::CallNode) && %i[var save_var].include?(value.name) && value.receiver.nil?
+          makes_variable?(write.value)
         end
 
         # `var :x, 0`, on anything: a part of a game is handed the builder and calls `build.var`.
@@ -302,6 +305,9 @@ module VBlank
                Prism::LocalVariableTargetNode then
             record_write(node, scopes, in_game_code)
             read_children(node, scopes, in_game_code)
+          when Prism::MultiWriteNode
+            read_children(node, scopes, in_game_code)
+            note_unpacked_variables(node)
           when Prism::InstanceVariableWriteNode, Prism::InstanceVariableOperatorWriteNode
             record_change(node.name, node, in_game_code)
             read_children(node, scopes, in_game_code)
@@ -314,6 +320,15 @@ module VBlank
             @reads_in_game_code[node] = true if in_game_code
             @locals_by_node[node] = local if local
           else read_children(node, scopes, in_game_code)
+          end
+        end
+
+        def note_unpacked_variables(node)
+          return unless node.value.is_a?(Prism::ArrayNode)
+
+          node.lefts.zip(node.value.elements).each do |target, value|
+            local = @locals_by_node[target]
+            local.unpacked_from_var = true if local && value && LocalNames.makes_variable?(value)
           end
         end
 
