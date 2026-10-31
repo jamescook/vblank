@@ -127,6 +127,9 @@ module VBlank
         kept
       end
 
+      # This number is used for nothing: Ruby took it as truthy (see PlainRubySteps.test).
+      def discard = @builder.forget_expression(self)
+
       # Is this a variable the game keeps as a yes or no? See Builder#var.
       def yes_no? = handle? && @builder.yes_no_variable?(@name)
 

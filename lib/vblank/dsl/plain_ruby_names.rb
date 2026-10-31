@@ -14,6 +14,8 @@ module VBlank
         # the one given to `8.times`, runs while building however it is nested.
         GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick then else item].freeze
 
+        ARITHMETIC = %i[+ - * / % << >>].freeze
+
         # How Ruby goes over a list or a count. Called on something written out in the source, a
         # constant or a literal or a range, it runs here and now however deep in game code it
         # sits: `MELODY.each { cursor += dur }` in a game loop is adding up while building. On
@@ -41,7 +43,7 @@ module VBlank
           def made_by_var? = !first_write.nil? && LocalNames.var_call?(first_write.node)
 
           def auto_variable?
-            return false if parameter? || !LocalNames.number?(first_write.node)
+            return false if parameter? || !LocalNames.starts_from_value?(first_write.node)
 
             @writes.drop(1).any?(&:in_game_code)
           end
@@ -59,6 +61,23 @@ module VBlank
         def self.number?(write)
           write.is_a?(Prism::LocalVariableWriteNode) &&
             [Prism::IntegerNode, Prism::FloatNode, Prism::TrueNode, Prism::FalseNode].include?(write.value.class)
+        end
+
+        # A number written out, or something only running the line can say is one: `state = PLAYING`,
+        # `x = WIDTH / 2`. See Rewriter#declaration.
+        def self.starts_from_value?(write)
+          number?(write) || (write.is_a?(Prism::LocalVariableWriteNode) && made_of_constants?(write.value))
+        end
+
+        def self.made_of_constants?(node)
+          case node
+          when Prism::ConstantReadNode, Prism::ConstantPathNode, Prism::IntegerNode, Prism::FloatNode then true
+          when Prism::ParenthesesNode then made_of_constants?(node.body.body.first)
+          when Prism::CallNode
+            ARITHMETIC.include?(node.name) && made_of_constants?(node.receiver) &&
+              node.arguments.arguments.all? { |each_argument| made_of_constants?(each_argument) }
+          else false
+          end
         end
 
         def initialize(block_node)
@@ -99,9 +118,6 @@ module VBlank
 
         # Is this read of a local a read of a game variable?
         def variable_read?(read) = @locals_by_node[read]&.variable? || false
-
-        # Is this read of a name handed in, a method's or a block's argument?
-        def parameter_read?(read) = @locals_by_node[read]&.parameter? || false
 
         private
 

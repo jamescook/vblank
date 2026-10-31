@@ -57,6 +57,7 @@ module DslVerbs
   SKIP = %i[variables debug_halted? make_object_rotatable make_object_scalable
             keep_walls_changeable kept_walls_of every_kept_walls record_wall_change record_walls_brought_up
             remember_sprite_recolors remember_background_draws_with
+            remember_yes_no_variable yes_no_variable?
             record_row_bend make_background_affine screen_pages keep_showing_pictures
             tile_collision_routine play_from_list play_sound_effect
             declare_instance_routine record_walk_instance_writes pool_walk_scratch_var

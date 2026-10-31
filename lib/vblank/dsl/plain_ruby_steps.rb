@@ -16,43 +16,34 @@ module VBlank
 
       module_function
 
-      def game_test?(value) = value.is_a?(Condition) || value.is_a?(Value)
+      # Truthiness is Ruby's. Only a test, or a yes or no the game keeps, has an answer that waits
+      # for the game to play. Every other value is answered here: nil and false are falsy, and
+      # everything else is truthy, a number of the game's among them, whatever it holds.
+      def game_test?(value) = value.is_a?(Condition) || (value.is_a?(Value) && value.yes_no?)
 
       # Does this name a place that keeps a number, rather than a working-out of one?
       def variable?(value) = value.is_a?(Value) && value.handle?
 
-      # A yes or no the game keeps, as a test. In Ruby a number is truthy whatever it holds, so one
-      # made here on its own would be a test with one answer, and that is never what was meant.
-      def as_condition(value)
-        return value unless value.is_a?(Value)
+      # Can a game variable start with this?
+      def game_value?(value) = [Integer, Float, Symbol, TrueClass, FalseClass].any? { |kind| value.is_a?(kind) }
 
-        refuse_number_test!(value)
-        value != 0
+      def as_condition(value) = value.is_a?(Value) ? value != 0 : value
+
+      # A conditional's test, as an object the rewritten `if` asks which sides to run. A number
+      # worked out for it is truthy and used for nothing more, so no check counts it as dropped.
+      def test(value)
+        return GameTest.new(as_condition(value)) if game_test?(value)
+
+        value.discard if value.is_a?(Value)
+        BuildTest.new(value)
       end
-
-      def refuse_number_test!(value)
-        return if value.yes_no?
-
-        written = value.name ? "`#{value.name}`" : "This number"
-        refuse!("#{written} is a number, and in Ruby a number is always true. So this test has one " \
-                "answer. To fix this, compare it, like `hp > 0`. To keep a yes or no, start it with " \
-                "`true` or `false`.")
-      end
-
-      # A conditional's test, as an object the rewritten `if` asks which sides to run.
-      def test(value) = game_test?(value) ? GameTest.new(as_condition(value)) : BuildTest.new(value)
 
       # The other answer to a test, for `!` and `unless`.
       def opposite(value)
-        return !value unless value.is_a?(Value)
+        return !value unless value.is_a?(Value) && value.yes_no?
 
-        refuse_number_test!(value)
         value == 0
       end
-
-      # A value that came from somewhere else: an argument, or a field of an object. Ruby's answer
-      # holds, that a number is truthy, and a yes or no is still the game's to answer.
-      def truthy(value) = value.is_a?(Value) && !value.yes_no? ? true : value
 
       # `&&`. Ruby skips the right side once the left has decided. A game test cannot: both
       # sides are worked out as the game plays, whichever way the left turns out.
@@ -168,6 +159,8 @@ module VBlank
 
       # The line that makes a variable in game code runs on every pass, as a Ruby line would.
       def start(variable, value)
+        return value unless variable?(variable)
+
         store(variable, value)
         variable
       end

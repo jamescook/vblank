@@ -856,6 +856,10 @@ module VBlank
       @expressions << value
     end
 
+    def forget_expression(value)
+      @expressions.delete_if { |each_value| each_value.equal?(value) }
+    end
+
     # The expressions built during this build, for the orphaned-expression guardrail.
     def expressions
       @expressions

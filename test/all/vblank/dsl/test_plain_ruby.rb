@@ -177,8 +177,130 @@ class TestPlainRuby < Minitest::Test
     assert_equal 1, player[:seen]
   end
 
-  # In Ruby a number is truthy whatever it holds, so a number handed in, or kept in an object, is
-  # truthy here too: the test asks only that it is there.
+  # Truthiness is Ruby's: nil and false are falsy, and everything else is truthy. A number is
+  # truthy whatever it holds, here as anywhere.
+  def test_a_number_is_truthy_even_at_zero
+    player = played(frames: 2) do
+      hp = 0
+      flags = 0
+      plain = 0
+      seen = 0
+      worked_out = 0
+      plain_seen = 0
+      game_loop do
+        seen = 1 if hp
+        worked_out = 1 if flags & 4
+        plain_seen = 1 if plain
+        hp += 0
+        flags += 0
+      end
+    end
+
+    assert_equal [1, 1, 1], [player[:seen], player[:worked_out], player[:plain_seen]]
+  end
+
+  def test_nil_and_false_are_falsy_and_a_string_is_truthy
+    player = played(frames: 2) do
+      nothing = nil
+      no = false
+      words = "HI"
+      a = 0
+      b = 0
+      c = 0
+      game_loop do
+        a = 1 if nothing
+        b = 1 if no
+        c = 1 if words
+      end
+    end
+
+    assert_equal [0, 0, 1], [player[:a], player[:b], player[:c]]
+  end
+
+  def test_or_keeps_a_number_as_ruby_does
+    player = played(frames: 2) do
+      hp = 5
+      kept = 0
+      game_loop do
+        kept = hp || 9
+        hp += 0
+      end
+    end
+
+    assert_equal 5, player[:kept]
+  end
+
+  # Nothing passed, true and false are three answers, and it takes `nil?` to tell the first from
+  # the last, as in any Ruby.
+  def test_nil_and_a_yes_or_no_are_three_answers
+    player = played(frames: 2) do
+      def mark(left_out, yes, no, tested = nil)
+        if tested.nil?
+          left_out += 1
+        elsif tested
+          yes += 1
+        else
+          no += 1
+        end
+      end
+      left_out = var :left_out, 0
+      yes = var :yes, 0
+      no = var :no, 0
+      on = true
+      off = false
+      game_loop do
+        mark(left_out, yes, no)
+        mark(left_out, yes, no, on)
+        mark(left_out, yes, no, off)
+        on = true
+        off = false
+      end
+    end
+
+    assert_equal player[:left_out], player[:yes]
+    assert_equal player[:left_out], player[:no]
+  end
+
+  PLAYING = 2
+  OVER = 3
+  WIDE = 40
+  TITLE_WORDS = "HI"
+
+  def test_a_name_started_from_a_constant_is_a_variable
+    player = played(frames: 2) do
+      state = PLAYING
+      game_loop { state = OVER }
+    end
+
+    assert_equal OVER, player[:state]
+  end
+
+  def test_a_name_started_from_a_sum_of_constants_is_a_variable
+    player = played(frames: 2) do
+      x = WIDE / 2
+      seen = 0
+      game_loop do
+        seen = x
+        x += 1
+      end
+    end
+
+    assert_operator player[:seen], :>=, 20
+  end
+
+  def test_a_name_started_from_a_constant_that_is_no_number_stays_plain_ruby
+    player = played(frames: 2) do
+      words = TITLE_WORDS
+      seen = 0
+      game_loop do
+        seen = 1 if words == "HI"
+        words = TITLE_WORDS
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
   def test_a_number_handed_in_is_truthy_even_at_zero
     player = played(frames: 2) do
       def count_if_there(count, by)
