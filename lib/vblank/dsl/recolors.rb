@@ -54,20 +54,25 @@ module VBlank
         self
       end
 
-      # Record the write that makes +choice+ (anything with a +set!+) name what +which+ says:
-      # one list, one of a set picked by +showing+, or the sprite's own colours.
+      # Record the write that makes +choice+ (a variable, or a pool's field) name what +which+
+      # says: one list, one of a set picked by +showing+, or the sprite's own colours.
       def draw_with(choice, which, showing)
         write_choice(choice, requested_lists!(which, showing), showing)
       end
 
       # The same, for names already checked: nil for the own colours, or the names in order.
+      # +choice+ is the game's own variable, so a number written to the name is written to it.
       def write_choice(choice, names, showing)
-        return choice.set!(IR::Build::NO_RECOLOR) if names.nil?
-
-        start = list_offset_for(names)
-        return choice.set!(start) if showing.nil?
-
-        write_picked_list(choice, count: names.length, start: start, showing: showing)
+        if names.nil?
+          choice = IR::Build::NO_RECOLOR
+        else
+          start = list_offset_for(names)
+          if showing.nil?
+            choice = start
+          else
+            write_picked_list(choice, count: names.length, start: start, showing: showing)
+          end
+        end
       end
 
       # Which lists a call named, checked before anything is written. nil is the own colours.

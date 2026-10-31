@@ -16,8 +16,10 @@ require_relative "dsl/plain_ruby" # a game block in normal Ruby, read with Prism
 require_relative "dsl/plain_ruby_names" # ...what each local name in that block is
 require_relative "dsl/plain_ruby_checks" # ...what that block is refused
 require_relative "dsl/plain_ruby_steps" # ...and what the rewritten block calls as it runs
-require_relative "dsl/bounds"
-require_relative "dsl/pixel_bounds"
+# A handle that does its work in game words is written in normal Ruby, as a game is, so it comes in
+# the way a part of a game does. Everything above this line is what that needs.
+VBlank.require_game_file "dsl/bounds"
+VBlank.require_game_file "dsl/pixel_bounds"
 require_relative "dsl/box"
 require_relative "dsl/list"
 require_relative "dsl/save_data"
@@ -28,19 +30,19 @@ require_relative "dsl/pool"
 require_relative "dsl/direction"
 require_relative "dsl/grid"
 require_relative "dsl/sprite"
-require_relative "dsl/recolors" # the other colours a sprite or a pool can be drawn with
+VBlank.require_game_file "dsl/recolors" # the other colours a sprite or a pool can be drawn with
 require_relative "dsl/picture_groups" # a scene's sprite pictures in groups, some of them up at a time
 require_relative "dsl/hardware_sprite"
 require_relative "dsl/timer"
 require_relative "dsl/clock" # the date and time, as the cartridge's clock keeps them
-require_relative "dsl/pass_job" # a step an effect takes once a pass, started and stopped by the game
-require_relative "dsl/spotlight" # the game's light, and the darkness outside it
+VBlank.require_game_file "dsl/pass_job" # a step an effect takes once a pass, started and stopped by the game
+VBlank.require_game_file "dsl/spotlight" # the game's light, and the darkness outside it
 require_relative "dsl/sample"
 require_relative "dsl/instrument"
 require_relative "dsl/score_list"
 require_relative "dsl/song_list"
 require_relative "dsl/sound_effect_list"
 require_relative "dsl/background"
-require_relative "dsl/status_bar"
+VBlank.require_game_file "dsl/status_bar"
 require_relative "dsl/tile_run" # tiles whose pixels the game paints, in a list of its own
 require_relative "dsl/canvas"   # ...and a picture the game draws into with words, built on them

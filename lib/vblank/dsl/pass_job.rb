@@ -6,8 +6,11 @@ module VBlank
     # #each_pass makes one.
     #
     #   walk = each_pass(:iris_walk) do |job|
-    #     light.radius.sub! 4
-    #     (light.radius <= 0).then { light.radius.set! 0; job.stop }
+    #     light.radius -= 4
+    #     if light.radius <= 0
+    #       light.radius = 0
+    #       job.stop
+    #     end
     #   end
     #   walk.start     # the first step now, on this pass, then one every pass after
     #
@@ -29,13 +32,15 @@ module VBlank
       # every pass after until it stops. A job already running is left as it is. Started from
       # inside its own step, it takes the next step on the next pass, not at once again.
       def start
-        (@running == 0).then do
-          @running.set! 1
+        if @running == 0
+          @running = 1
           # Written inside the step itself, the step is always being taken when this runs, so
           # the call is left out rather than written under a test that never passes: a step
           # that names its own routine reads as a routine that calls itself, which a console
           # keeping each routine's numbers at fixed places cannot make.
-          (@stepping == 0).then { @builder.call(@routine) } unless @step_being_built
+          unless @step_being_built
+            @builder.call(@routine) if @stepping == 0
+          end
         end
         self
       end
@@ -51,7 +56,7 @@ module VBlank
       # Stop the job: it takes no more steps until it starts again. A step that stops its own job
       # finishes the step it is on.
       def stop
-        @running.set! 0
+        @running = 0
         self
       end
 

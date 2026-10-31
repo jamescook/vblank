@@ -39,7 +39,7 @@ module VBlank
       # in a frame, as many times as it likes, and the picture never shows the bar in two
       # places at once.
       def move_to(row)
-        @builder.set!(@top_var, Value.node_for(row))
+        self.top = row
         @builder.record_inline_bar_node(@builder.record_statement(Build.place_bar(@name, top: Build.var_ref(@top_var))))
         self
       end

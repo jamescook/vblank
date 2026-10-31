@@ -15,12 +15,12 @@ module VBlank
       # frame. Two rectangles touch when, on each axis, neither one starts past where
       # the other ends. Returns a {Condition}, so branch on it like any comparison:
       #
-      #   hero.overlaps?(coin).then { score.add! 1 }
+      #   score += 1 if hero.overlaps?(coin)
       #
       # Touching edges count as a hit (the test is inclusive). +other+ is anything with
       # left / top / right / bottom — another box, a sprite, a handle of your own.
       def overlaps?(other)
-        (left <= other.right) & (other.left <= right) & (top <= other.bottom) & (other.top <= bottom)
+        left <= other.right && other.left <= right && top <= other.bottom && other.top <= bottom
       end
 
       # --- where am I relative to the screen ---
@@ -29,8 +29,8 @@ module VBlank
       # the screen size — so game code needs no coordinate literals or sprite-size math.
       # Each returns a {Condition}, so branch on it like any comparison:
       #
-      #   shot.above_top?.then   { shot.hide }          # a bullet flew off the top
-      #   enemy.below_bottom?.then { enemy.respawn }    # an enemy fell off the bottom
+      #   shot.hide if shot.above_top?            # a bullet flew off the top
+      #   enemy.respawn if enemy.below_bottom?    # an enemy fell off the bottom
       #
       # "Off an edge" means FULLY past it — nothing of the rectangle still shows there —
       # so a thing sliding half off a side isn't off_screen? yet. The screen is the one the
@@ -60,7 +60,7 @@ module VBlank
 
       # Fully off the screen past ANY edge — nothing of it shows.
       def off_screen?
-        off_left? | off_right? | above_top? | below_bottom?
+        off_left? || off_right? || above_top? || below_bottom?
       end
     end
   end

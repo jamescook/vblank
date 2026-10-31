@@ -19,7 +19,7 @@ module VBlank
         box = super # the axis-aligned box overlap from Bounds
         return box unless per_pixel_against?(other)
 
-        box & Condition.new(collision_builder, Build.pixels_overlap(
+        box && Condition.new(collision_builder, Build.pixels_overlap(
           a_poses: collision_poses, a_pose: collision_pose, a_x: x.node, a_y: y.node,
           b_poses: other.collision_poses, b_pose: other.collision_pose, b_x: other.x.node, b_y: other.y.node
         ))

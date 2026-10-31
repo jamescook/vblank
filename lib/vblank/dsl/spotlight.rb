@@ -9,7 +9,7 @@ module VBlank
     #   light = spotlight at: [120, 80], radius: 40, dark: 75
     #   light.move_to hero.x + 8, hero.y + 8   # the lantern goes where the hero does
     #   light.radius.approach! 24, 1           # ...and it shrinks
-    #   light.dark.set! 0                      # nothing darkened: the light is out
+    #   light.dark = 0                         # nothing darkened: the light is out
     #
     # Each of the four is a {Value} the game reads and changes like any variable, and the
     # picture shows what they hold at the end of the frame — it is worked out again in the
@@ -37,8 +37,8 @@ module VBlank
 
       # Put the middle of the light at (+x+, +y+). Either may be worked out as the game runs.
       def move_to(x, y)
-        @x.set! x
-        @y.set! y
+        @x = x
+        @y = y
         self
       end
 
@@ -71,7 +71,7 @@ module VBlank
       # while the picture is drawn shows a change at once — an iris that opens on the frame it
       # is asked for — and this is how a game copying one says so.
       #
-      #   light.radius.set! 4
+      #   light.radius = 4
       #   light.show_now
       #
       # On the console the rows are worked out where this is reached. Early in a pass that is
