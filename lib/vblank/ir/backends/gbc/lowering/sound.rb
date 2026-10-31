@@ -30,13 +30,17 @@ module VBlank
             # Where the game keeps how loud its music is, or nil for a game that never says.
             def music_level = @variables[Tunes::LEVEL]
 
-            # Does a song's square note swell by itself in a game that moves the music volume? Asked
-            # before the variables have places, so the player can keep room to hold one there
-            # (Runtime::Music#emit_swells).
-            def holds_swells?
-              @program.walk.any? { |node| node.kind == :set && node.var == Tunes::LEVEL } &&
-                Tunes.swelling_square_notes?(@program)
+            # Does a song's note swell by itself in a game that moves the music volume, and on which kinds
+            # of voice? Asked before the variables have places, so the player can keep room to hold one
+            # there (Runtime::Music#emit_swells).
+            def held_swell_kinds
+              return [] unless @program.walk.any? { |node| node.kind == :set && node.var == Tunes::LEVEL }
+
+              Tunes.swelling_voice_kinds(@program)
             end
+
+            def holds_swells? = held_swell_kinds.any?
+            def holds_noise_swells? = held_swell_kinds.include?(:noise)
 
             # Does the game run the cartridge's motor? Then its cartridge says it carries one.
             def rumbles? = @reachable.any? { |node| node.kind == :rumble }

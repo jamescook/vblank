@@ -227,17 +227,18 @@ module VBlank
       # The loudest a note can be at music volume +level+.
       def ceiling(level) = scaled_volume(LOUDEST, level)
 
-      # DOES A SONG THE PROGRAM PLAYS HAVE A SQUARE NOTE THAT SWELLS BY ITSELF — a song, not a
-      # sound effect, which keeps its own volume? Only then has a player a swell to hold under the
-      # music volume (Swell).
-      def swelling_square_notes?(program)
+      # WHICH KINDS OF VOICE HAVE A NOTE THAT SWELLS BY ITSELF in a song the program plays — a song,
+      # not a sound effect, which keeps its own volume? Only those have a swell for a player to hold
+      # under the music volume (Swell). A drum hit is held the same way, struck again on the noise
+      # voice, which starts its hiss over: that is heard as one more hit under the swell, and the
+      # note is held down, which is what the music volume is for.
+      def swelling_voice_kinds(program)
         effect_names = effects(program)
-        played_songs(program).any? do |song|
-          !effect_names.include?(song.name) && song.voices.any? do |part|
-            part_kind(part) == :square &&
-              part.events.any? { |event| event[1].positive? && said_fade(part, event)&.swells_by_itself? }
-          end
+        songs = played_songs(program).reject { |song| effect_names.include?(song.name) }
+        swelling = songs.flat_map(&:voices).select do |part|
+          part.events.any? { |event| event[1].positive? && said_fade(part, event)&.swells_by_itself? }
         end
+        swelling.map { |part| part_kind(part) }.uniq & %i[square noise]
       end
 
       # DOES THE VOICE CHANGE THIS NOTE ITSELF — a square note that said a fade or a swell with a

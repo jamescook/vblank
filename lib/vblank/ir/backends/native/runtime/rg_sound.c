@@ -797,18 +797,22 @@ static void wobble_start(int32_t voice, const int32_t *note) {
   *was = (wobble){vibrato, vibrato >> VIBRATO_AFTER_AT, carries ? was->left : 0, carries ? was->rising : 0, 0, note[3]};
 }
 
-/* A SONG'S SWELLING NOTE HELD UNDER THE MUSIC VOLUME, by the square voice it is on
+/* A SONG'S SWELLING NOTE HELD UNDER THE MUSIC VOLUME, by the voice it is on
  * (IR::Tunes::Swell says how it is counted): whether the voice has one, its step, how loud the voice
  * has it now, the 256ths of a 64th counted toward its next step, whether it is still swelling, and
- * the note's wave and shape, to strike it again with. */
+ * the note's wave and shape, to strike it again with: a drum hit's hiss, on the noise voice. */
 typedef struct {
   int32_t active, step, volume, counted, swelling, wave_ticks, eighths_high;
 } swell_walk;
 
-static swell_walk swells[RG_SQUARE_VOICES + 1];
+static swell_walk swells[RG_NOISE_VOICE + 1];
 
-static void swell_stop(int32_t voice) {
-  if (voice <= RG_SQUARE_VOICES) swells[voice].active = 0;
+static void swell_stop(int32_t voice) { swells[voice].active = 0; }
+
+/* The note +swell+ holds, struck again on +voice+. */
+static void swell_strike(int32_t voice, const swell_walk *swell, int32_t volume, int32_t fade) {
+  if (voice == RG_NOISE_VOICE) noise_start(swell->wave_ticks, swell->eighths_high, volume, fade);
+  else square_start(voice, swell->wave_ticks, swell->eighths_high, volume, fade, 0);
 }
 
 /* EVERY SWELLING NOTE HELD UNDER THE MUSIC VOLUME, at the end of the player's frame before the
@@ -818,7 +822,7 @@ static void swell_stop(int32_t voice) {
  * then counted on a frame. */
 static void step_swells(void) {
   int32_t ceiling = (LOUDEST * level) >> LEVEL_SHIFT;
-  for (int32_t voice = 1; voice <= RG_SQUARE_VOICES; voice++) {
+  for (int32_t voice = 1; voice <= RG_NOISE_VOICE; voice++) {
     swell_walk *swell = &swells[voice];
     if (!swell->active) continue;
     if (swell->swelling ? swell->volume >= ceiling && ceiling < LOUDEST : swell->volume > ceiling) {
@@ -826,12 +830,12 @@ static void step_swells(void) {
       swell->counted = 0;
       swell->swelling = 0;
       rg_sound_log("loudness %d %d", (int)voice, (int)ceiling);
-      square_start(voice, swell->wave_ticks, swell->eighths_high, ceiling, 0, 0);
+      swell_strike(voice, swell, ceiling, 0);
     } else if (!swell->swelling && swell->volume < ceiling) {
       swell->counted = 0;
       swell->swelling = 1;
       rg_sound_log("loudness %d %d %d", (int)voice, (int)swell->volume, (int)(FADE_UP | swell->step));
-      square_start(voice, swell->wave_ticks, swell->eighths_high, swell->volume, FADE_UP | swell->step, 0);
+      swell_strike(voice, swell, swell->volume, FADE_UP | swell->step);
     }
     if (!swell->swelling || swell->volume >= LOUDEST) continue;
     swell->counted += COUNTED_A_FRAME;
@@ -842,8 +846,8 @@ static void step_swells(void) {
   }
 }
 
-/* +voice+ has just been struck with a song's square note at +volume+ under the music volume: counted
- * from here when it swells by itself. */
+/* +voice+ has just been struck with a song's note at +volume+ under the music volume: counted from
+ * here when it swells by itself. */
 static void swell_start(int32_t voice, const int32_t *note, int32_t eighths_high, int32_t volume, int32_t fade) {
   if (note[1] == 0 || !(fade & FADE_UP) || (fade & FADE_STEP_BITS) == 0) return;
   swells[voice] = (swell_walk){1, fade & FADE_STEP_BITS, volume, 0, 1, note[3], eighths_high};
@@ -874,8 +878,8 @@ static int32_t note_eighths(const part_walk *part, const int32_t *note) {
 /* +voice+ has just been given +note+: a square voice steps its shapes from here, or — a rest, or a
  * note of one shape — steps nothing. */
 static void shape_start(int32_t voice, const int32_t *note) {
-  if (voice > RG_SQUARE_VOICES) return;
   swell_stop(voice);
+  if (voice > RG_SQUARE_VOICES) return;
   int32_t bits = note[1] != 0 && (note[5] & SAID_DUTY) ? note[5] & DUTY_BITS : 0;
   int32_t steps = 0;
   for (int32_t frame = 1; frame < 4; frame++) steps |= shape_at(bits, frame) != shape_at(bits, 0);
@@ -1159,6 +1163,7 @@ static void play_note(part_walk *part, const int32_t *note) {
     } else {
       rg_sound_log("part_noise %d %d %d", (int)playing, (int)part->number, (int)pitch);
       noise_start(ticks, part->tone, sounded, fade);
+      if (level_variable) swell_start(part->voice, note, part->tone, sounded, fade);
     }
     break;
   default:

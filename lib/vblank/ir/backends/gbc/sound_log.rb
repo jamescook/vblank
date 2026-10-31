@@ -49,8 +49,8 @@ module VBlank
           # A swelling note held under the music volume struck again (Runtime::Music#emit_swells), by
           # voice: at its ceiling, holding, where B holds the volume; and where it was held, swelling
           # on, where C holds the fade as well.
-          SWELLS_HELD = (1..Runtime::Music::SWELL_VOICES).to_h { |voice| ["rt_swell_struck_holding_#{voice}", voice] }.freeze
-          SWELLS_ON = (1..Runtime::Music::SWELL_VOICES).to_h { |voice| ["rt_swell_struck_swelling_#{voice}", voice] }.freeze
+          SWELLS_HELD = Runtime::Music::SWELL_VOICES.to_h { |voice| ["rt_swell_struck_holding_#{voice}", voice] }.freeze
+          SWELLS_ON = Runtime::Music::SWELL_VOICES.to_h { |voice| ["rt_swell_struck_swelling_#{voice}", voice] }.freeze
 
           ROUTINES = (%w[rt_sound_writes rt_music_note rt_music_note_voice rt_music_quiet rt_music_from_the_top
                          rt_wait_vblank_buttons rt_sfx_note rt_clip_came_round] + RELEVELS.keys + WOBBLE_TURNS.keys + SHAPE_CHANGES.keys +

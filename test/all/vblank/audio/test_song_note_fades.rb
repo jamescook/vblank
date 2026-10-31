@@ -219,6 +219,54 @@ class TestSongNoteFades < Minitest::Test
     assert_equal [:loudness, 1, 7, NoteFade.swelling(1)], entries.last, "struck at 7 again, swelling"
   end
 
+  # A drum hit swelling in from nothing on the noise voice, under the music volume the block sets.
+  private def swelling_drum_game(&volume)
+    b = Builder.new
+    b.instance_eval do
+      screen :bitmap
+      clear_screen :black
+      enable_sound
+      song(:tune) do
+        voice(:drums, plays: :noise) { |v| v.volume 0; v.note :C6, :whole, swell: :fast }
+      end
+      play_song :tune
+      count = 0
+      game_loop do
+        count += 1
+        instance_exec(count, &volume)
+        wait_vblank
+      end
+    end
+    b.finalize_program
+    b.program
+  end
+
+  private def loudness_of_drum(program, frames:)
+    game_player.run(program, frames: frames).audio.select { |entry| entry.first == :loudness && entry[1] == 4 }
+  end
+
+  # A DRUM HIT IS HELD THE SAME WAY, on the noise voice.
+  def test_a_swelling_drum_hit_stops_at_the_music_volume
+    entries = loudness_of_drum(swelling_drum_game { |count| music_volume 50 if count == 1 }, frames: 40)
+
+    assert_equal [:loudness, 4, 7], entries.last, "at half, the hit holds at 7 of 15"
+  end
+
+  def test_a_swelling_drum_hit_fades_out_with_the_music
+    entries = loudness_of_drum(swelling_drum_game { |count| fade_music_out frames: 20 if count == 30 }, frames: 80)
+
+    assert_equal [:loudness, 4, 0], entries.last, "the hit is silent at the end of the fade"
+  end
+
+  def test_a_held_drum_hit_swells_on_when_the_music_comes_back
+    entries = loudness_of_drum(swelling_drum_game do |count|
+      music_volume 50 if count == 1
+      music_volume 100 if count == 40
+    end, frames: 60)
+
+    assert_equal [:loudness, 4, 7, NoteFade.swelling(1)], entries.last, "struck at 7 again, swelling"
+  end
+
   # ...BUT A SWELLING NOTE THAT SLIDES IS LEFT ALONE, as the music volume leaves every sliding note:
   # striking it again would start its slide over.
   def test_a_swelling_note_that_slides_is_left_alone

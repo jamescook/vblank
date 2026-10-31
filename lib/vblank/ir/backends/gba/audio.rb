@@ -431,9 +431,9 @@ module VBlank
                 end
               end
             end
-            # ...and one that moves the music volume with no song's square note that swells by itself
+            # ...and one that moves the music volume with no song's note that swells by itself
             # holds none under it (see #emit_step_swells).
-            @swells = @scales && IR::Tunes.swelling_square_notes?(program)
+            @swells = @scales ? IR::Tunes.swelling_voice_kinds(program) : []
             @loops = IR::Tunes.played_songs(program).any? { |song| IR::Tunes.loop_frame(song).positive? }
             # A game whose every tune comes round emits nothing for one that ends.
             @any_plays_once = IR::Tunes.played_songs(program).any? { |song| IR::Tunes.plays_once?(song) }
@@ -972,7 +972,7 @@ module VBlank
               @emitter.emit_branch(:bl, SOUND_EFFECTS)
             end
             @emitter.place_label(finished)
-            emit_step_swells if in_interrupt && @swells
+            emit_step_swells if in_interrupt && @swells.any?
             emit_step_wobbles if in_interrupt && @wobbles
             emit_step_shapes if in_interrupt && @shape_steps
           end
@@ -2053,15 +2053,15 @@ module VBlank
           end
 
           # A SONG'S SWELLING NOTE HELD UNDER THE MUSIC VOLUME, as the player keeps it between frames,
-          # by the square voice it is on (IR::Tunes::Swell says how it is counted): the 64ths of a
+          # by the voice it is on (IR::Tunes::Swell says how it is counted): the 64ths of a
           # second each step lasts (nothing when the voice holds none), how loud the voice has it
           # now, the 256ths of a 64th counted toward its next step, whether it is still swelling, and
           # the note's two register values, to strike it again with.
           def self.swell_var(channel, what) = :"__swell_#{what}_#{channel}"
 
-          # Whether this lane's notes can be held under the music volume: a square voice, in a game
-          # that moves the music volume and has a song's square note that swells by itself.
-          def swells_on?(lane) = @swells && lane.kind == :square
+          # Whether this lane's notes can be held under the music volume: a voice of a kind that has a
+          # song's note that swells by itself, in a game that moves the music volume.
+          def swells_on?(lane) = @swells&.include?(lane.kind)
 
           # The song's note in NOTE_REG, just written to +lane+'s voice at the music volume, counted
           # from here when it swells by itself — its fade's four bits, 8 of them up and the step under
@@ -2118,9 +2118,8 @@ module VBlank
             @emitter.emit(ASM.load_immediate(TMP, loudest))
             @emitter.emit(ASM.mul(ceiling, LEVEL_REG, TMP))
             @emitter.emit(ASM.lsr_imm(ceiling, ceiling, IR::Tunes::LEVEL_SHIFT))
-            MUSIC_CHANNELS.each do |channel|
-              lane = Lane.new(:square, channel)
-              var = ->(what) { self.class.swell_var(channel, what) }
+            swell_lanes.each do |lane|
+              var = ->(what) { self.class.swell_var(lane.index, what) }
               past, held, hold, count, climb, climbed = Array.new(6) { @emitter.gensym }
               @primitives.load_var(step, var.call(:step))
               @emitter.emit(ASM.cmp_imm(step, 0))
@@ -2169,6 +2168,11 @@ module VBlank
               @primitives.store_var(volume, var.call(:volume))
               @emitter.place_label(past)
             end
+          end
+
+          def swell_lanes
+            lanes = MUSIC_CHANNELS.map { |channel| Lane.new(:square, channel) } + [Lane.new(:noise, NOISE_CHANNEL)]
+            lanes.select { |lane| swells_on?(lane) }
           end
 
           # +lane+'s voice struck again with the note it holds, at the volume in SWELL_VOLUME_REG: its

@@ -43,11 +43,11 @@ module VBlank
           # songs' notes are kept in the cartridge's banks (GBC::Music#banked?), +clips+ that it
           # plays a recording (GBC::Clips#any?), +clip_laps+ that it loops one (GBC::Clips#loops?), and +dark+ that it counts the frames its screen is
           # off for (Lowering#counts_dark_frames?), and +rumble+ that it runs a cartridge's motor
-          # (Lowering#rumbles?). +swells+ says a song's square note swells by itself in a game that
+          # (Lowering#rumbles?). +swells+ says a song's note swells by itself in a game that
           # moves the music volume (GBC::Music#swells?). +kept_sprites+ says a sprite placed as it was
           # on the pass before is left as it is (Lowering::Picture#keeps_unchanged_sprites?).
           def reserve(memory, art:, effects: [], together: false, bar_rows: nil, slides: false, wobbles: false,
-                      shapes: false, swells: false, banked_songs: false, clips: false, clip_laps: false, dark: false,
+                      shapes: false, swells: false, noise_swells: false, banked_songs: false, clips: false, clip_laps: false, dark: false,
                       rumble: false, kept_sprites: false)
             Clips.reserve(memory, laps: clip_laps) if clips
             Rumble.reserve(memory) if rumble
@@ -56,7 +56,7 @@ module VBlank
             Picture.reserve(memory, lends: art.lending, groups: art.groups?, bar_rows: bar_rows, rooms: art.rooms.any?)
             BigMaps.reserve(memory)
             Paint.reserve(memory, painting: art.painting?)
-            Music.reserve(memory, effects: effects, slides: slides, wobbles: wobbles, shapes: shapes, swells: swells,
+            Music.reserve(memory, effects: effects, slides: slides, wobbles: wobbles, shapes: shapes, swells: swells, noise_swells: noise_swells,
                                   banked: banked_songs)
           end
 

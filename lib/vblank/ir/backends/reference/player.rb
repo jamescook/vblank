@@ -228,7 +228,7 @@ module VBlank
                 if kind == :noise || IR::Tunes.changes_by_itself?(part, event)
                   @sounding.delete(channel) # rings and fades by itself (IR::Tunes.changes_by_itself?)
                   log_loudness(channel, written)
-                  hold_swell_under_level(channel, part, event, written) if kind == :square
+                  hold_swell_under_level(channel, part, event, written) if %i[square noise].include?(kind)
                 else
                   record_note_volume(channel, written)
                 end
@@ -262,10 +262,11 @@ module VBlank
             @swells.delete(channel)
           end
 
-          # A SONG'S SQUARE NOTE THAT SWELLS BY ITSELF, struck at +written+ under the music volume:
+          # A SONG'S SQUARE NOTE OR DRUM HIT THAT SWELLS BY ITSELF, struck at +written+ under the music volume:
           # counted from here, so it is held at the music volume (IR::Tunes::Swell). A note that slides
           # is left alone, as the music volume leaves it: striking it again would start its slide over.
           def hold_swell_under_level(channel, part, event, written)
+            @swells.delete(channel)
             fade = IR::Tunes.said_fade(part, event)
             return unless event[1].positive? && fade&.swells_by_itself?
             return if Audio::PitchSlide.moves?(IR::Tunes.said_slide(part, event))
