@@ -200,7 +200,7 @@ class TestSpriteDrawsWith < Minitest::Test
         frame += 1
         ships.each do |ship|
           if frame == 1
-            (ship.x == 80).then { ship.draw_with :hurt }
+            ship.draw_with :hurt if ship.x == 80
           end
           (frame == respawn_at).then { (ship.x == 80).then { ship.remove } } if respawn_at
         end

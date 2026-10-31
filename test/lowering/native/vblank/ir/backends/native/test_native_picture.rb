@@ -138,7 +138,7 @@ class TestNativePicture < Minitest::Test
         if dot.overlaps?(ring)
           hits += 1
         else
-          (dot.x > 100).then { inside.add! 1 }
+          inside += 1 if dot.x > 100
         end
       end
     end
