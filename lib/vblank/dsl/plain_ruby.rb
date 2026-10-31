@@ -45,7 +45,19 @@ module VBlank
 
       # What a game runs for +block+: the block rewritten, or as it is if it cannot be, as with one
       # made from a method, or one this module made already.
-      def game_block(block, allow: []) = rewritable?(block) ? rewrite(block, allow: allow) : block
+      def game_block(block, allow: [])
+        refuse_block_with_no_file!(block)
+        rewritable?(block) ? rewrite(block, allow: allow) : block
+      end
+
+      # A game read from standard input, or given with `ruby -e`, has no file to read back, so
+      # none of it could be read as normal Ruby. Run as it stands, `x += 1` would do nothing.
+      def refuse_block_with_no_file!(block)
+        return unless ["-", "-e"].include?(block.source_location&.first)
+
+        raise Refused, "This game has no file, so VBlank cannot read it. To fix this, save it in a " \
+                       "`.rb` file and run that file."
+      end
 
       # A lambda stays one, since it checks what it is given and a proc does not. `->` has its
       # arrow in its own text, and `lambda { }` does not.

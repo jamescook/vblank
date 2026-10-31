@@ -144,7 +144,7 @@ module VBlank
       # A number given to a key that a Hash of game variables does not hold is a misspelt key: it
       # would go in as a plain Ruby number, and the game's variable would stay as it was.
       def refuse_new_slot!(collection, key, value)
-        return unless collection.is_a?(Hash) && !collection.empty? && !value.is_a?(Value)
+        return unless collection.is_a?(Hash) && !collection.empty? && game_value?(value) && !value.is_a?(Symbol)
         return unless collection.each_value.all? { |each_value| variable?(each_value) }
 
         refuse!("This Hash holds game variables and has no key #{key.inspect}, so the game would never " \

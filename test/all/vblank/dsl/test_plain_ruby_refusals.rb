@@ -235,6 +235,21 @@ class TestPlainRubyRefusals < Minitest::Test
     end
   end
 
+  def test_a_list_can_go_in_a_hash_of_game_variables
+    built do
+      state = { a: var(:a, 1) }
+      state[:b] = list(:b, capacity: 4)
+      game_loop { wait_vblank }
+    end
+  end
+
+  def test_a_game_with_no_file_is_refused
+    block = eval("proc { game_loop { wait_vblank } }", binding, "-", 1) # rubocop:disable Security/Eval
+    error = assert_raises(Refused) { VBlank::DSL::PlainRuby.game_block(block) }
+
+    assert_includes error.message, "no file"
+  end
+
   def test_a_new_key_on_a_plain_hash_is_plain_ruby
     built do
       ball = { hp: 5 }

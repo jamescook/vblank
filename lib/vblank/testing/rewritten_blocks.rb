@@ -28,7 +28,10 @@ module VBlank
 
     # A test's own game names its helpers and fixtures, so its checks stay out here too.
     module UncheckedGameBlocks
-      def game_block(block, allow: []) = rewritable?(block) ? rewrite(block, allow: allow, checked: false) : block
+      def game_block(block, allow: [])
+        refuse_block_with_no_file!(block)
+        rewritable?(block) ? rewrite(block, allow: allow, checked: false) : block
+      end
     end
   end
 end
