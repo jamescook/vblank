@@ -33,6 +33,21 @@ class TestChipBandExample < Minitest::Test
        .map { |_, voice, _song, _pitch, _volume, fade| [voice, fade] }
   end
 
+  # FADING NOTES faded out with A: the chords' pad falls silent with the music.
+  def test_a_fades_the_swelling_pad_with_the_music
+    player = game_player
+    frame = 0
+    player.input_each_frame do
+      frame += 1
+      next [:down] if frame.between?(21, 23)
+
+      frame.between?(60, 62) ? [:a] : []
+    end
+    log = player.run(ChipBand.program(console: game_console), frames: 130).audio
+
+    assert_equal [:loudness, 2, 0], log.select { |entry| entry.first == :loudness && entry[1] == 2 }.last
+  end
+
   def test_the_first_tune_holds_every_note
     played = voices_set(log_after(0), :held)
 

@@ -3,7 +3,8 @@
 
 # Chip Band — what the console's own sound voices can do with a note, one tune at a time.
 #
-# The screen lists the tunes; press UP or DOWN and the highlighted one plays. Every tune here
+# The screen lists the tunes; press UP or DOWN and the highlighted one plays, and press A to fade
+# the music out and back. Every tune here
 # plays on the voices the console makes itself — two square waves and the hiss — with no
 # recording anywhere, which is all a Game Boy Color has for music. So it builds for the Advance
 # and the Color, and sounds the same on both.
@@ -249,8 +250,22 @@ module ChipBand
     clear_screen :black
     draw_text "CHIP BAND", :center, title_y, :white
     draw_text "PRESS UP OR DOWN", :center, title_y + 12, :gray
+    draw_text "A FADES THE MUSIC", :center, title_y + 24, :gray
 
+    faded = false
     game_loop do
+      # The music fades out and back, and every note goes with it, a swelling one too: the pad of
+      # FADING NOTES stops climbing where the music is, falls away with it, and swells on when it
+      # comes back.
+      if pressed(:a)
+        if faded
+          fade_music_in frames: 30
+        else
+          fade_music_out frames: 30
+        end
+        faded = !faded
+      end
+
       # Whichever row the cursor is on is the tune that plays: naming the tune playing changes
       # nothing, and naming another starts it from its first note.
       tunes = menu :tunes, at: [screen_width / 6, screen_height / 2], color: :gray, picked: :yellow do |m|
