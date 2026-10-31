@@ -47,9 +47,9 @@ class TestBackgroundTileSetsOnTheAdvance < Minitest::Test
       where = var :room, 0
       pass = var :pass, 0
       game_loop do
-        pass.add! 1
-        (pass == 3).then { where.set! 1 }
-        (pass == 6).then { where.set! 0 }
+        pass += 1
+        where = 1 if pass == 3
+        where = 0 if pass == 6
         ground.show_map where
         scenery.show_map where
       end
@@ -261,15 +261,15 @@ class TestBackgroundTileSetsOnTheAdvance < Minitest::Test
       end
       scene(:two) { ground.call }
       game_loop do
-        tick.add! 1
-        (tick == 3).then { where.set! 1 }
+        tick += 1
+        where = 1 if tick == 3
         (tick == 6).then do
-          state.set! 1
-          where.set! 0
+          state = 1
+          where = 0
         end
-        (tick == 8).then { where.set! 1 }
-        (tick == 10).then { state.set! 0 }
-        (tick == 12).then { where.set! 0 }
+        where = 1 if tick == 8
+        state = 0 if tick == 10
+        where = 0 if tick == 12
         case_var(:state) do
           when_val 0, :one
           when_val 1, :two
