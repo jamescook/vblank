@@ -7,8 +7,8 @@ module VBlank
     # A game block written in normal Ruby.
     #
     # A block runs once, while the game is built, to record what the game will do. Ruby lets
-    # nobody change what `if`, `&&` or `x = 1` mean, so underneath they are the calls `.then`,
-    # `&` and `set!`. This reads the block's own source with Prism and writes those few
+    # nobody change what `if`, `&&` or `x = 1` mean, so underneath they are calls that record
+    # a branch, a join and a change. This reads the block's own source with Prism and writes those few
     # constructs out as calls, and runs that instead. Everything else in the block, the verbs
     # above all, is left as it was written.
     #
@@ -47,8 +47,10 @@ module VBlank
       # made from a method, or one this module made already.
       def game_block(block, allow: [])
         refuse_block_with_no_file!(block)
-        rewritable?(block) ? rewrite(block, allow: allow) : block
+        rewritable?(block) ? rewrite(block, allow: allow, checked: game_blocks_checked?) : block
       end
+
+      def game_blocks_checked? = true
 
       # A game read from standard input, given with `ruby -e` or made by `eval` has no file to read
       # back, so none of it could be read as normal Ruby. Run as it stands, `x += 1` would do nothing.
@@ -98,7 +100,7 @@ module VBlank
         starting = blocks.fetch(line, [])
         found = starting.one? ? starting.first : node_at_column(starting, block)
         unless found.is_a?(Prism::BlockNode) || found.is_a?(Prism::LambdaNode)
-          raise ArgumentError, "No block starts at line #{line}, so this game cannot be read."
+          raise Refused, "No block starts at line #{line}, so this game cannot be read."
         end
 
         [source, found]
@@ -172,7 +174,7 @@ module VBlank
 
         def rewritten(node)
           @names = LocalNames.new(node)
-          text(node)
+          rewritten_text(node)
         end
 
         private
@@ -182,22 +184,22 @@ module VBlank
         # Only the line ends between two places, so what follows keeps its line number.
         def line_ends_between(from, upto) = "\n" * between(from, upto).count("\n")
 
-        def text(node)
+        def rewritten_text(node)
           case node
           when Prism::IfNode, Prism::UnlessNode then conditional_text(node)
           when Prism::WhileNode then loop_text(node, "loop_while")
           when Prism::UntilNode then loop_text(node, "loop_until")
-          when Prism::AndNode then joined_text(node, "both")
-          when Prism::OrNode then joined_text(node, "either")
+          when Prism::AndNode then joined_text(node, "join_both")
+          when Prism::OrNode then joined_text(node, "join_either")
           when Prism::CallNode then call_text(node)
           when Prism::LocalVariableWriteNode then guarded_write_text(node, write_text(node))
           when Prism::LocalVariableOperatorWriteNode then guarded_write_text(node, change_text(node))
-          when Prism::LocalVariableOrWriteNode then logic_write_text(node, "either")
-          when Prism::LocalVariableAndWriteNode then logic_write_text(node, "both")
+          when Prism::LocalVariableOrWriteNode then logic_write_text(node, "join_either")
+          when Prism::LocalVariableAndWriteNode then logic_write_text(node, "join_both")
           when Prism::InstanceVariableWriteNode then instance_variable_write_text(node)
           when Prism::InstanceVariableOperatorWriteNode then change_text(node)
           when Prism::IndexOperatorWriteNode then place_change_text(node, index_text(node))
-          when Prism::CallOperatorWriteNode then place_change_text(node, "#{text(node.receiver)}.#{node.read_name}")
+          when Prism::CallOperatorWriteNode then place_change_text(node, "#{rewritten_text(node.receiver)}.#{node.read_name}")
           when Prism::ReturnNode, Prism::BreakNode, Prism::NextNode then jump_text(node)
           when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then own_scope_text(node)
           else copied_text(node)
@@ -214,7 +216,7 @@ module VBlank
             start = child.location.start_offset
             next "" if start < at || start >= ends
 
-            piece = between(at, start) + text(child)
+            piece = between(at, start) + rewritten_text(child)
             at = child.location.end_offset
             piece
           end
@@ -271,7 +273,7 @@ module VBlank
           "#{STEPS}.assign_attribute(#{argument(node.receiver)}, :#{name}, #{value})"
         end
 
-        def index_text(node) = "#{text(node.receiver)}[#{node.arguments ? text(node.arguments) : ''}]"
+        def index_text(node) = "#{rewritten_text(node.receiver)}[#{node.arguments ? rewritten_text(node.arguments) : ''}]"
 
         # `+=` on a place. The block is what Ruby would do, for a place that holds no variable.
         def place_change_text(node, place)
@@ -299,7 +301,8 @@ module VBlank
           prefix = between(node.location.start_offset, node.value.location.start_offset)
           case @names.action_for(node)
           when :declare then "#{prefix}#{declaration(node)}"
-          when :start then "#{prefix}#{STEPS}.start(#{declaration(node)}, #{text(node.value)})"
+          # The line that makes a variable in game code sets it on every pass, as Ruby would.
+          when :start then "#{prefix}#{STEPS}.assign(#{declaration(node)}, #{rewritten_text(node.value)})"
           when :assign then "#{prefix}#{STEPS}.assign(#{node.name}, (#{value_text(node.value)}))"
           when :reassign then "#{prefix}#{STEPS}.reassign(#{node.name}, (#{value_text(node.value)}))"
           else "#{prefix}#{kept_value_text(node.value)}"
@@ -308,23 +311,23 @@ module VBlank
 
         # A constant can hold anything, so whether it starts a variable is asked as the line runs.
         def declaration(node)
-          made = "var(:#{@names.variable_name_of(node)}, #{text(node.value)})"
+          made = "var(:#{@names.variable_name_of(node)}, #{rewritten_text(node.value)})"
           return made if LocalNames.number?(node)
 
-          "(#{STEPS}.game_value?(#{text(node.value)}) ? #{made} : #{text(node.value)})"
+          "(#{STEPS}.game_value?(#{rewritten_text(node.value)}) ? #{made} : #{rewritten_text(node.value)})"
         end
 
         def kept_value_text(value)
           return value_text(value) unless value.is_a?(Prism::LocalVariableReadNode) && @names.variable_read?(value)
 
-          "#{STEPS}.copy(#{text(value)})"
+          "#{STEPS}.copy_of_variable(#{rewritten_text(value)})"
         end
 
         def value_text(value)
           return "(#{value_text(lone_statement(value))})" if lone_statement(value)
 
           conditional = value.is_a?(Prism::IfNode) || value.is_a?(Prism::UnlessNode)
-          conditional ? conditional_text(value, kept: true) : text(value)
+          conditional ? conditional_text(value, kept: true) : rewritten_text(value)
         end
 
         # `x ||= value`. On a game variable it is `x = x || value`, so a yes or no is set as the
@@ -332,7 +335,7 @@ module VBlank
         def logic_write_text(node, step)
           return copied_text(node) unless @names.action_for(node)
 
-          "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{text(node.value)} })"
+          "#{node.name} = #{STEPS}.assign(#{node.name}, #{STEPS}.#{step}(#{node.name}) { #{rewritten_text(node.value)} })"
         end
 
         def change_text(node)
@@ -344,15 +347,15 @@ module VBlank
           jump = jump_in(node.right)
           return jump_after_join_text(node, step, jump) if jump
 
-          "#{STEPS}.#{step}(#{argument(node.left)}) { #{text(node.right)} }"
+          "#{STEPS}.#{step}(#{argument(node.left)}) { #{rewritten_text(node.right)} }"
         end
 
         # `found or next`. The right side of a join goes in a block, and a `next` or `break` in that
         # block would leave only it, so a join that jumps is written out with no block at all.
         def jump_after_join_text(node, step, jump)
           left = "__plain_ruby_#{@answers += 1}"
-          right = "(#{text(node.right)})"
-          sides = step == "either" ? "#{left} : #{right}" : "#{right} : #{left}"
+          right = "(#{rewritten_text(node.right)})"
+          sides = step == "join_either" ? "#{left} : #{right}" : "#{right} : #{left}"
           "(#{left} = #{argument(node.left)}; #{STEPS}.answer_before_jump(#{left}, :#{jump_word(jump)}) ? #{sides})"
         end
 
@@ -368,7 +371,7 @@ module VBlank
 
         # A value handed to a step. The parentheses are for a call written without its own, like
         # `actions = menu :actions do ... end`, which Ruby takes alone but not as an argument.
-        def argument(node) = "(#{text(node)})"
+        def argument(node) = "(#{rewritten_text(node)})"
 
         # A real `while`: a plain test goes round as usual, and a game test's body runs once,
         # recording itself into a loop the game makes.
@@ -379,13 +382,13 @@ module VBlank
           opened = node.predicate.location.end_offset
           shut_at = node.closing_loc&.start_offset || node.location.end_offset
           body = under_open_test(test) do
-            if trailing then text(statements)
+            if trailing then rewritten_text(statements)
             elsif statements then side_text(opened, statements, shut_at)
             else line_ends_between(opened, shut_at)
             end
           end
           first = node.begin_modifier? ? "#{body}; " : ""
-          "(#{test} = #{STEPS}.#{step} { #{text(node.predicate)} }; #{first}while #{test}.again?; #{body}; end)"
+          "(#{test} = #{STEPS}.#{step} { #{rewritten_text(node.predicate)} }; #{first}while #{test}.go_round; #{body}; end)"
         end
 
         # What a pair of parentheses holds, when that is one conditional.
@@ -404,7 +407,7 @@ module VBlank
           sides = under_open_test(answer) do
             "#{yes_side_text(node, answer, shut_at, kept)}#{no_side_text(node, answer, shut_at, kept)}"
           end
-          "(#{answer} = #{STEPS}.test(#{test_text(node)}); #{sides}#{answer}.#{kept ? 'kept' : 'answer'})"
+          "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{sides}#{answer}.#{kept ? 'picked_value' : 'answer'})"
         end
 
         def test_text(node)
@@ -413,18 +416,18 @@ module VBlank
 
         def other_side(node) = node.is_a?(Prism::UnlessNode) ? node.else_clause : node.subsequent
 
-        def side_step(kept) = kept ? "keep" : "finish"
+        def side_step(kept) = kept ? "keep_side_value" : "close_side"
 
         def yes_side_text(node, answer, shut_at, kept)
           statements = node.statements
           trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
           ends = other_side(node)&.location&.start_offset || shut_at
           opened = node.predicate.location.end_offset
-          body = if trailing then text(statements)
+          body = if trailing then rewritten_text(statements)
                  elsif statements then side_text(opened, statements, ends)
                  else line_ends_between(opened, ends)
                  end
-          "if #{answer}.run_yes_side?; #{answer}.#{side_step(kept)}((#{body})); end; "
+          "if #{answer}.open_yes_side; #{answer}.#{side_step(kept)}((#{body})); end; "
         end
 
         def no_side_text(node, answer, shut_at, kept)
@@ -438,13 +441,13 @@ module VBlank
                  else
                    "#{conditional_text(other, kept: kept)}#{line_ends_between(other.location.end_offset, shut_at)}"
                  end
-          "if #{answer}.run_no_side?; #{answer}.#{side_step(kept)}((#{body})); end; "
+          "if #{answer}.open_no_side; #{answer}.#{side_step(kept)}((#{body})); end; "
         end
 
         # One side's statements. What follows them is kept as written, because a heredoc's
         # lines sit there, past the end of the statement that opened it.
         def side_text(opened, statements, ends)
-          "#{line_ends_between(opened, statements.location.start_offset)}#{text(statements)}" \
+          "#{line_ends_between(opened, statements.location.start_offset)}#{rewritten_text(statements)}" \
             "#{between(statements.location.end_offset, ends)}"
         end
       end

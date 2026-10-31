@@ -31,7 +31,7 @@ module VBlank
 
       # A conditional's test, as an object the rewritten `if` asks which sides to run. A number
       # worked out for it is truthy and used for nothing more, so no check counts it as dropped.
-      def test(value)
+      def branch_test(value)
         return GameTest.new(as_condition(value)) if game_test?(value)
 
         value.discard if value.is_a?(Value)
@@ -47,7 +47,7 @@ module VBlank
 
       # `&&`. Ruby skips the right side once the left has decided. A game test cannot: both
       # sides are worked out as the game plays, whichever way the left turns out.
-      def both(left)
+      def join_both(left)
         return left && yield unless game_test?(left)
 
         condition = as_condition(left)
@@ -61,7 +61,7 @@ module VBlank
       end
 
       # `||`, the same way round.
-      def either(left)
+      def join_either(left)
         return left || yield unless game_test?(left)
 
         condition = as_condition(left)
@@ -99,7 +99,7 @@ module VBlank
       # game writes `&&` and `||`, which the rest of these steps read.
       def bits(left, operator, right)
         if left.is_a?(Condition)
-          refuse!("`#{operator}` does not join tests. To fix this, write `#{operator}#{operator}`.")
+          refuse_game_code!("`#{operator}` does not join tests. To fix this, write `#{operator}#{operator}`.")
         end
 
         left.public_send(operator, right)
@@ -110,7 +110,7 @@ module VBlank
 
       # Put +value+ in a game variable. A yes or no is kept as 1 or 0, and a test's answer is
       # worked out as the game plays.
-      def store(target, value)
+      def store_in_variable(target, value)
         case value
         when true then target.set!(1)
         when false then target.set!(0)
@@ -121,12 +121,12 @@ module VBlank
 
       def store_answer(target, condition)
         answer = GameTest.new(condition)
-        answer.run_yes_side?
+        answer.open_yes_side
         target.set!(1)
-        answer.finish(nil)
-        answer.run_no_side?
+        answer.close_side(nil)
+        answer.open_no_side
         target.set!(0)
-        answer.finish(nil)
+        answer.close_side(nil)
       end
 
       # `x = value` where x is a game variable.
@@ -134,7 +134,7 @@ module VBlank
         return value unless variable?(target)
         return target if value.equal?(target)
 
-        store(target, value)
+        store_in_variable(target, value)
         target
       end
 
@@ -144,7 +144,7 @@ module VBlank
       def reassign(target, value)
         return value if !variable?(target) || variable?(value)
 
-        store(target, value)
+        store_in_variable(target, value)
         target
       end
 
@@ -174,7 +174,7 @@ module VBlank
         refuse_new_slot!(collection, keys.first, value) if current.nil?
         return collection[*keys] = value unless variable?(current)
 
-        store(current, value)
+        store_in_variable(current, value)
       end
 
       # A number given to a key that a Hash of game variables does not hold is a misspelt key: it
@@ -183,7 +183,7 @@ module VBlank
         return unless collection.is_a?(Hash) && !collection.empty? && game_value?(value) && !value.is_a?(Symbol)
         return unless collection.each_value.all? { |each_value| variable?(each_value) }
 
-        refuse!("This Hash holds game variables and has no key #{key.inspect}, so the game would never " \
+        refuse_game_code!("This Hash holds game variables and has no key #{key.inspect}, so the game would never " \
                 "see this number. The keys are #{collection.keys.map(&:inspect).join(', ')}. To fix " \
                 "this, use one of those keys.")
       end
@@ -193,7 +193,7 @@ module VBlank
         current = receiver.public_send(name) if receiver.respond_to?(name)
         return receiver.public_send(:"#{name}=", value) unless variable?(current)
 
-        store(current, value)
+        store_in_variable(current, value)
       end
 
       # A plain number changed by code the game runs would change once, while building, and the
@@ -201,23 +201,15 @@ module VBlank
       def refuse_lost_number!(name, recording_game_code)
         return unless recording_game_code
 
-        refuse!("`#{name}` is a plain number, and this line runs as the game plays, so the game " \
+        refuse_game_code!("`#{name}` is a plain number, and this line runs as the game plays, so the game " \
                 "will never see the change. To fix this, start it with `#{name} = var :#{name}, 0`.")
-      end
-
-      # The line that makes a variable in game code runs on every pass, as a Ruby line would.
-      def start(variable, value)
-        return value unless variable?(variable)
-
-        store(variable, value)
-        variable
       end
 
       # `old = hp`. While the game plays that must keep hp's number as it is now, where a plain
       # second name would follow hp when it changes.
-      def copy(value) = variable?(value) ? value.kept_copy : value
+      def copy_of_variable(value) = variable?(value) ? value.kept_copy : value
 
-      def refuse!(message)
+      def refuse_game_code!(message)
         raise PlainRuby::Refused, "#{message}#{Messages::AuthorSource.at_author_line}"
       end
 
@@ -228,7 +220,7 @@ module VBlank
         return unless game_test?(right)
         return if (compared_variables(left.node) & list_index_variables(right.node)).empty?
 
-        refuse!("The right side of `#{word}` reads a list, and a game works out both sides every " \
+        refuse_game_code!("The right side of `#{word}` reads a list, and a game works out both sides every " \
                 "time. An index the left side rules out still stops the game. To fix this, put one " \
                 "`if` inside another.")
       end
@@ -248,16 +240,16 @@ module VBlank
       class BuildTest
         attr_reader :answer
 
-        alias kept answer
+        alias picked_value answer
 
         def initialize(value)
           @value = value
         end
 
-        def run_yes_side? = !!@value
-        def run_no_side? = !@value
-        def finish(value) = @answer = value
-        def keep(value) = @answer = value
+        def open_yes_side = !!@value
+        def open_no_side = !@value
+        def close_side(value) = @answer = value
+        def keep_side_value(value) = @answer = value
         def refuse_jump!(_word) = nil
       end
 
@@ -268,39 +260,39 @@ module VBlank
           @condition = condition
         end
 
-        def run_yes_side?
+        def open_yes_side
           @if_node = @condition.open_branch
           true
         end
 
-        def run_no_side?
+        def open_no_side
           @other_side = true
           @condition.open_other_branch(@if_node)
           true
         end
 
-        def finish(_value) = @condition.close_branch
+        def close_side(_value) = @condition.close_branch
         def answer = nil
 
         # A side's value, for `x = test ? a : b`. There is no way to pick one of two numbers in
         # the game, so each side stores its number in one hidden variable.
-        def keep(value)
+        def keep_side_value(value)
           yes_no = [true, false].include?(value) || value.is_a?(Condition)
           unless yes_no || value.is_a?(Integer) || value.is_a?(Value)
-            PlainRubySteps.refuse!("A test made as the game plays can only choose between numbers, " \
+            PlainRubySteps.refuse_game_code!("A test made as the game plays can only choose between numbers, " \
                                    "or between `true` and `false`. This side is #{value.inspect}. A " \
                                    "game variable cannot hold that.")
           end
           @kept ||= @condition.hidden_variable
           @kept.yes_no! if yes_no || (value.is_a?(Value) && value.yes_no?)
-          PlainRubySteps.store(@kept, value)
+          PlainRubySteps.store_in_variable(@kept, value)
           @condition.close_branch
         end
 
-        def kept
+        def picked_value
           return @kept if @other_side
 
-          PlainRubySteps.refuse!("`x = if ...` needs an `else`. Without one, x has no number when " \
+          PlainRubySteps.refuse_game_code!("`x = if ...` needs an `else`. Without one, x has no number when " \
                                  "the test fails, and a game has no nil. To fix this, add an `else`.")
         end
 
@@ -308,7 +300,7 @@ module VBlank
       end
 
       def refuse_jump!(word)
-        refuse!("`#{word}` cannot leave code the game runs as it plays. This block only records " \
+        refuse_game_code!("`#{word}` cannot leave code the game runs as it plays. This block only records " \
                 "what the game will do, so there is nothing to #{word} from yet. To fix this, " \
                 "put the test in the `if` or `while` around this code.")
       end
@@ -322,7 +314,7 @@ module VBlank
           @stops_when = stops_when
         end
 
-        def again?
+        def go_round
           return close_game_loop if @game_loop
 
           value = @test.call

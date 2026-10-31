@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.required_ruby_version = ">= 4.0"
 
+  spec.add_dependency "prism"
   spec.add_dependency "thor", "~> 1.3"
 
   spec.add_development_dependency "rake", "~> 13.0"

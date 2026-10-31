@@ -56,10 +56,10 @@ module VBlank
       # A variable started with `true` or `false` holds a yes or no, kept as 1 or 0. It is the one
       # kind a game can test on its own, `if alive`, as a Ruby value can be.
       def remember_yes_no_variable(name)
-        (@yes_no_variables ||= {})[name] = true
+        @yes_no_variables[name] = true
       end
 
-      def yes_no_variable?(name) = (@yes_no_variables || {}).key?(name)
+      def yes_no_variable?(name) = @yes_no_variables.key?(name)
 
       # Declare a variable whose value survives the console being turned off — a high
       # score, an unlock, a setting. It works exactly like {#var}: you get the same

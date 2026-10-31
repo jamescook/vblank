@@ -34,7 +34,7 @@ module VBlank
         GAME_BLOCK_VERBS = %i[game_loop scene func each_pass once_a_frame on_tick].freeze
 
         def self.refuse_outside_constant!(constants, nesting:, folder:, allow:, file:)
-          library = "#{VBlank.root.join('lib')}/"
+          library = library_folder
           constants.each do |name, line|
             next if RUBY_BASICS.include?(name) || allow.include?(name.to_s)
             next if game_constant?(name, nesting, [folder, library])
@@ -46,6 +46,8 @@ module VBlank
                            "(at #{file}:#{line})"
           end
         end
+
+        def self.library_folder = "#{VBlank.root.join('lib')}/"
 
         def self.game_constant?(name, nesting, folders)
           owner = nesting.find { |mod| mod.const_defined?(name, false) } || Object
@@ -74,7 +76,7 @@ module VBlank
         def refuse_game_code_in_plain_files!(from = @file, seen = [])
           files_loaded_by(from, :require_game_file).each { |path, _line| refuse_game_code_in_plain_files!(path, seen) }
           files_loaded_by(from, :require_relative).each do |path, line|
-            next if seen.include?(path) || path.start_with?("#{VBlank.root.join('lib')}/")
+            next if seen.include?(path) || path.start_with?(self.class.library_folder)
 
             seen << path
             refuse_plain_file!(path, from, line) if game_code?(Prism.parse_file(path).value)

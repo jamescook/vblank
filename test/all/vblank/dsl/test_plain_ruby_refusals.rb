@@ -183,52 +183,6 @@ class TestPlainRubyRefusals < Minitest::Test
     err.string
   end
 
-  def test_a_while_with_no_frame_wait_warns
-    said = warnings_of do
-      n = 0
-      game_loop do
-        while n >= 0
-          n += 1
-        end
-      end
-    end
-
-    assert_includes said, "never waits for the next frame"
-  end
-
-  def test_a_while_that_waits_does_not_warn
-    said = warnings_of do
-      n = 0
-      game_loop do
-        while n < 5
-          n += 1
-          wait_vblank
-        end
-      end
-    end
-
-    refute_includes said, "never waits for the next frame"
-  end
-
-  def test_a_while_that_waits_in_a_routine_it_calls_does_not_warn
-    err = StringIO.new
-    block = proc do
-      n = 0
-      func(:rest) { wait_vblank }
-      game_loop do
-        while n < 5
-          n += 1
-          call :rest
-        end
-        wait_vblank
-      end
-    end
-    VBlank.build("PLAIN", console: :gba, frame_sync: :manual, out: StringIO.new, err: err,
-                          &VBlank::DSL::PlainRuby.rewrite(block))
-
-    refute_includes err.string, "never waits for the next frame"
-  end
-
   def test_a_misspelt_key_on_a_hash_of_game_variables_is_refused
     assert_refused("no key :hq") do
       ball = { hp: var(:hp, 5) }

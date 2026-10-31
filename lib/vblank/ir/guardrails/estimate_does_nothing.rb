@@ -4,7 +4,7 @@ module VBlank
   module IR
     module Guardrails
       module Checks
-        # An `estimate:` written on a list, a pool, a `repeat`, a `.then` or a stretched shape.
+        # An `estimate:` written on a list, a pool, a `repeat` or a stretched shape.
         #
         # Nothing reads one (why is at Builder#record_estimate_line), which is why this is a
         # warning and not an error: the game plays exactly the same, and the author can delete

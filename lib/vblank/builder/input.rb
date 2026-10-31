@@ -106,7 +106,7 @@ module VBlank
       end
 
       # held/pressed hand back a Condition and take no block. A block here means a
-      # dropped `.then` — the block would attach to held/pressed and be silently
+      # game test written with a block — the block would attach to held/pressed and be silently
       # ignored — so name the fix instead of losing the code.
       def reject_block!(verb, button)
         raise ArgumentError,

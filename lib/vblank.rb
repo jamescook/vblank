@@ -31,6 +31,8 @@ end
 #   ir needs AUDIO, because a backend sizes its music player from what a tune is.
 #   dsl needs IR, because a handle a game holds is a way of building a node.
 #   effects needs BUILDER, because an effect pack adds verbs to it.
+#   dsl, builder and effects need CARTRIDGE first, because each loads files of game code through
+#     VBlank.require_game_file, which cartridge defines.
 #   playthroughs needs CONSOLE and GRAPHICS, because a comparison takes the size of the screen
 #     and the colour it marks a difference in while its classes are being defined.
 #

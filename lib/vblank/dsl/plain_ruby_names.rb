@@ -12,7 +12,7 @@ module VBlank
       class LocalNames
         # The verbs whose blocks hold code the game runs as it plays. A plain Ruby block, like
         # the one given to `8.times`, runs while building however it is nested.
-        GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick then else item].freeze
+        GAME_VERBS = %i[game_loop scene func each_pass every after repeat once_a_frame on_tick item].freeze
 
         ARITHMETIC = %i[+ - * / % << >> -@ abs].freeze
 
@@ -85,7 +85,7 @@ module VBlank
           @ruby_iteration_writes = {}.compare_by_identity
           @names_used = Hash.new(0)
           @iterating_in_game_code = false
-          read(block_node, [], false)
+          read_names(block_node, [], false)
         end
 
         # What a rewritten `x = ...` does: nil to leave it, :declare for the line that makes a
@@ -132,7 +132,7 @@ module VBlank
           used == 1 ? name : :"#{name}_#{used}"
         end
 
-        def read(node, scopes, in_game_code)
+        def read_names(node, scopes, in_game_code)
           case node
           when Prism::BlockNode, Prism::LambdaNode then read_block(node, scopes, in_game_code)
           when Prism::DefNode then read_block(node, [], false)
@@ -151,7 +151,7 @@ module VBlank
         end
 
         def read_children(node, scopes, in_game_code)
-          node.compact_child_nodes.each { |child| read(child, scopes, in_game_code) }
+          node.compact_child_nodes.each { |child| read_names(child, scopes, in_game_code) }
         end
 
         def read_call(node, scopes, in_game_code)
@@ -159,7 +159,7 @@ module VBlank
             next read_ruby_iteration(child, scopes, in_game_code) if child.is_a?(Prism::BlockNode) && ruby_iteration?(node)
 
             game_block = child.is_a?(Prism::BlockNode) && GAME_VERBS.include?(node.name)
-            read(child, scopes, in_game_code || game_block)
+            read_names(child, scopes, in_game_code || game_block)
           end
         end
 
@@ -181,7 +181,7 @@ module VBlank
         def read_ruby_iteration(block, scopes, in_game_code)
           outer = @iterating_in_game_code
           @iterating_in_game_code = outer || in_game_code
-          read(block, scopes, false)
+          read_names(block, scopes, false)
         ensure
           @iterating_in_game_code = outer
         end

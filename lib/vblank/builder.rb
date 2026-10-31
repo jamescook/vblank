@@ -130,6 +130,9 @@ module VBlank
       @sound_enabled = false
       @debug_halted = false
       @repeat_seq = 0          # counts repeat loops, to name each one's hidden index var
+      @game_whiles = 0         # how many game `while` loops are open now
+      @hidden_variables = 0    # counts the variables a picked value keeps its answer in
+      @yes_no_variables = {}   # the variables started with `true` or `false`
       @timer_seq = 0           # counts every/after timers, to name each one's hidden counter var
       @rng_seq = 0             # counts anonymous random draws, to name each one's hidden var
       @approach_seq = 0        # counts approach calls, to name each one's hidden delta var
@@ -352,7 +355,7 @@ module VBlank
     end
 
     # AN `estimate:` DOES NOTHING, whatever it says, except have its line kept. A list, a pool, a `repeat`, a
-    # `.then` and a stretched rectangle or column once took one — `{ usually: N }`, how big or
+    # a test and a stretched rectangle or column once took one — `{ usually: N }`, how big or
     # how often the thing normally was — for a cost estimate that worked a frame's time out from
     # the program. That estimate is gone: the build measures a game by running it. A game
     # written while the hint meant something still says it, so it is not refused; the line is
@@ -788,7 +791,7 @@ module VBlank
     # The hook behind Condition#when_true: record an `if`
     # node from an already-built condition node and gather the block's statements
     # into it, returning the node so an `else` can attach to it. A {Condition}
-    # calls this; user code writes `.then`, not this.
+    # calls this; a game writes `if`, not this.
     def record_conditional(cond_node, &block)
       if_node = Build.if_(cond_node)
       push_container(if_node) do
@@ -838,7 +841,7 @@ module VBlank
       @pending_conditions << condition
     end
 
-    # A {Condition} was used — branched on with `.then`, or folded into another via
+    # A {Condition} was used — branched on, or folded into another via
     # `&` / `|` — so peel it back out of the pending set.
     def consume_condition(condition)
       @pending_conditions.delete(condition)
@@ -923,7 +926,7 @@ module VBlank
       node = Build.repeat(DSL::Value.node_for(most_passes), index, stop_when: stop_node)
       record(node)
       @container_stack.push(node)
-      @game_whiles = (@game_whiles || 0) + 1
+      @game_whiles += 1
     end
 
     def close_repeat
@@ -932,12 +935,12 @@ module VBlank
     end
 
     # Is a `while` on a game test open, in normal Ruby? (see #wait_vblank)
-    def inside_game_while? = (@game_whiles || 0).positive?
+    def inside_game_while? = @game_whiles.positive?
 
     # A variable of its own for a number the author never named: a value picked between two,
     # or a number kept (see PlainRubySteps). Nothing reads it before something has set it.
     def hidden_variable
-      @hidden_variables = (@hidden_variables || 0) + 1
+      @hidden_variables += 1
       name = :"__kept_#{@hidden_variables}"
       ensure_var(name)
       DSL::Value.new(self, Build.var_ref(name), name: name)

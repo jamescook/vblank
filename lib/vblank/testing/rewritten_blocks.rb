@@ -22,16 +22,13 @@ module VBlank
 
       private def test_block?(block)
         block && DSL::PlainRuby.rewritable?(block) &&
-          !block.source_location.first.start_with?(VBlank.root.join("lib").to_s)
+          !block.source_location.first.start_with?(DSL::PlainRuby::BlockChecks.library_folder)
       end
     end
 
     # A test's own game names its helpers and fixtures, so its checks stay out here too.
     module UncheckedGameBlocks
-      def game_block(block, allow: [])
-        refuse_block_with_no_file!(block)
-        rewritable?(block) ? rewrite(block, allow: allow, checked: false) : block
-      end
+      def game_blocks_checked? = false
     end
   end
 end

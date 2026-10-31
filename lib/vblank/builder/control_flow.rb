@@ -7,7 +7,7 @@ module VBlank
     # low-level comparison verbs (if_eq/if_ne/…). A concern of {Builder}, mixed in
     # so these stay flat DSL verbs.
     #
-    # The `.then`/`.else` hooks the Condition/Branch handles call back into
+    # The hooks the Condition and Branch handles call back into
     # (record_conditional, record_else) are the builder's public seam and live in
     # the core, not here — these are just the verbs.
     module ControlFlow

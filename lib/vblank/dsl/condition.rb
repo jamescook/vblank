@@ -45,7 +45,8 @@ module VBlank
       # Every Ruby object has `then`, which would run the block while the game is built and
       # record its body with no test around it. A test is branched on with `if`.
       def then(*)
-        raise ArgumentError, "`.then` does not branch on a test. To fix this, write `if`: `if x > 5 ... end`."
+        raise ArgumentError, "`.then` does not branch on a test. To fix this, write `if`: `if x > 5 ... end`." \
+                             "#{" (at #{@source})" if @source}"
       end
 
       # The library's own branch on a test, for code recording statements by hand. Records an
