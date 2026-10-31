@@ -360,20 +360,34 @@ module VBlank
   # and pool held at its capacity (see Profiler.growth_in). That is the bug a collection sized
   # for the worst moment of a game and walked item by item every frame causes — fine for the
   # whole of development, and too slow in the one session that fills it.
+  #
+  # It says what that run used most and no more than that: a count of uses is not a price, so the
+  # names are where to start looking, not a verdict.
   def self.warn_of_collections_that_fill(survey, err)
     survey.growths.each do |growth|
       where = growth.scene ? "The #{growth.scene.inspect} scene keeps" : "This game keeps"
       named = growth.collections.map { |c| "#{c.label}, which can hold #{c.capacity}" }
-      full = growth.together ? "With all of them full at the same time" : "With #{named.one? ? 'it' : 'them'} full"
       err.puts <<~MSG
 
-        #{where} up at 60 frames a second now. But it uses
-        #{named.join(', and ')}.
-        #{full}, it runs at about #{growth.reading.fps.round} frames a second, and the whole game
-        moves more slowly. To fix this, give #{named.one? ? 'it' : 'them'} a smaller capacity, or
+        #{where} up at 60 frames a second now. If all of its lists and pools
+        fill, it runs at about #{growth.reading.fps.round} frames a second, and the whole game moves more slowly.
+        #{collections_used_most_line(named)}To fix this, give #{collections_to_shrink_words(named)} a smaller capacity, or
         do less work for each item.
       MSG
     end
+  end
+
+  # The line naming what a full run used most, or nothing where it named none.
+  def self.collections_used_most_line(named)
+    return "" if named.empty?
+
+    "#{named.one? ? 'The one that it uses most is' : 'The ones that it uses most are'}\n#{named.join(', and ')}.\n"
+  end
+
+  def self.collections_to_shrink_words(named)
+    return "the lists and pools" if named.empty?
+
+    named.one? ? "it" : "them"
   end
 
   # A SCENE THAT RUNS LATE ON THE FRAME THE GAME HANDS OVER TO IT is said at build time too,

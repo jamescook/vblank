@@ -626,37 +626,54 @@ module VBlank
       end
 
       # A scene that keeps up now and falls behind once its collections fill. +reading+ is the
-      # scene measured with every collection held full; +collections+ are the ones that do it
-      # on their own, or all of them where none does alone (+together+).
-      Growth = Data.define(:scene, :reading, :collections, :together)
+      # scene measured with every collection held full; +collections+ are the ones that run
+      # used most, which can be none where filling them changed how long a loop runs and no
+      # item was touched.
+      Growth = Data.define(:scene, :reading, :collections)
+
+      # How many collections a warning names. A warning naming all twenty-five a scene walks says
+      # nothing, and the first few are where a reader would start anyway.
+      COLLECTIONS_NAMED = 3
 
       # WHETHER A SCENE KEEPS UP WITH EVERY COLLECTION FULL, measured: the scene again, with each
       # list and pool the game declared held at its capacity. Only a scene that keeps up as it
       # stands is asked — one that does not is already said, and full only makes it worse.
       #
-      # WHICH COLLECTION IS TO BLAME is measured too, by holding each one full on its own. That
-      # costs a run for each, so it is paid only by a scene that falls behind. Where no one of
-      # them does it alone, it is several at once, and the warning names those that each made
-      # the scene do more work — not every collection in the game, since a scene that never
-      # touches a list leaves the same share of its frame spare with that list full.
+      # ONE RUN, HOWEVER MANY COLLECTIONS THE GAME HAS. Every build pays for this and a run plays
+      # the scene in the emulator, so holding each collection full on its own to see which does
+      # it cost a game with dozens of them minutes on every build, for a warning it already had.
+      # The run with all of them full counts what it read and wrote anyway (see #touches_by_list),
+      # which is enough to say where to look.
+      #
+      # WHAT THAT NAMES IS WHAT WAS USED MOST, NOT WHAT COST MOST. A long walk of cheap items
+      # counts more than a short walk of dear ones, so the warning says "uses most" and leaves
+      # `rom.profile` to say where the time went.
       def self.growth_in(rom, scene, writes, now, collections, frames:, keys:)
         return nil if collections.empty? || now.frames.zero? || now.dropping_frames?
 
-        measure = ->(held) { run(rom, frames: frames, keys: keys, picture: false, holding: writes + held) }
-        full = measure.call(collections.flat_map(&:writes))
+        full = run(rom, frames: frames, keys: keys, picture: false, holding: writes + collections.flat_map(&:writes))
         return nil unless full.dropping_frames?
-        return Growth.new(scene: scene, reading: full, collections: collections, together: false) if collections.one?
 
-        alone = collections.to_h { |collection| [collection, measure.call(collection.writes)] }
-        behind = alone.select { |_, reading| reading.dropping_frames? }.keys
-        return Growth.new(scene: scene, reading: full, collections: behind, together: false) if behind.any?
+        Growth.new(scene: scene, reading: full,
+                   collections: collections.one? ? collections : collections_used_more(collections, now, full))
+      end
 
-        # Against the scene measured the same way with nothing full, not +now+: a game with no
-        # scenes is measured from power-on there, and a different start leaves a different share
-        # of the frame spare.
-        base = measure.call([])
-        busier = alone.select { |_, reading| reading.idle_share < base.idle_share }.keys
-        Growth.new(scene: scene, reading: full, collections: busier, together: true)
+      # The collections +full+ read and wrote more of a frame than +now+ did, most first, up to
+      # {COLLECTIONS_NAMED}. Risen rather than plain most: a list read once a frame beside a walk
+      # of a thousand items has a count too, and filling it changed nothing.
+      def self.collections_used_more(collections, now, full)
+        before = touches_by_collection(now)
+        after = touches_by_collection(full)
+        risen = collections.to_h { |collection| [collection, after[collection.label] - before[collection.label]] }
+        risen.select { |_, more| more.positive? }.max_by(COLLECTIONS_NAMED) { |_, more| more }.map(&:first)
+      end
+
+      # How many times a frame of +reading+ read or wrote each collection, by what a report calls
+      # it, since a pool is several lists and an author declared one thing.
+      def self.touches_by_collection(reading)
+        touches_in(reading).each_with_object(Hash.new(0)) do |(list, touches), total|
+          total[Messages::MadeNames.collection_words(list)] += touches
+        end
       end
 
       def self.sum_work_across_scenes(results)

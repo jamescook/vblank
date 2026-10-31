@@ -7,7 +7,7 @@ require "test_helper"
 # A list or a pool is sized for the worst moment of a game and walked item by item every frame,
 # so it keeps up through development and falls behind in the one session that fills it. The
 # build runs each scene again with every collection held at its capacity and says which ones
-# make it fall behind, with the frame rate it measured.
+# that run walked most, with the frame rate it measured.
 class TestFullCollections < Minitest::Test
   def setup = require_emulator!
 
@@ -38,10 +38,7 @@ class TestFullCollections < Minitest::Test
       end
     end
 
-    found = growths(rom)
-
-    assert_equal [["list :left", "list :right"]], found.map { |growth| growth.collections.map(&:label) }
-    assert found.first.together
+    assert_equal [["list :left", "list :right"]], growths(rom).map { |growth| growth.collections.map(&:label).sort }
   end
 
   def test_a_list_walked_every_frame_is_named_with_its_measured_frame_rate
@@ -70,7 +67,7 @@ class TestFullCollections < Minitest::Test
     assert_equal [["pool :spark"]], growths(rom).map { |growth| growth.collections.map(&:label) }
   end
 
-  def test_only_the_collection_that_makes_it_fall_behind_is_named
+  def test_a_list_read_once_a_frame_beside_the_walk_is_not_named
     helper = self
     rom = build do
       screen :bitmap
@@ -83,10 +80,58 @@ class TestFullCollections < Minitest::Test
       end
     end
 
-    found = growths(rom)
+    assert_equal [["list :xs"]], growths(rom).map { |growth| growth.collections.map(&:label) }
+  end
 
-    assert_equal [["list :xs"]], found.map { |growth| growth.collections.map(&:label) }
-    refute found.first.together
+  def test_a_pool_held_full_and_never_walked_is_not_named
+    helper = self
+    rom = build do
+      screen :bitmap
+      left = helper.heavy_list(self, :left, divides: 5)
+      right = helper.heavy_list(self, :right, divides: 5)
+      pool :idle, x: 0, capacity: 64
+      game_loop do
+        left.call
+        right.call
+      end
+    end
+
+    assert_equal [["list :left", "list :right"]], growths(rom).map { |growth| growth.collections.map(&:label).sort }
+  end
+
+  def test_a_warning_with_nothing_to_name_still_gives_the_frame_rate
+    err = StringIO.new
+    VBlank.build("FULL", console: :gba, out: nil, err: err, profile: true) do
+      screen :bitmap
+      xs = list :xs, capacity: 448
+      ys = list :ys, capacity: 448
+      total = 0
+      left = 0
+      game_loop do
+        left = xs.length + ys.length
+        while left > 0
+          repeat(12) { total += (left * 7) / (total + 3) }
+          left -= 1
+        end
+      end
+    end
+
+    assert_match(/runs at about \d+ frames a second/, err.string)
+    assert_match(/give the lists and pools a smaller capacity/, err.string)
+    refute_match(/uses most/, err.string)
+  end
+
+  def test_no_more_than_a_few_collections_are_named
+    rom = build do
+      screen :bitmap
+      lists = Array.new(8) { |i| list :"walked_#{i}", capacity: 448 }
+      total = 0
+      lists.each { |xs| xs.push 1 }
+      game_loop { lists.each { |xs| xs.each { |x| total += (x * 7) / (total + 3) } } }
+    end
+
+    assert_equal 1, growths(rom).size
+    assert_equal VBlank::Diagnostics::Profiler::COLLECTIONS_NAMED, growths(rom).first.collections.size
   end
 
   def test_a_scene_is_named_and_a_scene_without_the_walk_is_not
