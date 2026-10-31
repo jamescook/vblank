@@ -1689,6 +1689,38 @@ class TestPlainRuby < Minitest::Test
     assert_equal [5, 3, 7, 0], [player[:x], player[:y], player[:first], player[:second]]
   end
 
+  # The slots are never written: the variable they hold takes the number, so a frozen Hash or
+  # Array of a part's variables works, under a test the game makes or not.
+  def test_a_game_variable_in_a_frozen_hash_or_array_is_changed_where_it_stands
+    player = played(frames: 2) do
+      ball = { x: var(:x, 1), y: var(:y, 1) }.freeze
+      pair = [var(:first, 1), var(:second, 1)].freeze
+      turn = 0
+      game_loop do
+        turn += 1
+        ball[:x] = 5 if turn == 1
+        ball[:y] += 2 if turn == 9
+        pair[0] = 7 if turn == 1
+        pair[1] -= 1
+      end
+    end
+
+    assert_equal [5, 1, 7, -1], [player[:x], player[:y], player[:first], player[:second]]
+  end
+
+  def test_a_plain_number_in_a_frozen_hash_under_a_game_test_stays_ruby_s_error
+    assert_raises(FrozenError) do
+      played(frames: 1) do
+        ball = { x: 1 }.freeze
+        turn = 0
+        game_loop do
+          turn += 1
+          ball[:x] = 5 if turn == 1
+        end
+      end
+    end
+  end
+
   def test_a_plain_hash_and_array_stay_plain
     player = played(frames: 1) do
       sizes = { wide: 1 }

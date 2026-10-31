@@ -101,12 +101,13 @@ module VBlank
         end
 
         # #promote for a slot of a Hash or an Array. A slot that holds nothing yet has no number to
-        # keep, and a key a game works out is not a slot Ruby can name.
+        # keep, and a key a game works out is not a slot Ruby can name. A slot holding a game variable
+        # is left alone, so a frozen Hash of a part's variables stays usable.
         def promote_slot(collection, keys, test, *outer)
           return unless (collection.is_a?(Hash) || collection.is_a?(Array)) && keys.none?(Value)
 
           current = slot(collection, keys, nil)
-          collection[*keys] = promote_place(current, test, *outer) unless current.nil?
+          collection[*keys] = promote_place(current, test, *outer) unless current.nil? || Steps.variable?(current)
         end
 
         # #promote for an attribute of an object of the game's own.
