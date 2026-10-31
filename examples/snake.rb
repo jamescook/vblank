@@ -129,7 +129,7 @@ module Snake
 
     # --- RAM variables (each `var` hands back a handle we compare and mutate) ---
     var :state, 0               # 0 = title, 1 = playing, 2 = game over (read via case_var)
-    blink    = var :blink, 1    # flashes the "PRESS START" prompt on and off
+    blink    = true # flashes the "PRESS START" prompt on and off
     dx       = var :dx, 1       # current heading, in cells per step (one axis at a time)
     dy       = var :dy, 0
     var :ndx, 1                 # the turn we'll commit on the next step (set/copied by name)
@@ -146,9 +146,9 @@ module Snake
     # the framework loads it at boot and saves it whenever it changes (see the death
     # handler in step_snake). Nothing here touches save hardware — just a variable.
     high     = save_var :high_score, 0
-    self_hit = var :self_hit, 0 # set when the new head lands on the body
-    placed   = var :placed, 0   # set once food has found an empty cell
-    painted  = var :painted, 0  # 1 once the title or game-over screen showing is painted
+    self_hit = false # set when the new head lands on the body
+    placed   = false # set once food has found an empty cell
+    painted  = false # true once the title or game-over screen showing is painted
 
     # The board, in cell coordinates. set_cell / clear_cell take cell numbers and do
     # the pixel arithmetic (and the erase-to-background), so the snake code below
@@ -163,15 +163,15 @@ module Snake
     # are unrolled here at build time, so each is just one draw from the random
     # stream plus one scan of the body — no loop inside a loop at run time.
     func :spawn_food do
-      set! :placed, 0
+      placed = false
       FOOD_TRIES.times do
-        if placed == 0
+        unless placed
           roll :food_x, here.min_col..here.max_col
           roll :food_y, here.min_row..here.max_row
-          set! :placed, 1 # assume it's clear...
+          placed = true # assume it's clear...
           repeat(xs.length) do |i|
             # ...unless a body cell is already sitting there.
-            set! :placed, 0 if xs[i] == :food_x && ys[i] == :food_y
+            placed = false if xs[i] == :food_x && ys[i] == :food_y
           end
         end
       end
@@ -226,7 +226,7 @@ module Snake
       call :spawn_food
       call :draw_board
       set! :state, 1
-      painted = 0 # the game-over screen, when it comes, is painted afresh
+      painted = false # the game-over screen, when it comes, is painted afresh
     end
 
     # Advance the snake one cell: commit the buffered turn, work out the new head,
@@ -238,14 +238,14 @@ module Snake
       set! :hy, ys.last + dy
 
       # Would the new head land on a cell the body already occupies?
-      set! :self_hit, 0
+      self_hit = false
       repeat(xs.length) do |i|
-        set! :self_hit, 1 if xs[i] == :hx && ys[i] == :hy
+        self_hit = true if xs[i] == :hx && ys[i] == :hy
       end
 
       # Game over if we hit a wall or ourselves. (Landing on the very last tail
       # cell counts too — the simplest "don't touch yourself at all" rule.)
-      dead = hx < here.min_col || hx > here.max_col || hy < here.min_row || hy > here.max_row || self_hit == 1
+      dead = hx < here.min_col || hx > here.max_col || hy < here.min_row || hy > here.max_row || self_hit
       if dead
         set! :state, 2
         beep :die
@@ -288,17 +288,17 @@ module Snake
     { title_prompt: 96, game_over_prompt: 110 }.each do |name, y|
       func name do
         dma_fill_rect (here.width - prompt_w) / 2, y, prompt_w, PROMPT_H, :black
-        draw_text "PRESS START", :center, y, :gray if blink == 1
+        draw_text "PRESS START", :center, y, :gray if blink
       end
     end
 
     # Flash the prompt named +prompt+ on and off twice a second, painting only its line.
     blink_prompt = lambda do |prompt|
       every(0.5, :seconds) do
-        if blink == 1
-          blink = 0
+        if blink
+          blink = false
         else
-          blink = 1
+          blink = true
         end
         call prompt
       end
@@ -306,13 +306,13 @@ module Snake
 
     scene :title do
       # Painted once, as the game arrives here: nothing on it changes but the prompt.
-      if painted == 0
+      unless painted
         clear_screen :black
         draw_text "SNAKE", :center, 56, :green
         draw_text "HIGH", :right, 78, :gray, within: here.stat_label
         draw_number :high_score, :left, 78, :white, digits: 3, within: here.stat_number
         call :title_prompt
-        painted = 1
+        painted = true
       end
       blink_prompt.call(:title_prompt)
 
@@ -358,7 +358,7 @@ module Snake
 
     scene :game_over do
       # Painted once, as the game arrives here (new_game said it is not painted yet).
-      if painted == 0
+      unless painted
         clear_screen :black
         draw_text "GAME OVER", :center, 52, :red
         draw_text "SCORE", :right, 76, :gray, within: here.stat_label
@@ -366,7 +366,7 @@ module Snake
         draw_text "HIGH", :right, 90, :gray, within: here.stat_label
         draw_number :high_score, :left, 90, :white, digits: 3, within: here.stat_number
         call :game_over_prompt
-        painted = 1
+        painted = true
       end
       blink_prompt.call(:game_over_prompt)
 

@@ -54,8 +54,8 @@ module Shmup
     colors :warm_red,          [:transparent, :red, :orange]
     colors :warm_orange_again, [:transparent, :orange, :yellow]
     var :state, PLAYING
-    new_game = var :new_game, 0 # 1 asks the playing scene to start over
-    leaving  = var :leaving, 0  # 1 while the field dims on the way to the game-over screen
+    new_game = false # true asks the playing scene to start over
+    leaving  = false # true while the field dims on the way to the game-over screen
 
     # The playing scene owns the whole field — declaring the parts here makes their
     # sprites and HUD belong to this scene, so they vanish on the game-over screen.
@@ -70,12 +70,12 @@ module Shmup
 
       # Start a fresh game when the game-over screen asked for one: everything back to
       # its opening position, then clear the request.
-      if new_game == 1
+      if new_game
         player.reset
         enemies.reset
         boss.reset
         hud.reset
-        set! :new_game, 0
+        new_game = false
       end
 
       player.update
@@ -93,15 +93,15 @@ module Shmup
       # `under: :ui` puts the fade below the score, so the field and the ships in it go
       # dark and the numbers stay readable all the way down — the arcade thing where the
       # game disappears and the score you just got does not.
-      if hud.lives <= 0 && leaving == 0
+      if hud.lives <= 0 && !leaving
         fade_out :black, frames: 12, under: :ui
-        leaving = 1
+        leaving = true
       end
-      if leaving == 1
+      if leaving
         if fade_level == 100
           set! :state, GAME_OVER
           fade_in frames: 12
-          leaving = 0
+          leaving = false
         end
       end
     end
@@ -112,7 +112,7 @@ module Shmup
       draw_text "GAME OVER",   :center, 68, :red
       draw_text "PRESS START", :center, 88, :white
       if pressed(:start)
-        set! :new_game, 1
+        new_game = true
         set! :state, PLAYING
       end
     end

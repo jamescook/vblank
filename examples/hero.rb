@@ -273,10 +273,8 @@ module Hero
     # The file screen is two steps: pick a file, then say what to do with it. Which step is
     # on screen changes at the top of a frame, never part way through one — both menus read
     # the A button, and a press that opened the second step must not also choose in it.
-    choosing = var :choosing, 0
-    next_choosing = var :next_choosing, 0
-
-    # --- PICTURES THE GAME DRAWS WHILE IT RUNS ---
+    choosing = false
+    next_choosing = false # --- PICTURES THE GAME DRAWS WHILE IT RUNS ---
     #
     # Everything above was drawn before the game was built. These two are drawn by the game,
     # out of what is happening: a box along the bottom that a signpost's words are typed into
@@ -296,7 +294,7 @@ module Hero
     box = canvas :box, width: 192, height: 16, colors: [:transparent, :white, rgb(2, 4, 12)],
                        as: two_backgrounds ? :sprite : :tiles
     trail = canvas :trail, width: 32, height: 32, colors: %i[transparent white blue], as: :sprite
-    reading = var :reading, 0 # 1 while the sign's box is open
+    reading = false # true while the sign's box is open
     typed = var :typed, 0     # how many of its letters are up
     pen = var :pen, 0         # where the next one goes
     tick = var :tick, 0
@@ -325,14 +323,14 @@ module Hero
       box.clear rgb(2, 4, 12)
       typed = 0
       pen = 4
-      reading = 1
+      reading = true
     end
 
     # A fresh walk starts with no box open and a map showing only the pond — one dot of the
     # map for every tile of the world, which is 8 pixels.
     fresh_pictures = lambda do
       box.clear
-      reading = 0
+      reading = false
       trail.clear
       trail.fill_rect POND_COLS.first, POND_ROWS.first, POND_COLS.size, POND_ROWS.size, :blue
     end
@@ -370,7 +368,7 @@ module Hero
         # Second step, written first: on the frame a file is picked this menu is not yet up,
         # so the press that picked the file is not taken as a choice here too.
         actions = nil
-        if choosing == 1
+        if choosing
           draw_text "FILE", 72, 32, :yellow
           draw_number number, 104, 32, :yellow, digits: 1
           actions = menu :actions, at: [72, 60], starts_on: 1 do |m|
@@ -386,20 +384,20 @@ module Hero
             end
             m.item("COPY TO NEXT", enabled: files[slot].good?) do
               files.copy slot, to: (slot + 1) % 3
-              next_choosing = 0
+              next_choosing = false
             end
             m.item("ERASE", enabled: files[slot].good?) do
               files[slot].erase
-              next_choosing = 0
+              next_choosing = false
             end
-            m.item("BACK") { next_choosing = 0 }
+            m.item("BACK") { next_choosing = false }
           end
         end
 
         # EVERY LETTER ON THIS SCREEN IS A SPRITE, and a game has 128 of those for all its
         # screens together — so the words here are kept short. A row that greys itself is
         # drawn both ways, and costs its letters twice.
-        if choosing == 0
+        unless choosing
           3.times do |n|
             row = 60 + (n * 16)
             shown[n] = files[n].peek(steps)
@@ -420,7 +418,7 @@ module Hero
                 else
                   actions.picked = 1
                 end
-                next_choosing = 1
+                next_choosing = true
               end
             end
           end
@@ -462,7 +460,7 @@ module Hero
         saved = 60
       end
       if pressed(:select)
-        next_choosing = 0
+        next_choosing = false
         mode = :files
       end
       saved -= 1 if saved > 0
@@ -483,17 +481,17 @@ module Hero
         sprite :trail, at: [204, 4]
       end
       tick += 1
-      if pressed(:a) && reading == 1
+      if pressed(:a) && reading
         if typed >= note.length
           box.clear
-          reading = 0
+          reading = false
         else
           repeat(32, stop_when: typed >= note.length) { call :type_a_letter }
         end
       end
       near = ((px - SIGN_X).abs < READING_REACH_X) && ((py - SIGN_Y).abs < READING_REACH_Y)
-      call :open_the_sign if pressed(:a) && reading == 0 && near
-      call :type_a_letter if reading == 1 && typed < note.length && (tick & 1) == 0
+      call :open_the_sign if pressed(:a) && !reading && near
+      call :type_a_letter if reading && typed < note.length && (tick & 1) == 0
 
       # THE MAP: a dot wherever you are, a pixel for every tile of the world. It is never
       # cleared while you walk, so it is a map of everywhere you have been.

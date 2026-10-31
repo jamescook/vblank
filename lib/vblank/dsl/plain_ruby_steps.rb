@@ -25,7 +25,13 @@ module VBlank
       # made here on its own would be a test with one answer, and that is never what was meant.
       def as_condition(value)
         return value unless value.is_a?(Value)
-        return value != 0 if value.yes_no?
+
+        refuse_number_test!(value)
+        value != 0
+      end
+
+      def refuse_number_test!(value)
+        return if value.yes_no?
 
         written = value.name ? "`#{value.name}`" : "This number"
         refuse!("#{written} is a number, and in Ruby a number is always true. So this test has one " \
@@ -38,9 +44,10 @@ module VBlank
 
       # The other answer to a test, for `!` and `unless`.
       def opposite(value)
-        return !value unless game_test?(value)
+        return !value unless value.is_a?(Value)
 
-        value.is_a?(Value) ? as_condition(value).then { value == 0 } : !value
+        refuse_number_test!(value)
+        value == 0
       end
 
       # A value that came from somewhere else: an argument, or a field of an object. Ruby's answer

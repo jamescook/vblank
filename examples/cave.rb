@@ -164,10 +164,10 @@ module Cave
 
     # 1 while the circle is closing on the way out of one place and into the other — the
     # flag `iris_shut?` is read with, so the scene is swapped once.
-    leaving = 0
+    leaving = false
 
     game_loop do
-      if leaving == 0
+      unless leaving
         hero.move :left, by: 1 if held(:left)
         hero.move :right, by: 1 if held(:right)
         hero.move :up, by: 1 if held(:up)
@@ -180,15 +180,15 @@ module Cave
       in_cave = land.showing == land.map_number(:cave)
       leaving_cave = in_cave && hero.x >= CAVE_MOUTH_X
       entering_cave = land.showing == land.map_number(:meadow) && hero.x <= MEADOW_EDGE_X
-      if leaving == 0 && (leaving_cave || entering_cave)
-        leaving = 1
+      if !leaving && (leaving_cave || entering_cave)
+        leaving = true
         iris_out at: [hero.x + 4, hero.y + 4], frames: 24
       end
 
       # Shut: nobody can see, so put up the other place, stand the hero at its edge, and
       # open the circle onto it — daylight outside, the lantern's dark back in the cave.
-      if leaving == 1 && iris_shut?
-        leaving = 0
+      if leaving && iris_shut?
+        leaving = false
         if land.showing == land.map_number(:cave)
           land.show_map :meadow
           hero.move_to MEADOW_EDGE_X + 8, hero.y

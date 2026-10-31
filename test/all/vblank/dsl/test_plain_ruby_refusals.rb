@@ -228,6 +228,18 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_includes err.string, "never waits for the next frame"
   end
 
+  def test_unless_on_a_yes_or_no_builds_with_every_check_on
+    rom = VBlank.build("YESNO", console: :gba, out: StringIO.new, err: StringIO.new) do
+      lit = true
+      game_loop do
+        wait_vblank unless lit
+        lit = false
+      end
+    end
+
+    assert rom, "the game builds"
+  end
+
   def test_a_number_the_game_made_cannot_be_a_test_alone
     assert_refused("always true") do
       hp = 3

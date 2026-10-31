@@ -171,9 +171,7 @@ module Jukebox
     # moves, the old tune fades out first, and only once nobody can hear it does this catch up
     # and the new one fade in. `switching` says a switch is waiting for that silence.
     playing   = 0
-    switching = 0
-
-    # Which sound effect was asked for last (1 HOORAY, 2 BLIP), whose name is lit.
+    switching = false # Which sound effect was asked for last (1 HOORAY, 2 BLIP), whose name is lit.
     asked = 0
 
     game_loop do
@@ -211,11 +209,11 @@ module Jukebox
       # the switch waits until the volume reads nothing, names the new tune while nobody can
       # hear it, and fades that one in. Move again part way and the fade simply turns round.
       if songs.moved
-        switching = 1
+        switching = true
         fade_music_out frames: FADE_FRAMES
       end
-      if switching == 1 && music_volume == 0
-        switching = 0
+      if switching && music_volume == 0
+        switching = false
         playing = songs.picked
         fade_music_in
       end

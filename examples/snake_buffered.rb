@@ -84,7 +84,7 @@ module BufferedSnake
     ys = list :ys, capacity: BODY_CAP
 
     var :state, 0               # 0 = title, 1 = playing, 2 = game over
-    blink    = var :blink, 1
+    blink    = true
     dx       = var :dx, 1
     dy       = var :dy, 0
     var :ndx, 1
@@ -94,21 +94,19 @@ module BufferedSnake
     food_x   = var :food_x, 0
     food_y   = var :food_y, 0
     score    = var :score, 0
-    self_hit = var :self_hit, 0
-    placed   = var :placed, 0
-
-    # Pick a random empty cell for the food (placement only; drawing happens in the
+    self_hit = false
+    placed   = false # Pick a random empty cell for the food (placement only; drawing happens in the
     # every-frame repaint). Tries a handful of random cells, keeping the first that
     # isn't under the snake.
     func :spawn_food do
-      set! :placed, 0
+      placed = false
       FOOD_TRIES.times do
-        if placed == 0
+        unless placed
           roll :food_x, MIN_COL..MAX_COL
           roll :food_y, MIN_ROW..MAX_ROW
-          set! :placed, 1
+          placed = true
           repeat(xs.length) do |i|
-            set! :placed, 0 if xs[i] == :food_x && ys[i] == :food_y
+            placed = false if xs[i] == :food_x && ys[i] == :food_y
           end
         end
       end
@@ -159,12 +157,12 @@ module BufferedSnake
       set! :hx, xs.last + dx
       set! :hy, ys.last + dy
 
-      set! :self_hit, 0
+      self_hit = false
       repeat(xs.length) do |i|
-        set! :self_hit, 1 if xs[i] == :hx && ys[i] == :hy
+        self_hit = true if xs[i] == :hx && ys[i] == :hy
       end
 
-      dead = hx < MIN_COL || hx > MAX_COL || hy < MIN_ROW || hy > MAX_ROW || self_hit == 1
+      dead = hx < MIN_COL || hx > MAX_COL || hy < MIN_ROW || hy > MAX_ROW || self_hit
       if dead
         set! :state, 2
         beep :die
@@ -186,13 +184,13 @@ module BufferedSnake
       clear_screen :black
       draw_text "SNAKE", :center, 56, :green
       every(0.5, :seconds) do
-        if blink == 1
-          blink = 0
+        if blink
+          blink = false
         else
-          blink = 1
+          blink = true
         end
       end
-      draw_text "PRESS START", :center, 96, :gray if blink == 1
+      draw_text "PRESS START", :center, 96, :gray if blink
       randomize
       call :new_game if pressed(:start)
     end
@@ -233,13 +231,13 @@ module BufferedSnake
       draw_text "SCORE", :right, 80, :gray, within: STAT_LABEL
       draw_number score, :left, 80, :white, digits: 3, within: STAT_NUMBER
       every(0.5, :seconds) do
-        if blink == 1
-          blink = 0
+        if blink
+          blink = false
         else
-          blink = 1
+          blink = true
         end
       end
-      draw_text "PRESS START", :center, 110, :gray if blink == 1
+      draw_text "PRESS START", :center, 110, :gray if blink
       call :new_game if pressed(:start)
     end
 

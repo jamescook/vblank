@@ -109,8 +109,8 @@ module Dive
     layers :shafts_far, :shafts_near, :sun, :name, :deep, :reef, :swimmers, :surface, :panel, :over
 
     var :state, TITLE
-    fresh = var :fresh, 1           # 1 asks the dive to start over from the top
-    blacking_out = var :blacking_out, 0 # 1 while the world is going dark
+    fresh = true # true asks the dive to start over from the top
+    blacking_out = false # true while the world is going dark
 
     # Each scene declares its own backgrounds, and that is what lets the two screens have
     # different arrangements of the console's layers: the title turns one, so it gets two
@@ -134,11 +134,11 @@ module Dive
       # Back to the surface with a full tank, asked for by the title or by the screen the
       # last dive ended on. Neither of those knows what has to be put back, which is the
       # point of asking here.
-      if fresh == 1
+      if fresh
         down = -RISE
         diver.reset
         gauge.reset
-        fresh = 0
+        fresh = false
       end
 
       down += SINK if held(:down)
@@ -173,15 +173,15 @@ module Dive
       # moves the COLOURS instead, which reaches everything that draws from them, so the
       # water goes on showing the diver all the way down into the dark. Ask for a placed
       # one here and the water turns solid until the fade lifts, and the build says so.
-      if gauge.empty? && blacking_out == 0
+      if gauge.empty? && !blacking_out
         fade_out :black, frames: BLACKOUT
-        blacking_out = 1
+        blacking_out = true
       end
-      if blacking_out == 1
+      if blacking_out
         if fade_level == 100
           set! :state, OVER
           fade_in frames: BLACKOUT
-          blacking_out = 0
+          blacking_out = false
         end
       end
     end
@@ -194,7 +194,7 @@ module Dive
         draw_text "PRESS START", :center, 88, :white, font: :tiny
       end
       if pressed(:start)
-        fresh = 1
+        fresh = true
         set! :state, PLAY
       end
     end

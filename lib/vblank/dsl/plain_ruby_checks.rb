@@ -49,7 +49,8 @@ module VBlank
           return false unless owner.const_defined?(name)
 
           file, = owner.const_source_location(name)
-          !file.nil? && folders.any? { |folder| file.start_with?(folder) }
+          # Ruby keeps the path a file was started by, which `ruby game.rb` leaves relative.
+          !file.nil? && folders.any? { |folder| File.expand_path(file).start_with?(folder) }
         end
         private_class_method :game_constant?
 

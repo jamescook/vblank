@@ -166,7 +166,7 @@ module Breakout
     bricks_left = var :bricks_left, bricks.length
     best_bar    = var :_best_bar, 0 # how much of the record this run has matched
     state       = var :state, 0   # 0=title, 1=playing, 2=cleared, 3=game_over
-    blink       = var :blink, 1   # flashes the title prompt
+    blink       = true # flashes the title prompt
     _hit        = var :_hit, 0    # scratch: where on the paddle the ball landed
 
     # One on/off flag per brick (1 = still there). Kept in a hash keyed by the
@@ -305,13 +305,13 @@ module Breakout
       draw_text "BEST", :right, 70, :gray, within: layout.stat_label
       draw_number :high_score, :left, 70, :white, digits: 3, within: layout.stat_number
       every(0.5, :seconds) do
-        if blink == 1
-          blink = 0
+        if blink
+          blink = false
         else
-          blink = 1
+          blink = true
         end
       end
-      draw_text "PRESS START", :center, 96, :gray if blink == 1
+      draw_text "PRESS START", :center, 96, :gray if blink
       call :new_game if pressed(:start)
     end
 

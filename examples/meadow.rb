@@ -32,7 +32,7 @@
 # it did.
 #
 #     pixelate_out frames: DOOR_FRAMES, under: :words     # walking into the door
-#     ((in_door == 1) & (pixelate_size == BIGGEST_BLOCK)).then { ...swap the room...; pixelate_in }
+#     ((in_door) & (pixelate_size == BIGGEST_BLOCK)).then { ...swap the room...; pixelate_in }
 #
 # `pixelate_size` is how big a block is on screen right now, and waiting for it to read
 # the biggest is how the swap waits for the walk — the way `fade_level == 100` is for a
@@ -260,7 +260,7 @@ module Meadow
     hero = layer(:actors) { sprite :hero_art, at: [112, 72] }
 
     room = var :room, 0 # 0 is the cabin, 1 the meadow — the map number show_map takes
-    in_door = var :in_door, 0 # 1 from the hero stepping into a door until the room is swapped
+    in_door = false # true from the hero stepping into a door until the room is swapped
 
     # The room's name, in the corner. A test around the words says when each shows.
     layer :words do
@@ -280,7 +280,7 @@ module Meadow
 
     game_loop do
       # The hero walks, and can step into a door, only while he is not already in one.
-      if in_door == 0
+      unless in_door
         x -= SPEED if held(:left)
         x += SPEED if held(:right)
         y -= SPEED if held(:up)
@@ -293,7 +293,7 @@ module Meadow
         way_out = room == 0 && y >= deepest - 8 && (x >= (14 * 8) - 8) && x <= 15 * 8
         way_in = room == 1 && (y <= (46 * 8) - 4) && (x >= (53 * 8) - 8) && x <= 54 * 8
         if way_out || way_in
-          in_door = 1
+          in_door = true
           pixelate_out frames: DOOR_FRAMES, under: :words
         end
       end
@@ -305,7 +305,7 @@ module Meadow
       # `in_door` is in the test because the size reads the biggest twice, on the old
       # room's last frame and on the new room's first. Without it the second reading
       # would swap the rooms straight back.
-      if in_door == 1 && pixelate_size == BIGGEST_BLOCK
+      if in_door && pixelate_size == BIGGEST_BLOCK
         if room == 0
           room = 1
           x = OUTSIDE_DOOR[0]
@@ -319,7 +319,7 @@ module Meadow
           widest = 240 - HERO
           deepest = 160 - HERO
         end
-        in_door = 0
+        in_door = false
         pixelate_in
       end
 
