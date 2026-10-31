@@ -18,7 +18,7 @@
       "data": 0
     },
     "cave": {
-      "code": 40900,
+      "code": 40856,
       "data": 0
     },
     "chip_band": {
@@ -30,11 +30,11 @@
       "data": 0
     },
     "corridor": {
-      "code": 8206,
+      "code": 8202,
       "data": 0
     },
     "dive": {
-      "code": 51160,
+      "code": 51152,
       "data": 0
     },
     "floating_digits": {
@@ -54,11 +54,11 @@
       "data": 0
     },
     "hero": {
-      "code": 94096,
+      "code": 94032,
       "data": 0
     },
     "jukebox": {
-      "code": 63402,
+      "code": 63398,
       "data": 0
     },
     "lake": {
@@ -66,15 +66,15 @@
       "data": 0
     },
     "level": {
-      "code": 6180,
+      "code": 6156,
       "data": 0
     },
     "maze": {
-      "code": 4812,
+      "code": 4796,
       "data": 0
     },
     "meadow": {
-      "code": 32912,
+      "code": 32908,
       "data": 0
     },
     "pacman": {
@@ -114,19 +114,19 @@
       "data": 0
     },
     "sheet": {
-      "code": 6180,
+      "code": 6156,
       "data": 0
     },
     "shmup": {
-      "code": 41440,
+      "code": 41424,
       "data": 0
     },
     "snake": {
-      "code": 41844,
+      "code": 41788,
       "data": 0
     },
     "snake_buffered": {
-      "code": 40532,
+      "code": 40476,
       "data": 0
     },
     "sparks": {
@@ -142,7 +142,7 @@
       "data": 0
     },
     "tower": {
-      "code": 20596,
+      "code": 20540,
       "data": 0
     }
   }

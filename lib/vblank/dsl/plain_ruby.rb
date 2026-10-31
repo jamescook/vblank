@@ -168,6 +168,7 @@ module VBlank
           @outer_locals = outer_locals
           @answers = 0
           @open_tests = []
+          @lone_joins = {}.compare_by_identity
         end
 
         def rewritten_block = rewritten(@block_node)
@@ -204,8 +205,16 @@ module VBlank
           when Prism::CallOperatorWriteNode then place_change_text(node, "#{rewritten_text(node.receiver)}.#{node.read_name}")
           when Prism::ReturnNode, Prism::BreakNode, Prism::NextNode then jump_text(node)
           when Prism::BlockNode, Prism::LambdaNode, Prism::DefNode then own_scope_text(node)
+          when Prism::StatementsNode then statements_text(node)
           else copied_text(node)
           end
+        end
+
+        # A statement with another after it has nothing reading its value, so a join there
+        # needs no variable to keep its answer in.
+        def statements_text(node)
+          node.body[0...-1].each { |statement| @lone_joins[statement] = true }
+          copied_text(node)
         end
 
         # The node's text, with what is inside it rewritten. A heredoc's lines sit past the end
@@ -234,11 +243,14 @@ module VBlank
           @open_tests = outer
         end
 
-        def under_open_test(test)
-          @open_tests += [test]
+        def under_open_test(test, &block) = under_open_tests([test], &block)
+
+        def under_open_tests(tests)
+          outer = @open_tests
+          @open_tests += tests
           yield
         ensure
-          @open_tests = @open_tests[0...-1]
+          @open_tests = outer
         end
 
         # Plain Ruby jumps as it always has. Under a test the game makes, the step refuses it.
@@ -352,7 +364,8 @@ module VBlank
           jump = jump_in(node.right)
           return jump_after_join_text(node, step, jump) if jump
 
-          "#{STEPS}.#{step}(#{argument(node.left)}) { #{rewritten_text(node.right)} }"
+          used = @lone_joins.key?(node) ? ", used: false" : ""
+          "#{STEPS}.#{step}(#{argument(node.left)}#{used}) { #{rewritten_text(node.right)} }"
         end
 
         # `found or next`. The right side of a join goes in a block, and a `next` or `break` in that
@@ -407,12 +420,53 @@ module VBlank
         # A conditional as two real `if`s, one for each side. A plain test takes one; a game
         # test takes both, once each. +kept+ is for one whose value is used, by `x = ...`.
         def conditional_text(node, kept: false)
+          return nested_conditional_text(node) if nestable?(node, kept)
+
           answer = "__plain_ruby_#{@answers += 1}"
           shut_at = node.end_keyword_loc&.start_offset || node.location.end_offset
           sides = under_open_test(answer) do
             "#{yes_side_text(node, answer, shut_at, kept)}#{no_side_text(node, answer, shut_at, kept)}"
           end
           "(#{answer} = #{STEPS}.branch_test(#{test_text(node)}); #{sides}#{answer}.#{kept ? 'picked_value' : 'answer'})"
+        end
+
+        # `if a && b` with no other side is one `if` inside another. So the right side is really
+        # skipped when the left fails, as in Ruby, and nothing has to keep the join's answer.
+        def nestable?(node, kept)
+          !kept && node.is_a?(Prism::IfNode) && node.predicate.is_a?(Prism::AndNode) && node.subsequent.nil?
+        end
+
+        def nested_conditional_text(node)
+          tests = tests_joined_by_and(node.predicate)
+          answers = tests.map { "__plain_ruby_#{@answers += 1}" }
+          shut_at = node.end_keyword_loc&.start_offset || node.location.end_offset
+          body = under_open_tests(answers) { side_body_text(node, shut_at) }
+          tests.zip(answers).reverse.reduce(body) do |inner, (test, answer)|
+            before = test.equal?(tests.first) ? "" : line_ends_before_test(tests, test)
+            "(#{before}#{answer} = #{STEPS}.branch_test(#{argument(test)}); " \
+              "if #{answer}.open_yes_side; #{answer}.close_side((#{inner})); end; #{answer}.answer)"
+          end
+        end
+
+        def tests_joined_by_and(node)
+          return [node] unless node.is_a?(Prism::AndNode) && !jump_in(node.right)
+
+          tests_joined_by_and(node.left) + tests_joined_by_and(node.right)
+        end
+
+        # A line break in the test stays one, so the lines after it keep their numbers.
+        def line_ends_before_test(tests, test)
+          line_ends_between(tests[tests.index(test) - 1].location.end_offset, test.location.start_offset)
+        end
+
+        def side_body_text(node, ends)
+          statements = node.statements
+          opened = node.predicate.location.end_offset
+          if statements && statements.location.start_offset < node.predicate.location.start_offset
+            rewritten_text(statements)
+          elsif statements then side_text(opened, statements, ends)
+          else line_ends_between(opened, ends)
+          end
         end
 
         def test_text(node)
@@ -424,14 +478,7 @@ module VBlank
         def side_step(kept) = kept ? "keep_side_value" : "close_side"
 
         def yes_side_text(node, answer, shut_at, kept)
-          statements = node.statements
-          trailing = statements && statements.location.start_offset < node.predicate.location.start_offset
-          ends = other_side(node)&.location&.start_offset || shut_at
-          opened = node.predicate.location.end_offset
-          body = if trailing then rewritten_text(statements)
-                 elsif statements then side_text(opened, statements, ends)
-                 else line_ends_between(opened, ends)
-                 end
+          body = side_body_text(node, other_side(node)&.location&.start_offset || shut_at)
           "if #{answer}.open_yes_side; #{answer}.#{side_step(kept)}((#{body})); end; "
         end
 

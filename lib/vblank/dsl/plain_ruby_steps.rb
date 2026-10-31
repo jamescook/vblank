@@ -12,8 +12,6 @@ module VBlank
       # operator is the variable set to the sum.
       CHANGING_VERBS = { :+ => :add!, :- => :sub! }.freeze
 
-      COMPARISONS = %i[< > <= >= == !=].freeze
-
       # Bits on numbers, and on tests a join with both sides worked out.
       BIT_JOINS = %i[& | ^].freeze
 
@@ -48,30 +46,29 @@ module VBlank
         value == 0
       end
 
-      # `&&`. Ruby skips the right side once the left has decided. A game test cannot: both
-      # sides are worked out as the game plays, whichever way the left turns out.
-      def join_both(left)
+      # `&&`. Two tests that only compare numbers join into one, both worked out as the game
+      # plays, which nobody can tell from Ruby's skipping of the right side. A right side that
+      # does something, or reads a list, is really skipped (see #side_under). +used+ is false
+      # for a join standing alone as a statement, whose answer nothing reads.
+      def join_both(left, used: true)
         return left && yield unless game_test?(left)
 
         condition = as_condition(left)
-        right, acted = side_under(condition) { yield }
-        return if acted
-
-        refuse_list_read!(condition, right, "&&")
+        right, if_node = side_under(condition) { yield }
+        return keep_side_answer(condition, if_node, right, otherwise: 0, used: used) if if_node
         return condition & as_condition(right) if game_test?(right)
 
         right ? condition : condition.discard
       end
 
       # `||`, the same way round.
-      def join_either(left)
+      def join_either(left, used: true)
         return left || yield unless game_test?(left)
 
         condition = as_condition(left)
-        right, acted = side_under(!condition) { yield }
-        return if acted
-
-        refuse_list_read!(condition, right, "||")
+        unless_left = !condition
+        right, if_node = side_under(unless_left) { yield }
+        return keep_side_answer(unless_left, if_node, right, otherwise: 1, used: used) if if_node
         return condition | as_condition(right) if game_test?(right)
 
         right ? condition.discard || right : condition
@@ -85,17 +82,62 @@ module VBlank
         !!value
       end
 
-      # The right side of `&&` or `||`, worked out under +condition+. If it did something the
-      # game does, a sound or a change, that stays in a branch of its own, as Ruby would skip it.
-      # If it only made a test, nothing is left of the branch and the two tests join.
+      # The right side of `&&` or `||`, worked out under +condition+, and the branch it is in when
+      # that branch must stay, still open: the side did something the game does, a sound or a
+      # change, or reads a list at a place the left may have ruled out. If it only made a test,
+      # nothing is left of the branch and the two tests join.
       def side_under(condition)
         if_node = condition.open_branch
         right = yield
-        condition.close_branch
-        return [right, true] unless if_node.children.empty?
+        return [right, if_node] unless if_node.children.empty? && !reads_list?(right)
 
+        condition.close_branch
         condition.take_back_branch(if_node)
-        [right, false]
+        [right, nil]
+      end
+
+      # A slot at a place worked out as the game plays. One past the end stops the game. A pool
+      # keeps its fields in lists too, read at a row that `each` handed over, always a real one.
+      def reads_list?(value)
+        return false unless value.is_a?(Condition) || value.is_a?(Value)
+
+        value.node.walk.any? do |node|
+          next false unless node.kind == :list_get && Messages::MadeNames.read(node.name)&.first != :pool_field
+
+          node.index.walk.any? { |each_node| each_node.kind == :var_ref }
+        end
+      end
+
+      # Closes the branch #side_under left open. The join's answer is the right side's on that
+      # side and +otherwise+ on the other, so it is kept in a hidden variable, the same way
+      # `x = test ? a : b` keeps its number.
+      def keep_side_answer(condition, if_node, right, otherwise:, used:)
+        unless used
+          forget_value(right)
+          condition.close_branch
+          return
+        end
+
+        answer = condition.hidden_variable
+        answer.yes_no!
+        store_truthiness(answer, right)
+        condition.close_branch
+        condition.open_other_branch(if_node)
+        answer.set!(otherwise)
+        condition.close_branch
+        answer
+      end
+
+      # A test's answer goes in as the game plays. Anything else counts by Ruby's truthiness.
+      def store_truthiness(target, value)
+        return store_in_variable(target, as_condition(value)) if game_test?(value)
+
+        forget_value(value)
+        target.set!(value ? 1 : 0)
+      end
+
+      def forget_value(value)
+        value.discard if value.is_a?(Value) || value.is_a?(Condition)
       end
 
       # `a & b`, `a | b` and `a ^ b`: bits on numbers, and Ruby's own on anything else. Between
@@ -244,29 +286,6 @@ module VBlank
 
       def refuse_game_code!(message)
         raise PlainRuby::Refused, "#{message}#{Messages::AuthorSource.at_author_line}"
-      end
-
-      # `i < size && things[i] == 1` looks guarded by the left, as it is in Ruby. The game works
-      # out both sides, so an index the left ruled out still stops the game. It takes both
-      # halves: the left comparing a variable, and the right using that variable as an index.
-      def refuse_list_read!(left, right, word)
-        return unless game_test?(right)
-        return if (compared_variables(left.node) & list_index_variables(right.node)).empty?
-
-        refuse_game_code!("The right side of `#{word}` reads a list, and a game works out both sides every " \
-                "time. An index the left side rules out still stops the game. To fix this, put one " \
-                "`if` inside another.")
-      end
-
-      def compared_variables(node)
-        comparisons = node.walk.select { |each_node| each_node.kind == :binop && COMPARISONS.include?(each_node.op) }
-        comparisons.flat_map { |comparison| [comparison.lhs, comparison.rhs] }
-                   .select { |side| side.kind == :var_ref }.map(&:name)
-      end
-
-      def list_index_variables(node)
-        reads = node.walk.select { |each_node| each_node.kind == :list_get }
-        reads.flat_map { |read| read.index.walk.select { |each_node| each_node.kind == :var_ref }.map(&:name) }
       end
 
       # A test made while building: one side runs, as in plain Ruby, and its value is the answer.

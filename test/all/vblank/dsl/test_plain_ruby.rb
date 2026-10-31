@@ -365,6 +365,85 @@ class TestPlainRuby < Minitest::Test
     assert_equal 0, player[:seen]
   end
 
+  def test_a_test_whose_right_side_does_game_work_is_answered_by_both_sides
+    player = played(frames: 3) do
+      a = var :a, 5
+      count = 0
+      both = 0
+      left_failed = 0
+      right_failed = 0
+      game_loop do
+        both = 1 if a > 1 && (count += 1) > 0
+        left_failed = 1 if a > 9 && (count += 1) > 0
+        right_failed = 1 if a > 1 && (count += 1) > 99
+      end
+    end
+
+    assert_equal [1, 0, 0], %i[both left_failed right_failed].map { |name| player[name] }
+    assert_equal 6, player[:count]
+  end
+
+  def test_an_either_test_whose_right_side_does_game_work_is_answered_by_both_sides
+    player = played(frames: 3) do
+      a = var :a, 5
+      count = 0
+      left_held = 0
+      right_held = 0
+      neither = 0
+      game_loop do
+        left_held = 1 if a > 1 || (count += 1) > 0
+        right_held = 1 if a > 9 || (count += 1) > 0
+        neither = 1 if a > 9 || (count += 1) > 99
+      end
+    end
+
+    assert_equal [1, 1, 0], %i[left_held right_held neither].map { |name| player[name] }
+    assert_equal 6, player[:count]
+  end
+
+  def test_a_join_kept_in_a_name_holds_the_answer_of_a_right_side_doing_game_work
+    player = played(frames: 2) do
+      a = var :a, 5
+      count = 0
+      seen = 0
+      game_loop do
+        done = a > 1 && (count += 1) > 0
+        seen = 1 if done
+      end
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
+  def test_the_right_of_and_skips_a_list_read_the_left_rules_out
+    player = played(frames: 2) do
+      things = list :things, capacity: 4, full_of: 0
+      things[1] = 7
+      i = var :i, 9
+      ok = true
+      skipped = 1
+      found = 0
+      game_loop do
+        skipped = 0 if i < 4 && things[i] == 0
+        i = 1 if i == 9
+        found = 1 if ok && things[i] == 7
+      end
+    end
+
+    assert_equal [1, 1], [player[:skipped], player[:found]]
+  end
+
+  def test_the_right_of_or_skips_a_list_read_the_left_decides
+    player = played(frames: 1) do
+      things = list :things, capacity: 4, full_of: 0
+      i = var :i, 9
+      seen = 0
+      game_loop { seen = 1 if i >= 4 || things[i] == 0 }
+    end
+
+    assert_equal 1, player[:seen]
+  end
+
   def test_the_right_of_or_runs_only_when_the_left_fails
     player = played(frames: 3) do
       n = 0

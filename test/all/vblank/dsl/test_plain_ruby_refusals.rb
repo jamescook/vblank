@@ -174,16 +174,6 @@ class TestPlainRubyRefusals < Minitest::Test
     refute_empty game.program.children
   end
 
-  def test_a_list_read_on_the_right_of_and_is_refused
-    assert_refused("reads a list") do
-      things = list :things, capacity: 4
-      i = 0
-      game_loop do
-        i = 1 if i < 4 && things[i] == 1
-      end
-    end
-  end
-
   private def warnings_of(&block)
     err = StringIO.new
     VBlank.build("PLAIN", console: :gba, out: StringIO.new, err: err, &VBlank::DSL::PlainRuby.rewrite(block))
