@@ -67,12 +67,22 @@ module VBlank
       # The block's file and its node. Ruby says where a block starts to the column, so two on one
       # line are told apart. A file is read and parsed once, per Ractor since a tree is not shared.
       def source_and_block_of(block)
-        line, column, = RubyVM::InstructionSequence.of(block).to_a[4][:code_location]
+        line, column = block_start(block)
         source, blocks = parsed_file(block.source_location.first)
         found = blocks[[line, column]]
         raise ArgumentError, "No block starts at line #{line}, so this game cannot be read." unless found
 
         [source, found]
+      end
+
+      # The line and column +block+ starts at. Two Ractors asking about one block for the first time
+      # crash Ruby or hang it, since the answer writes to the block's code, which they share. A held
+      # file lock is the only lock Ractors can share, and a block's own file holds all its Ractors.
+      def block_start(block)
+        File.open(block.source_location.first) do |file|
+          file.flock(File::LOCK_EX)
+          RubyVM::InstructionSequence.of(block).to_a[4][:code_location].first(2)
+        end
       end
 
       def parsed_file(path)
