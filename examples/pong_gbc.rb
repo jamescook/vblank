@@ -137,19 +137,19 @@ module PongGBC
     # Each `var` returns a handle we compare and mutate with the expression DSL.
     ball_x       = var :ball_x, ball_start[0]
     ball_y       = var :ball_y, ball_start[1]
-    ball_dx      = var :ball_dx, BALL_SPEED
-    ball_dy      = var :ball_dy, BALL_SPEED
+    ball_dx      = BALL_SPEED
+    ball_dy      = BALL_SPEED
     player_y     = var :player_y, paddle_start
     # The cpu paddle holds a fraction, so its two speeds can differ by less than a pixel a
     # frame. Everything that reads it as a place on screen asks for the whole number.
     cpu_y        = var :cpu_y, paddle_start.to_f
-    player_score = var :player_score, 0
-    cpu_score    = var :cpu_score, 0
-    state        = var :state, 0    # 0=title, 1=playing, 2=player_wins, 3=cpu_wins, 4=difficulty
-    music_on     = var :music_on, 1 # 1=play the gameplay music, 0=don't (set from the title menu)
+    player_score = 0
+    cpu_score    = 0
+    state        = 0    # 0=title, 1=playing, 2=player_wins, 3=cpu_wins, 4=difficulty
+    music_on     = 1 # 1=play the gameplay music, 0=don't (set from the title menu)
     # How hard the game is, which is the cpu paddle's speed and nothing else. It starts on
     # the harder of the two, which is the row the difficulty screen's cursor opens on.
-    cpu_speed    = var :cpu_speed, CPU_HARD
+    cpu_speed    = CPU_HARD
 
     # --- Subroutines ---
 

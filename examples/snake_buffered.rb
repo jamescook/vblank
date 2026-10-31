@@ -83,17 +83,17 @@ module BufferedSnake
     xs = list :xs, capacity: BODY_CAP
     ys = list :ys, capacity: BODY_CAP
 
-    state    = var :state, 0    # 0 = title, 1 = playing, 2 = game over
+    state    = 0    # 0 = title, 1 = playing, 2 = game over
     blink    = true
-    dx       = var :dx, 1
-    dy       = var :dy, 0
-    ndx      = var :ndx, 1
-    ndy      = var :ndy, 0
-    hx       = var :hx, 0
-    hy       = var :hy, 0
+    dx       = 1
+    dy       = 0
+    ndx      = 1
+    ndy      = 0
+    hx       = 0
+    hy       = 0
     food_x   = var :food_x, 0
     food_y   = var :food_y, 0
-    score    = var :score, 0
+    score    = 0
     self_hit = false
     placed   = false # Pick a random empty cell for the food (placement only; drawing happens in the
     # every-frame repaint). Tries a handful of random cells, keeping the first that

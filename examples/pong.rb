@@ -116,22 +116,22 @@ module PongGame
 
     # --- RAM variables ---
     # Each `var` returns a handle we compare and mutate with the expression DSL.
-    ball_x       = var :ball_x, 118
-    ball_y       = var :ball_y, 78
-    ball_dx      = var :ball_dx, BALL_SPEED
-    ball_dy      = var :ball_dy, BALL_SPEED
-    player_y     = var :player_y, 68
+    ball_x       = 118
+    ball_y       = 78
+    ball_dx      = BALL_SPEED
+    ball_dy      = BALL_SPEED
+    player_y     = 68
     # The cpu paddle holds a fraction, so its two speeds can differ by less than a pixel a
     # frame. Everything that reads it as a place on screen asks for the whole number.
-    cpu_y        = var :cpu_y, 68.0
-    player_score = var :player_score, 0
-    cpu_score    = var :cpu_score, 0
-    state        = var :state, 0    # 0=title, 1=playing, 2=player_wins, 3=cpu_wins, 4=difficulty
-    music_on     = var :music_on, 1 # 1=play the gameplay music, 0=don't (set from the title menu)
+    cpu_y        = 68.0
+    player_score = 0
+    cpu_score    = 0
+    state        = 0    # 0=title, 1=playing, 2=player_wins, 3=cpu_wins, 4=difficulty
+    music_on     = 1 # 1=play the gameplay music, 0=don't (set from the title menu)
     # How hard the game is, which is the cpu paddle's speed and nothing else. It starts on
     # the harder of the two, which is the row the difficulty screen's cursor opens on.
-    cpu_speed    = var :cpu_speed, CPU_HARD
-    zoom_timer   = var :zoom_timer, 0 # 0=idle; counting up while the title zooms in on START
+    cpu_speed    = CPU_HARD
+    zoom_timer   = 0 # 0=idle; counting up while the title zooms in on START
 
     # --- Subroutines ---
 

@@ -108,7 +108,7 @@ module Dive
     # FRONT of the diver.
     layers :shafts_far, :shafts_near, :sun, :name, :deep, :reef, :swimmers, :surface, :panel, :over
 
-    state = var :state, TITLE
+    state = TITLE
     fresh = true # true asks the dive to start over from the top
     blacking_out = false # true while the world is going dark
 

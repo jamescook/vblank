@@ -192,17 +192,17 @@ module Pacman
                    facing_from: "assets/pacman_sheet.png", tile: SIZE,
                    dirs: DIRS, transparent: true, colors: %i[transparent yellow]
     end
-    stunned = var :stunned, 0 # frames left of the flash after being caught
+    stunned = 0 # frames left of the flash after being caught
 
     # --- the pellets: a sprite each, scattered on the floor ---
     image(:pellet, "." => :transparent, "o" => :white) { PELLET_ART }
     pellets = layer(:pellets) { here.pellet_spots.map { |px, py| sprite :pellet, at: [px, py] } }
-    eaten = var :eaten, 0 # how many pellets Pac-Man has swallowed
+    eaten = 0 # how many pellets Pac-Man has swallowed
 
     # --- the ghost ---
     image(:ghost, "." => :transparent, "R" => :red, "W" => :white) { GHOST_ART }
     ghost = layer(:actors) { sprite :ghost, at: GHOST_START }
-    caught = var :caught, 0 # how many times the ghost has caught Pac
+    caught = 0 # how many times the ghost has caught Pac
 
     # --- the score, right on the screen ---
     # A tiled screen has no framebuffer to paint text into, so draw_text / draw_number

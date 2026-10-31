@@ -128,19 +128,19 @@ module Snake
     ys = list :ys, capacity: here.body_cap
 
     # --- RAM variables (each `var` hands back a handle we compare and mutate) ---
-    state    = var :state, 0    # 0 = title, 1 = playing, 2 = game over (read via case_var)
+    state    = 0    # 0 = title, 1 = playing, 2 = game over (read via case_var)
     blink    = true # flashes the "PRESS START" prompt on and off
-    dx       = var :dx, 1       # current heading, in cells per step (one axis at a time)
-    dy       = var :dy, 0
-    ndx      = var :ndx, 1      # the turn we'll commit on the next step
-    ndy      = var :ndy, 0
-    hx       = var :hx, 0       # where the head is about to move
-    hy       = var :hy, 0
-    tail_x   = var :tail_x, 0   # the cell the tail vacates on a slide (so we can erase it)
-    tail_y   = var :tail_y, 0
+    dx       = 1       # current heading, in cells per step (one axis at a time)
+    dy       = 0
+    ndx      = 1      # the turn we'll commit on the next step
+    ndy      = 0
+    hx       = 0       # where the head is about to move
+    hy       = 0
+    tail_x   = 0   # the cell the tail vacates on a slide (so we can erase it)
+    tail_y   = 0
     food_x   = var :food_x, 0
     food_y   = var :food_y, 0
-    score    = var :score, 0
+    score    = 0
     # The best score ever reached, kept in the cartridge's save memory so it's still
     # there next time the game is switched on. `save_var` is used exactly like `var`;
     # the framework loads it at boot and saves it whenever it changes (see the death

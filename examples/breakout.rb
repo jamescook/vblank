@@ -154,20 +154,20 @@ module Breakout
     paddle_x    = var :paddle_x, layout.start_paddle_x
     ball_x      = var :ball_x, layout.ball_start[0]
     ball_y      = var :ball_y, layout.ball_start[1]
-    ball_dx     = var :ball_dx, BALL_SPEED
+    ball_dx     = BALL_SPEED
     ball_dy     = var :ball_dy, -BALL_SPEED  # negative = heading up toward the wall
-    score       = var :score, 0
+    score       = 0
     # The best score so far, kept in the cartridge's save memory so it survives the
     # console being turned off. `save_var` is used just like `var`; the framework
     # loads it at boot and saves it automatically whenever it changes (see the two
     # game-ending branches in update_ball). No save hardware to touch.
     high        = save_var :high_score, 0
-    lives       = var :lives, START_LIVES
+    lives       = START_LIVES
     bricks_left = var :bricks_left, bricks.length
     best_bar    = var :_best_bar, 0 # how much of the record this run has matched
-    state       = var :state, 0   # 0=title, 1=playing, 2=cleared, 3=game_over
+    state       = 0   # 0=title, 1=playing, 2=cleared, 3=game_over
     blink       = true # flashes the title prompt
-    _hit        = var :_hit, 0    # scratch: where on the paddle the ball landed
+    _hit        = 0    # scratch: where on the paddle the ball landed
 
     # One on/off flag per brick (1 = still there). Kept in a hash keyed by the
     # brick's name so the game code can look each one up while it loops the wall.

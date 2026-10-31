@@ -53,7 +53,7 @@ module Shmup
     colors :warm_orange,       [:transparent, :orange, :yellow]
     colors :warm_red,          [:transparent, :red, :orange]
     colors :warm_orange_again, [:transparent, :orange, :yellow]
-    state = var :state, PLAYING
+    state = PLAYING
     new_game = false # true asks the playing scene to start over
     leaving  = false # true while the field dims on the way to the game-over screen
 

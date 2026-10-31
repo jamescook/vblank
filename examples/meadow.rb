@@ -262,7 +262,7 @@ module Meadow
     end
     hero = layer(:actors) { sprite :hero_art, at: [112, 72] }
 
-    room = var :room, 0 # 0 is the cabin, 1 the meadow — the map number show_map takes
+    room = 0 # 0 is the cabin, 1 the meadow — the map number show_map takes
     in_door = false # true from the hero stepping into a door until the room is swapped
 
     # The room's name, in the corner. A test around the words says when each shows.
@@ -276,10 +276,10 @@ module Meadow
 
     x = var :hero_x, 112 # where the hero stands in the room, in the room's own pixels
     y = var :hero_y, 72
-    widest = var :widest, 240 - HERO # how far the hero can walk in this room, each way
-    deepest = var :deepest, 160 - HERO
-    view_x = var :view_x, 0 # the top-left of the view, in the room's pixels
-    view_y = var :view_y, 0
+    widest = 240 - HERO # how far the hero can walk in this room, each way
+    deepest = 160 - HERO
+    view_x = 0 # the top-left of the view, in the room's pixels
+    view_y = 0
 
     game_loop do
       # The hero walks, and can step into a door, only while he is not already in one.

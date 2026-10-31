@@ -96,9 +96,9 @@ module Raycaster
     sin     = table :sin, SIN
     world   = table :world, MAP, width: :byte
 
-    view = var :view, 0    # the way the player faces (0..511, wraps freely)
-    px = var :px, 3.5      # standing in the middle of cell (3, 3)
-    py = var :py, 3.5
+    view = 0    # the way the player faces (0..511, wraps freely)
+    px = 3.5      # standing in the middle of cell (3, 3)
+    py = 3.5
 
     step_x = var :_step_x, 0.0 # this frame's walking step
     step_y = var :_step_y, 0.0

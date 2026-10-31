@@ -239,7 +239,7 @@ module Hero
     # haze that stays half thick wherever you walk: `console` is the console the game is being
     # built for, and the one line says each console's best. (`mist` is still worked out and
     # saved on both, so a file means the same walk on either.)
-    mist = var :mist, 0
+    mist = 0
     layer(:air, transparency: console.name == :snes ? 50 : 100 - mist) do
       background :fog, tiles: :weather, map: Array.new(32) { "#" * 32 }
     end
@@ -259,16 +259,16 @@ module Hero
     # Where the hero stands in the WORLD is the game's own to keep. The follow camera keeps
     # the hero in one place on the screen and slides the world instead, so the hero's own
     # position never says how far they walked; these two do, moved by the same steps.
-    px = var :px, START_X
-    py = var :py, START_Y
-    steps = var :steps, 0
+    px = START_X
+    py = START_Y
+    steps = 0
     files = save_data(:file, copies: 3) { keep px, py, mist, steps }
 
-    slot = var :slot, 0     # the file picked on the file screen, and the one START saves to
-    saved = var :saved, 0   # frames left of "SAVED" after START
+    slot = 0     # the file picked on the file screen, and the one START saves to
+    saved = 0   # frames left of "SAVED" after START
     mode = var :mode, :files
     shown = Array.new(3) { |n| var :"shown#{n}", 0 } # each file's steps, for the file screen
-    number = var :number, 1 # the picked file's number, as the second step shows it
+    number = 1 # the picked file's number, as the second step shows it
 
     # The file screen is two steps: pick a file, then say what to do with it. Which step is
     # on screen changes at the top of a frame, never part way through one — both menus read
@@ -295,9 +295,9 @@ module Hero
                        as: two_backgrounds ? :sprite : :tiles
     trail = canvas :trail, width: 32, height: 32, colors: %i[transparent white blue], as: :sprite
     reading = false # true while the sign's box is open
-    typed = var :typed, 0     # how many of its letters are up
-    pen = var :pen, 0         # where the next one goes
-    tick = var :tick, 0
+    typed = 0     # how many of its letters are up
+    pen = 0         # where the next one goes
+    tick = 0
 
     # One more letter of the sign's words, where the last one ended. A `func`, because two
     # places type a letter and drawing one is a fair amount of code: as a routine it is
