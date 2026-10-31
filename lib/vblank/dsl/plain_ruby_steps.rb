@@ -512,13 +512,11 @@ module VBlank
           @condition.close_branch
         end
 
-        # A ternary ending a method, which may be there for what its sides do. Only a side a game
-        # can keep a value of keeps one. A verb's nil or a handle leaves nothing to answer with.
+        # A ternary ending a method, which may be there for what its sides do. A side a game can
+        # keep a value of keeps one. A verb's nil or a handle of its own leaves nothing to answer with.
         def keep_tail_value(value)
-          keepable = [true, false].include?(value) || value.is_a?(Condition) || value.is_a?(Integer)
-          return keep_side_value(value) if keepable || (value.is_a?(Value) && !value.handle?)
-
-          close_side(value)
+          keepable = [true, false].include?(value) || value.is_a?(Condition) || value.is_a?(Integer) || value.is_a?(Value)
+          keepable ? keep_side_value(value) : close_side(value)
         end
 
         def tail_value = @kept

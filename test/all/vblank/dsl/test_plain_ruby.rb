@@ -1062,6 +1062,24 @@ class TestPlainRuby < Minitest::Test
     assert_equal [1, 0, 2, 1], %i[seen_alive seen_dead fast slow].map { |name| player[name] }
   end
 
+  def test_a_method_ending_in_a_ternary_of_two_variables_gives_back_the_number
+    player = played do
+      def pick(hp, lives, first) = first > 0 ? hp : lives
+      hp = var :hp, 5
+      lives = var :lives, 3
+      yes = var :yes, 1
+      no = var :no, 0
+      from_hp = 0
+      from_lives = 0
+      game_loop do
+        from_hp = pick(hp, lives, yes)
+        from_lives = pick(hp, lives, no)
+      end
+    end
+
+    assert_equal [5, 3], [player[:from_hp], player[:from_lives]]
+  end
+
   def test_a_method_ending_in_a_ternary_of_verbs_still_runs_one_side
     player = played do
       def nudge(hp, tally) = hp > 3 ? tally[:high] += 1 : tally[:low] += 1
